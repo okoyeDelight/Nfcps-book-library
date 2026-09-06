@@ -29,6 +29,21 @@ function clean(value, max = 500) {
   return String(value || "").trim().slice(0, max);
 }
 
+async function githubPut({ repo, path, token, branch, content, message, sha }) {
+  const response = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "NFCPS-Book-Library-Admin",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ message, content, branch, ...(sha ? { sha } : {}) }),
+  });
+  return response;
+}
+
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") return reply(405, { error: "Method not allowed" });
 
@@ -53,15 +68,16 @@ export const handler = async (event) => {
   const author = clean(input.author, 140);
   const category = clean(input.category, 80);
   const description = clean(input.description, 900);
-  const cover = clean(input.cover, 800);
+  const suppliedCoverUrl = clean(input.cover, 800);
   const source = clean(input.source, 800);
+  const coverDataUrl = typeof input.coverDataUrl === "string" ? input.coverDataUrl : "";
 
   if (!title || !author || !category || !description) {
     return reply(400, { error: "Title, author, category and description are required." });
   }
 
-  const path = "data/admin-books.json";
-  const endpoint = `https://api.github.com/repos/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`;
+  const dataPath = "data/admin-books.json";
+  const endpoint = `https://api.github.com/repos/${repo}/contents/${dataPath}?ref=${encodeURIComponent(branch)}`;
   const githubHeaders = {
     Accept: "application/vnd.github+json",
     Authorization: `Bearer ${githubToken}`,
@@ -81,11 +97,49 @@ export const handler = async (event) => {
     books = [];
   }
 
-  const duplicate = books.some((book) => String(book.title).toLowerCase() === title.toLowerCase() && String(book.author).toLowerCase() === author.toLowerCase());
+  const duplicate = books.some(
+    (book) =>
+      String(book.title).toLowerCase() === title.toLowerCase() &&
+      String(book.author).toLowerCase() === author.toLowerCase()
+  );
   if (duplicate) return reply(409, { error: "That book is already in the admin collection." });
 
+  const id = Date.now();
+  let cover = suppliedCoverUrl;
+
+  if (coverDataUrl) {
+    const match = coverDataUrl.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=\r\n]+)$/);
+    if (!match) return reply(400, { error: "Cover upload must be a JPG, PNG or WebP image." });
+
+    const mime = match[1];
+    const base64 = match[2].replace(/\s/g, "");
+    const bytes = Buffer.from(base64, "base64");
+    if (!bytes.length || bytes.length > 3 * 1024 * 1024) {
+      return reply(413, { error: "Cover image must be smaller than 3 MB." });
+    }
+
+    const extension = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+    const imagePath = `public/books/admin/${id}.${extension}`;
+    const imageResponse = await githubPut({
+      repo,
+      path: imagePath,
+      token: githubToken,
+      branch,
+      content: base64,
+      message: `library: upload cover for ${title}`,
+    });
+
+    if (!imageResponse.ok) {
+      const details = await imageResponse.text();
+      console.error("Cover upload failed", details);
+      return reply(502, { error: "GitHub rejected the uploaded cover image." });
+    }
+
+    cover = `/books/admin/${id}.${extension}`;
+  }
+
   const newBook = {
-    id: Date.now(),
+    id,
     title,
     author,
     category,
@@ -96,15 +150,14 @@ export const handler = async (event) => {
   };
 
   const nextBooks = [...books, newBook];
-  const updateResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-    method: "PUT",
-    headers: { ...githubHeaders, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      message: `library: add ${title}`,
-      content: Buffer.from(`${JSON.stringify(nextBooks, null, 2)}\n`).toString("base64"),
-      sha: currentFile.sha,
-      branch,
-    }),
+  const updateResponse = await githubPut({
+    repo,
+    path: dataPath,
+    token: githubToken,
+    branch,
+    content: Buffer.from(`${JSON.stringify(nextBooks, null, 2)}\n`).toString("base64"),
+    message: `library: add ${title}`,
+    sha: currentFile.sha,
   });
 
   if (!updateResponse.ok) {
@@ -113,5 +166,9 @@ export const handler = async (event) => {
     return reply(502, { error: "GitHub rejected the library update." });
   }
 
-  return reply(200, { ok: true, book: newBook, message: "Book published. The connected Netlify site will rebuild from GitHub automatically." });
+  return reply(200, {
+    ok: true,
+    book: newBook,
+    message: "Book published. The connected Netlify site will rebuild from GitHub automatically.",
+  });
 };
