@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   BookOpen,
-  Download,
   ExternalLink,
   HeartHandshake,
   LibraryBig,
@@ -14,7 +13,8 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { freeEbooks, physicalBooks, type PhysicalBook } from "@/data/books";
+import { physicalBooks, type PhysicalBook } from "@/data/books";
+import EbookCatalog from "@/components/EbookCatalog";
 
 const WHATSAPP = "2349079543695";
 
@@ -153,10 +153,10 @@ export default function LibraryShell() {
           <div className="eyebrow"><Sparkles size={14} /> NFCPS UNIZIK CHAPTER</div>
           <h1>NFCPS <span>BOOK LIBRARY</span></h1>
           <p className="tagline">Christ, the Therapy for All.</p>
-          <p className="hero-copy">Discover physical books in the fellowship library and trusted free Christian e-books gathered into one beautiful place.</p>
+          <p className="hero-copy">Discover physical books in the fellowship library and more than 500 trusted free Christian e-books gathered into one beautiful place.</p>
           <div className="hero-actions">
             <a href="#library" className="primary-cta">Explore Library <ArrowRight size={18} /></a>
-            <a href="#ebooks" className="secondary-cta">Browse Free E-books</a>
+            <a href="#ebooks" className="secondary-cta">Browse 500+ Free E-books</a>
           </div>
         </motion.div>
         <motion.div className="hero-books" initial={{ opacity: 0, scale: 0.93 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.28, duration: 0.75 }}>
@@ -169,7 +169,7 @@ export default function LibraryShell() {
 
       <section className="stats-wrap" aria-label="Library statistics">
         <div className="stat"><strong>{physicalBooks.length}</strong><span>Physical Books</span></div>
-        <div className="stat"><strong>{freeEbooks.length}</strong><span>Free E-books</span></div>
+        <div className="stat"><strong>500+</strong><span>Free E-books</span></div>
         <div className="stat"><strong>{categories.length - 1}</strong><span>Categories</span></div>
         <div className="stat"><strong>{physicalBooks.filter((book) => book.verified).length}</strong><span>Verified Titles</span></div>
       </section>
@@ -203,32 +203,7 @@ export default function LibraryShell() {
         )}
       </section>
 
-      <section id="ebooks" className="ebooks-section">
-        <div className="ebook-heading">
-          <div className="ebook-icon"><Download size={25} /></div>
-          <div>
-            <span className="section-kicker">FREE DIGITAL RESOURCES</span>
-            <h2>Free E-book Library</h2>
-            <p>Legally free Christian classics from trusted public-domain sources. The download button takes you to the original source so you can choose EPUB, Kindle, HTML or another available format.</p>
-          </div>
-        </div>
-        <div className="ebook-grid">
-          {freeEbooks.map((book, index) => (
-            <motion.article key={book.id} className="ebook-card" initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.05 }}>
-              <div className={`ebook-cover ebook-cover-${(index % 5) + 1}`}>
-                <span>{book.category}</span><strong>{book.title}</strong><small>{book.author}</small>
-              </div>
-              <div className="ebook-copy">
-                <span className="source-chip">{book.sourceName}</span>
-                <h3>{book.title}</h3>
-                <p className="author">{book.author}</p>
-                <p className="description">{book.description}</p>
-                <a className="download-button" href={book.sourceUrl} target="_blank" rel="noreferrer">Download Free <Download size={15} /></a>
-              </div>
-            </motion.article>
-          ))}
-        </div>
-      </section>
+      <EbookCatalog />
 
       <section id="about" className="about-section">
         <div className="about-card">
