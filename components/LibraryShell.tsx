@@ -14,7 +14,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { physicalBooks, type PhysicalBook } from "@/data/books";
+import { physicalBooks, type PhysicalBook } from "@/data/library";
 import EbookCatalog from "@/components/EbookCatalog";
 
 const WHATSAPP = "2349079543695";
@@ -192,6 +192,7 @@ export default function LibraryShell() {
           <a href="#library">Physical Library</a>
           <a href="#ebooks">Free E-books</a>
           <a href="#about">About</a>
+          <a href="/admin">Admin</a>
         </nav>
         <button className="menu-button" aria-label="Toggle menu" onClick={() => setMenuOpen((value) => !value)}>
           {menuOpen ? <X /> : <Menu />}
@@ -199,7 +200,7 @@ export default function LibraryShell() {
         <AnimatePresence>
           {menuOpen && (
             <motion.nav className="mobile-nav" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              {[["Home", "#top"], ["Physical Library", "#library"], ["Free E-books", "#ebooks"], ["About", "#about"]].map(([label, href]) => (
+              {[["Home", "#top"], ["Physical Library", "#library"], ["Free E-books", "#ebooks"], ["About", "#about"], ["Admin", "/admin"]].map(([label, href]) => (
                 <a key={href} href={href} onClick={() => setMenuOpen(false)}>{label}</a>
               ))}
             </motion.nav>
