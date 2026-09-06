@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   BookOpen,
   ExternalLink,
+  Eye,
   HeartHandshake,
   LibraryBig,
   Menu,
@@ -28,38 +29,36 @@ function InitialCover({ book }: { book: PhysicalBook }) {
   return (
     <div className={`fallback-cover fallback-${((book.id - 1) % 6) + 1}`}>
       <span>NFCPS LIBRARY</span>
-      <strong>{words.slice(0, 5).join(" ")}</strong>
+      <strong>{words.slice(0, 7).join(" ")}</strong>
       <small>{book.author}</small>
     </div>
   );
 }
 
-function Book3D({ book }: { book: PhysicalBook }) {
-  const [active, setActive] = useState(false);
+function BookArtwork({ book }: { book: PhysicalBook }) {
+  const [failed, setFailed] = useState(false);
+  if (!book.cover || failed) return <InitialCover book={book} />;
   return (
-    <button
-      type="button"
-      aria-label={`View ${book.title}`}
-      className={`book-3d ${active ? "is-active" : ""}`}
-      onClick={() => setActive((value) => !value)}
-    >
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={book.cover} alt={`${book.title} cover`} loading="lazy" onError={() => setFailed(true)} />
+  );
+}
+
+function Book3D({ book, onOpen }: { book: PhysicalBook; onOpen: () => void }) {
+  return (
+    <button type="button" aria-label={`Open details for ${book.title}`} className="book-3d" onClick={onOpen}>
       <span className="book-pages" />
       <span className="book-back" />
       <span className="book-spine" />
       <span className="book-front">
-        {book.cover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={book.cover} alt={`${book.title} cover`} loading="lazy" />
-        ) : (
-          <InitialCover book={book} />
-        )}
+        <BookArtwork book={book} />
         <span className="book-gloss" />
       </span>
     </button>
   );
 }
 
-function PhysicalCard({ book, index }: { book: PhysicalBook; index: number }) {
+function PhysicalCard({ book, index, onOpen }: { book: PhysicalBook; index: number; onOpen: () => void }) {
   return (
     <motion.article
       className="book-card"
@@ -69,7 +68,7 @@ function PhysicalCard({ book, index }: { book: PhysicalBook; index: number }) {
       transition={{ duration: 0.42, delay: Math.min(index * 0.035, 0.2) }}
     >
       <div className="book-stage">
-        <Book3D book={book} />
+        <Book3D book={book} onOpen={onOpen} />
         <div className="shelf-line" />
       </div>
       <div className="book-copy">
@@ -80,9 +79,12 @@ function PhysicalCard({ book, index }: { book: PhysicalBook; index: number }) {
         <h3>{book.title}</h3>
         <p className="author">{book.author}</p>
         <p className="description">{book.description}</p>
-        <div className="book-actions">
+        <div className="book-actions book-actions-three">
+          <button type="button" className="details-button" onClick={onOpen}>
+            <Eye size={15} /> Details
+          </button>
           <a className="request-button" href={requestUrl(book)} target="_blank" rel="noreferrer">
-            Request Book <ExternalLink size={15} />
+            Request <ExternalLink size={15} />
           </a>
           {book.source && (
             <a className="info-button" href={book.source} target="_blank" rel="noreferrer" aria-label={`Book information for ${book.title}`}>
@@ -95,10 +97,74 @@ function PhysicalCard({ book, index }: { book: PhysicalBook; index: number }) {
   );
 }
 
+function BookModal({ book, onClose }: { book: PhysicalBook | null; onClose: () => void }) {
+  useEffect(() => {
+    if (!book) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const keyHandler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", keyHandler);
+    return () => {
+      document.body.style.overflow = original;
+      window.removeEventListener("keydown", keyHandler);
+    };
+  }, [book, onClose]);
+
+  return (
+    <AnimatePresence>
+      {book && (
+        <motion.div className="book-modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={onClose}>
+          <motion.div
+            className="book-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${book.title} details`}
+            initial={{ opacity: 0, y: 28, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 280, damping: 28 }}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <button type="button" className="modal-close" onClick={onClose} aria-label="Close book details"><X size={20} /></button>
+            <div className="modal-book-stage">
+              <div className="modal-book-3d">
+                <span className="modal-book-pages" />
+                <span className="modal-book-spine" />
+                <span className="modal-book-front"><BookArtwork book={book} /><span className="book-gloss" /></span>
+              </div>
+              <div className="modal-shelf" />
+            </div>
+            <div className="modal-copy">
+              <div className="book-meta-row">
+                <span className="category-chip">{book.category}</span>
+                <span className={book.verified ? "verified-chip" : "verify-chip"}>{book.verified ? "verified title" : "edition verification pending"}</span>
+              </div>
+              <h2>{book.title}</h2>
+              <p className="modal-author">{book.author}</p>
+              <p className="modal-description">{book.description}</p>
+              <div className="modal-note">
+                <BookOpen size={18} />
+                <span>This title is part of the NFCPS UNIZIK physical collection. Requesting it opens WhatsApp with the book title already filled in.</span>
+              </div>
+              <div className="modal-actions">
+                <a className="primary-cta modal-request" href={requestUrl(book)} target="_blank" rel="noreferrer">Request this book <ExternalLink size={17} /></a>
+                {book.source && <a className="secondary-cta" href={book.source} target="_blank" rel="noreferrer">View book information</a>}
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function LibraryShell() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeBook, setActiveBook] = useState<PhysicalBook | null>(null);
 
   const categories = useMemo(
     () => ["All", ...Array.from(new Set(physicalBooks.map((book) => book.category))).sort()],
@@ -179,7 +245,7 @@ export default function LibraryShell() {
           <div>
             <span className="section-kicker">PHYSICAL COLLECTION</span>
             <h2>Choose your next book.</h2>
-            <p>Tap a book for a 3D pull-out effect, search instantly, then request the physical copy directly on WhatsApp.</p>
+            <p>Tap any 3D book to pull it forward, inspect its details and request the physical copy directly on WhatsApp.</p>
           </div>
           <LibraryBig size={36} />
         </div>
@@ -197,7 +263,7 @@ export default function LibraryShell() {
         <p className="results-note">Showing {filtered.length} of {physicalBooks.length} books</p>
 
         {filtered.length > 0 ? (
-          <div className="book-grid">{filtered.map((book, index) => <PhysicalCard key={book.id} book={book} index={index} />)}</div>
+          <div className="book-grid">{filtered.map((book, index) => <PhysicalCard key={book.id} book={book} index={index} onOpen={() => setActiveBook(book)} />)}</div>
         ) : (
           <div className="empty-state"><Search size={30} /><h3>No books found</h3><p>Try another title, author or category.</p></div>
         )}
@@ -220,6 +286,8 @@ export default function LibraryShell() {
         <p>Christ, the Therapy for All.</p>
         <span>© 2026 NFCPS UNIZIK</span>
       </footer>
+
+      <BookModal book={activeBook} onClose={() => setActiveBook(null)} />
     </main>
   );
 }
