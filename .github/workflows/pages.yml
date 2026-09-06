@@ -18,11 +18,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Install dependencies
         run: npm install
+
       - name: Build application
         run: npm run build
+
+      - name: Upload source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nfcps-book-library-source
+          path: |
+            .
+            !node_modules
+            !.next
+          include-hidden-files: true
+          retention-days: 1
