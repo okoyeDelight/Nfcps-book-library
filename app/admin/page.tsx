@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { ArrowLeft, BookOpen, CheckCircle2, Eye, KeyRound, LoaderCircle, LogOut, Plus, ShieldCheck, UploadCloud } from "lucide-react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ArrowLeft, BookOpen, CheckCircle2, Eye, ImagePlus, KeyRound, LoaderCircle, LogOut, Plus, ShieldCheck, Trash2, UploadCloud } from "lucide-react";
 
 const emptyForm = {
   title: "",
@@ -9,6 +9,7 @@ const emptyForm = {
   category: "Christian Living",
   description: "",
   cover: "",
+  coverDataUrl: "",
   source: "",
   verified: true,
 };
@@ -50,6 +51,31 @@ export default function AdminPage() {
     }
   }
 
+  function handleCoverFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setError("");
+    setMessage("");
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Choose a JPG, PNG or WebP cover image.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      setError("The cover image must be smaller than 3 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((current) => ({ ...current, coverDataUrl: String(reader.result || ""), cover: "" }));
+    };
+    reader.onerror = () => setError("Could not read that image. Try another one.");
+    reader.readAsDataURL(file);
+  }
+
   async function publishBook(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -87,6 +113,8 @@ export default function AdminPage() {
     setError("");
   }
 
+  const previewCover = form.coverDataUrl || form.cover;
+
   return (
     <main className="admin-page">
       <div className="admin-glow admin-glow-one" />
@@ -113,7 +141,7 @@ export default function AdminPage() {
       ) : (
         <section className="admin-dashboard">
           <div className="admin-heading">
-            <div><span className="section-kicker">PHYSICAL COLLECTION</span><h1>Add a new book.</h1><p>Enter the details once. Publishing commits the new book to GitHub so the collection stays available to everyone after deployment.</p></div>
+            <div><span className="section-kicker">PHYSICAL COLLECTION</span><h1>Add a new book.</h1><p>Upload the cover straight from your phone gallery, enter the details once, and publish it into the same 3D collection.</p></div>
             <div className="admin-status"><CheckCircle2 size={18} /><span>Admin authenticated</span></div>
           </div>
 
@@ -124,9 +152,21 @@ export default function AdminPage() {
                 <label><span>Book title *</span><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="e.g. The Pursuit of God" required /></label>
                 <label><span>Author *</span><input value={form.author} onChange={(event) => setForm({ ...form, author: event.target.value })} placeholder="Author name" required /></label>
               </div>
+
+              <label className="admin-upload-box">
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleCoverFile} />
+                <span className="admin-upload-icon"><ImagePlus size={22} /></span>
+                <span className="admin-upload-copy"><strong>{form.coverDataUrl ? "Cover selected" : "Upload book cover"}</strong><small>Choose a JPG, PNG or WebP from your gallery · maximum 3 MB</small></span>
+                <span className="admin-upload-action">Choose image</span>
+              </label>
+
+              {form.coverDataUrl && (
+                <div className="admin-selected-cover"><CheckCircle2 size={16} /><span>Gallery cover will be saved into the website automatically.</span><button type="button" onClick={() => setForm({ ...form, coverDataUrl: "" })}><Trash2 size={14} /> Remove</button></div>
+              )}
+
               <div className="admin-fields two-col">
                 <label><span>Category *</span><input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} placeholder="Prayer, Leadership, Faith…" required /></label>
-                <label><span>Online cover URL</span><input type="url" value={form.cover} onChange={(event) => setForm({ ...form, cover: event.target.value })} placeholder="https://…/cover.jpg" /></label>
+                <label><span>Or use online cover URL</span><input type="url" value={form.cover} disabled={Boolean(form.coverDataUrl)} onChange={(event) => setForm({ ...form, cover: event.target.value, coverDataUrl: "" })} placeholder="https://…/cover.jpg" /></label>
               </div>
               <label className="admin-full"><span>Description *</span><textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="A clear two- or three-sentence description of the book…" rows={6} required /></label>
               <label className="admin-full"><span>Book information/source URL</span><input type="url" value={form.source} onChange={(event) => setForm({ ...form, source: event.target.value })} placeholder="Google Books, publisher page, Open Library…" /></label>
@@ -140,7 +180,7 @@ export default function AdminPage() {
               <div className="admin-preview-title"><Eye size={18} /><strong>Live card preview</strong></div>
               <div className="admin-preview-stage">
                 <div className="admin-preview-book">
-                  {form.cover ? <img src={form.cover} alt="Book cover preview" /> : <div className="admin-cover-fallback"><small>NFCPS LIBRARY</small><strong>{form.title || "BOOK TITLE"}</strong><span>{form.author || "Author"}</span></div>}
+                  {previewCover ? <img src={previewCover} alt="Book cover preview" /> : <div className="admin-cover-fallback"><small>NFCPS LIBRARY</small><strong>{form.title || "BOOK TITLE"}</strong><span>{form.author || "Author"}</span></div>}
                 </div>
                 <div className="admin-preview-shelf" />
               </div>
