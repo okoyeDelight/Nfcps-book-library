@@ -3,6 +3,7 @@ import "./globals.css";
 import "./ebook.css";
 import "./enhancements.css";
 import "./admin.css";
+import "./admin-upload.css";
 
 export const metadata: Metadata = {
   title: "NFCPS BOOK LIBRARY",
