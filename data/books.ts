@@ -22,13 +22,17 @@ export type Ebook = {
 const googleCover = (id: string) =>
   `https://books.google.com/books/content?id=${id}&printsec=frontcover&img=1&zoom=1&source=gbs_api`;
 
+const isbnCover = (isbn: string) =>
+  `https://books.google.com/books/content?vid=ISBN${isbn}&printsec=frontcover&img=1&zoom=1&source=gbs_api`;
+
 export const physicalBooks: PhysicalBook[] = [
   {
     id: 1,
     title: "God Cannot Change — Why Pray?",
     author: "Emmanuel Unamba",
     category: "Prayer",
-    description: "A study of Christian prayer that explores why prayer matters even when God is understood as unchanging, and how prayer shapes the believer's relationship with God.",
+    description: "The True Nature of a Christian Prayer examines the apparent tension between God's immutability and answered prayer, presenting prayer as a life aligned with God's will rather than an attempt to change His nature.",
+    cover: isbnCover("9789785230758"),
     verified: true,
   },
   {
@@ -46,16 +50,16 @@ export const physicalBooks: PhysicalBook[] = [
     title: "Wondrous",
     author: "Author to verify",
     category: "Christian Living",
-    description: "A title from the NFCPS physical collection. The full subtitle and author are being verified from the original edition.",
+    description: "A title from the NFCPS physical collection. The full subtitle and author are still being verified from the original edition so the library does not publish a guessed attribution.",
     verified: false,
   },
   {
     id: 4,
-    title: "How Masters Learn",
-    author: "Author to verify",
+    title: "How Masters Learn: A Guide to Evidence-Based Learning",
+    author: "G. Obiasor",
     category: "Learning",
-    description: "A guide to effective learning focused on improving study habits, retention and the disciplined process of mastering new knowledge.",
-    verified: false,
+    description: "A practical guide to evidence-based learning strategies, focused on improving study habits, recall, comprehension and the disciplined process of mastering new knowledge.",
+    verified: true,
   },
   {
     id: 5,
@@ -93,6 +97,7 @@ export const physicalBooks: PhysicalBook[] = [
     author: "John Osteen",
     category: "Faith",
     description: "A short faith-building resource about understanding what believers have received in Christ and learning how to appropriate those promises with confidence.",
+    cover: isbnCover("9780912631035"),
     source: "https://www.vccwordshop.com/books/how-to-claim-the-benefits-of-the-will",
     verified: true,
   },
@@ -101,7 +106,7 @@ export const physicalBooks: PhysicalBook[] = [
     title: "One Thing Is Needful",
     author: "Author to verify",
     category: "Spiritual Growth",
-    description: "A devotional title in the NFCPS collection emphasizing spiritual priorities and the importance of centering life on what matters most before God.",
+    description: "A devotional title in the NFCPS collection emphasizing spiritual priorities and the importance of centering life on what matters most before God. The exact edition details are still being confirmed.",
     verified: false,
   },
   {
@@ -109,7 +114,7 @@ export const physicalBooks: PhysicalBook[] = [
     title: "Christian Retreat & Genealogical Healing",
     author: "Author to verify",
     category: "Healing",
-    description: "A Christian retreat resource focused on prayer, family history, spiritual healing and freedom. The edition details are still being verified.",
+    description: "A Christian retreat resource focused on prayer, family history, spiritual healing and freedom. The edition details are still being verified from the physical copy.",
     verified: false,
   },
   {
@@ -135,7 +140,7 @@ export const physicalBooks: PhysicalBook[] = [
     title: "Covenant",
     author: "Author to verify",
     category: "Bible Study",
-    description: "A covenant-focused title in the NFCPS physical collection. The full title and author will be confirmed from a clearer source image.",
+    description: "A covenant-focused title in the NFCPS physical collection. The full title and author will be confirmed from a clearer source image rather than guessed from the photographed cover.",
     verified: false,
   },
   {
