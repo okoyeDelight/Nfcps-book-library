@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./ebook.css";
 import "./enhancements.css";
+import "./pageflip.css";
 import "./admin.css";
 import "./admin-upload.css";
 
