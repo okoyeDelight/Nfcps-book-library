@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./ebook.css";
 import "./enhancements.css";
+import "./admin.css";
 
 export const metadata: Metadata = {
   title: "NFCPS BOOK LIBRARY",
