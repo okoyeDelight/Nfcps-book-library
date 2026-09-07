@@ -10,6 +10,11 @@ https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/
 
 ## Current build
 
+- Real NFCPS logo integrated into the live app identity
+- Cinematic NFCPS opening splash with logo reveal, halo/orbit motion, light sweep and premium transition
+- Splash is shown once per browser session so normal in-app navigation stays fast
+- NFCPS logo now remains in the live header and footer after the intro
+- Installable app metadata, favicon and app icon now use the NFCPS identity
 - Interactive 3D physical-book collection
 - Automated physical-book reservations with no admin approval
 - Self-confirmed collection and return
