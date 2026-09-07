@@ -19,8 +19,16 @@ https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/
 - Premium Apple-like visual pass with restrained glass surfaces, softer borders, cleaner hierarchy and more deliberate spacing
 - Animated **flipping-book mark** replaces the old sparkle/star-style identity across the hero, Library Pulse, mobile dock and recommendations
 - Immersive hero layout with responsive book showcase and live-library visual treatment
-- Smart-start section that lets members jump directly to physical books, My Books or the e-library
-- Fixed mobile quick dock for Home, Physical Books, E-books and My Books
+- Smart-start section for Physical Books, My Books, E-books and **NFCPS Moments**
+- Fixed mobile quick dock for Home, Physical Books, E-books, Moments and My Books
+- **NFCPS Moments** with Bible verse, public-domain book excerpt and mixed modes
+- User-selectable Moments cadence: 5 min, 15 min, 30 min, 1 hour, 2 hours or 4 hours
+- Default Moments quiet hours from 10 PM to 7 AM
+- Optional lock-screen Moments delivered as **NFCPS UNIZIK LIBRARY** push notifications
+- 48-message offline-ready Moments pack stored on the member's device
+- Moments plan can be paused independently without disabling physical-book due reminders
+- Public-domain excerpt choices currently include The Pursuit of God, The Pilgrim's Progress, The Imitation of Christ and Humility: The Beauty of Holiness
+- Honest PWA offline model: cached Moments remain available offline; fully closed-app offline scheduled alerts require the later native-app layer
 - Live automation rail showing 24-hour reservations, 30-day loans, push/calendar reminders and automatic waitlist promotion
 - Interactive premium 3D physical-book collection with live availability states
 - Physical shelf filters for Available Now, Returning Soon, In Circulation and Waitlisted books
@@ -55,4 +63,4 @@ https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/
 - Lazy-loaded covers and content-visibility optimization to reduce mobile rendering cost
 - Curated NFCPS Christian recommendations
 
-See `docs/circulation-automation.md` for the physical-library circulation, waitlist, My Books and reminder workflow.
+See `docs/circulation-automation.md` for physical-library automation and `docs/nfcps-moments.md` for the Moments reminder architecture.
