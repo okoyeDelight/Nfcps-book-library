@@ -15,6 +15,11 @@ https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/
 - Splash is shown once per browser session so normal in-app navigation stays fast
 - NFCPS logo now remains in the live header and footer after the intro
 - Installable app metadata, favicon and app icon now use the NFCPS identity
+- Full-width mobile-first home experience with explicit viewport handling to prevent narrow/one-sided rendering
+- Immersive hero layout with responsive book showcase and live-library visual treatment
+- Smart-start section that lets members jump directly to physical books, My Books or the 600-book e-library
+- Fixed mobile quick dock for Home, Physical Books, E-books and My Books
+- Live automation rail showing 24-hour reservations, 30-day loans, push/calendar reminders and automatic waitlist promotion
 - Interactive premium 3D physical-book collection with live availability states
 - Physical shelf filters for Available Now, Returning Soon, In Circulation and Waitlisted books
 - Privacy-safe **Library Pulse** showing reading activity without exposing borrower names or phone numbers
@@ -28,7 +33,7 @@ https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/
 - Waitlist fairness: renewals are blocked when another member is waiting
 - Maximum of two active physical books/reservations per member phone number
 - Overdue borrowers are automatically blocked from taking another physical book until the overdue copy is returned
-- Floating **My Books** self-service shelf for the current phone/device
+- Floating **My Books** self-service shelf for the current phone/device, plus direct opening from the mobile dock
 - My Books shows active borrowed books, reservations, waitlist positions, due countdowns and reminder status
 - Promoted waitlist entries appear as **YOUR TURN** with a direct path into the new reservation
 - Closed/stale loan and waitlist links are cleaned from the device shelf automatically
