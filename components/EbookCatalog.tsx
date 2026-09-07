@@ -23,8 +23,8 @@ type GutendexResponse = {
 };
 type BatchResult = { books: GutendexBook[]; count: number; next: string | null };
 
-const MAX_EBOOKS = 500;
-const INITIAL_PAGES = 3;
+const MAX_EBOOKS = 600;
+const INITIAL_PAGES = 4;
 
 const TOPICS = [
   ["Christianity", "Christianity"],
@@ -173,10 +173,10 @@ export default function EbookCatalog() {
         <div className="ebook-icon"><BookOpen size={27} /></div>
         <div>
           <span className="section-kicker">FREE DIGITAL RESOURCES</span>
-          <h2>Up to 500 Free Christian E-books</h2>
-          <p>Three shelves load immediately. Keep expanding in smaller batches, or load the entire 500-book target in one action. Every book keeps its real cover where available, author, description and legal source download.</p>
+          <h2>600 Free Christian E-books</h2>
+          <p>Four shelves load immediately. Keep expanding in smaller batches, or load the entire 600-book target in one action. Every book keeps its real cover where available, author, description and legal source download.</p>
         </div>
-        <div className="catalog-count"><strong>{offline ? "500+" : visibleCount}</strong><span>browse target</span></div>
+        <div className="catalog-count"><strong>{offline ? "600" : visibleCount}</strong><span>browse target</span></div>
       </div>
 
       <div className="catalog-toolbar">
@@ -184,7 +184,7 @@ export default function EbookCatalog() {
         <div className="catalog-topics" aria-label="E-book topics">{TOPICS.map(([label, value]) => <button key={value} className={topic === value ? "category-filter active" : "category-filter"} onClick={() => setTopic(value)}>{label}</button>)}</div>
       </div>
 
-      {offline && <div className="catalog-notice"><WifiOff size={16} /> Live catalog could not be reached. Showing an offline Christian sample; reload when connected to continue toward the 500-book collection.</div>}
+      {offline && <div className="catalog-notice"><WifiOff size={16} /> Live catalog could not be reached. Showing an offline Christian sample; reload when connected to continue toward the 600-book collection.</div>}
 
       {loading ? <div className="catalog-loading"><LoaderCircle className="spin" /><span>Opening the digital shelves…</span></div> : books.length ? <>
         <div className="catalog-progress">
@@ -192,11 +192,11 @@ export default function EbookCatalog() {
           <div className="catalog-progress-track"><span style={{ width: `${progress}%` }} /></div>
           <div className="catalog-load-actions">
             <button className="catalog-secondary-load" onClick={() => loadUntil(Math.min(books.length + 64, target))} disabled={!canLoadMore || loadingMore}><Layers3 size={16} /> Load next shelf</button>
-            <button className="load-more-button" onClick={() => loadUntil(target)} disabled={!canLoadMore || loadingMore}>{loadingMore ? <><LoaderCircle className="spin" size={17} /> Loading {books.length}/{bulkTarget ?? target}…</> : books.length >= target ? <>500-book target loaded</> : <>Load up to 500 books <BookOpen size={16} /></>}</button>
+            <button className="load-more-button" onClick={() => loadUntil(target)} disabled={!canLoadMore || loadingMore}>{loadingMore ? <><LoaderCircle className="spin" size={17} /> Loading {books.length}/{bulkTarget ?? target}…</> : books.length >= target ? <>600-book target loaded</> : <>Load all 600 books <BookOpen size={16} /></>}</button>
           </div>
         </div>
         <div className="catalog-grid">{books.map((book, index) => <motion.article key={book.id} className="catalog-card" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ duration: 0.35, delay: Math.min(index * 0.008, 0.1) }}><div className="catalog-cover-stage"><EbookCover book={book} /></div><div className="catalog-copy"><span className="source-chip">Project Gutenberg #{book.id}</span><h3>{book.title}</h3><p className="author">{authorName(book)}</p><p className="description">{shortDescription(book)}</p><div className="catalog-actions"><a className="download-button" href={downloadUrl(book)} target="_blank" rel="noreferrer">Download Free <Download size={15} /></a><a className="info-button catalog-info" href={`https://www.gutenberg.org/ebooks/${book.id}`} target="_blank" rel="noreferrer" aria-label={`Open ${book.title} on Project Gutenberg`}><ExternalLink size={15} /></a></div></div></motion.article>)}</div>
-        {!canLoadMore && !offline && <p className="catalog-end-note">You have reached the available books for this search/topic, capped at 500.</p>}
+        {!canLoadMore && !offline && <p className="catalog-end-note">You have reached the available books for this search/topic, capped at 600.</p>}
       </> : <div className="empty-state"><Search size={30} /><h3>No free e-books found</h3><p>Try a different title, author or topic.</p></div>}
     </section>
   );
