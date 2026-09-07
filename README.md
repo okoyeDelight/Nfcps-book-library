@@ -16,8 +16,10 @@ https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/
 - NFCPS logo now remains in the live header and footer after the intro
 - Installable app metadata, favicon and app icon now use the NFCPS identity
 - Full-width mobile-first home experience with explicit viewport handling to prevent narrow/one-sided rendering
+- Premium Apple-like visual pass with restrained glass surfaces, softer borders, cleaner hierarchy and more deliberate spacing
+- Animated **flipping-book mark** replaces the old sparkle/star-style identity across the hero, Library Pulse, mobile dock and recommendations
 - Immersive hero layout with responsive book showcase and live-library visual treatment
-- Smart-start section that lets members jump directly to physical books, My Books or the 600-book e-library
+- Smart-start section that lets members jump directly to physical books, My Books or the e-library
 - Fixed mobile quick dock for Home, Physical Books, E-books and My Books
 - Live automation rail showing 24-hour reservations, 30-day loans, push/calendar reminders and automatic waitlist promotion
 - Interactive premium 3D physical-book collection with live availability states
@@ -46,6 +48,11 @@ https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/
 - Google Calendar and downloadable phone-calendar backup with built-in return alerts
 - Installable web-app manifest for a more app-like phone experience
 - 600-book free Christian e-book browse target
+- Fast e-book first shelf with skeleton placeholders instead of a blank wait
+- Background e-book prefetch so upcoming shelves are prepared before the member taps **Show next shelf**
+- Session e-book cache so returning to the same topic/search during a session can reopen immediately
+- Progressive **Open all up to 600** mode that streams books into the page instead of freezing the reader behind one long load
+- Lazy-loaded covers and content-visibility optimization to reduce mobile rendering cost
 - Curated NFCPS Christian recommendations
 
 See `docs/circulation-automation.md` for the physical-library circulation, waitlist, My Books and reminder workflow.
