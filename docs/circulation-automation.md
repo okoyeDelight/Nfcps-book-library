@@ -9,13 +9,28 @@ The live NFCPS Book Library includes a no-admin circulation flow for physical bo
 3. The borrower selects **I've collected the book** after physically collecting it.
 4. The system changes the copy to **Borrowed** and starts a 30-day lending period.
 5. The public library displays the expected return date and blocks another request for the same copy.
-6. The borrower manages the loan from a private capability link.
+6. The borrower manages the loan from a private capability link or the **My Books** shelf saved on their current device.
 7. Selecting **I've returned the book** closes the active loan, records it in history and triggers the next automated circulation step.
 8. One automatic 30-day renewal is supported when nobody is waiting for the copy.
 
+## My Books self-service shelf
+
+A floating **My Books** control gives the borrower one simple place to recover their active physical-library activity on the same phone or browser.
+
+- It shows borrowed books, active reservations and waitlist entries.
+- Borrowed items show a due-date countdown, exact return date and whether free push reminders are enabled.
+- Reservations show their expiry date.
+- Waitlist entries show the member's current queue position and availability-alert status.
+- When a waitlisted member is promoted, the item changes to **YOUR TURN** and opens the fresh 24-hour reservation.
+- A Refresh action rechecks the live circulation backend.
+- Closed or stale private links are removed from the device shelf automatically.
+- Returning a book removes that active loan from My Books on the device.
+
+The shelf stores only the user's private capability links on that device; it does not reveal borrower identity publicly.
+
 ## Automatic waitlist
 
-Borrowed and reserved physical books now show **Join waitlist** instead of forcing another visitor to keep checking manually.
+Borrowed and reserved physical books show **Join waitlist** instead of forcing another visitor to keep checking manually.
 
 - A member enters their name and mobile number once and receives a numbered queue position.
 - Their waitlist token is saved on the device so the queue state can be reopened later.
