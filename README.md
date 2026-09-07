@@ -16,6 +16,10 @@ https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/
 - Fully automated waitlist for borrowed/reserved physical books
 - Automatic next-person 24-hour reservation when a book is returned or a reservation expires
 - Waitlist fairness: renewals are blocked when another member is waiting
+- Floating **My Books** self-service shelf for the current phone/device
+- My Books shows active borrowed books, reservations, waitlist positions, due countdowns and reminder status
+- Promoted waitlist entries appear as **YOUR TURN** with a direct path into the new reservation
+- Closed/stale loan and waitlist links are cleaned from the device shelf automatically
 - 30-day lending period and one automatic renewal when the queue is empty
 - Public Reserved / Borrowed / Available status with expected return date
 - Daily circulation scheduler for reservation expiry, due-date reminders and overdue follow-up
@@ -27,4 +31,4 @@ https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/
 - 600-book free Christian e-book browse target
 - Curated NFCPS Christian recommendations
 
-See `docs/circulation-automation.md` for the physical-library circulation, waitlist and reminder workflow.
+See `docs/circulation-automation.md` for the physical-library circulation, waitlist, My Books and reminder workflow.
