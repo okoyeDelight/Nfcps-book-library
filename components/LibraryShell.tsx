@@ -58,22 +58,28 @@ function BookRear({ book }: { book: PhysicalBook }) {
 
 function Book3D({ book }: { book: PhysicalBook }) {
   const [turns, setTurns] = useState(0);
+  const [turning, setTurning] = useState(false);
   const angle = turns * 180 - 12;
+  function turnBook() {
+    setTurns((value) => value + 1);
+    setTurning(true);
+    window.setTimeout(() => setTurning(false), 720);
+  }
   return (
     <>
       <button
         type="button"
         aria-label={`Turn ${book.title} in 3D`}
-        className="book-3d"
+        className={turning ? "book-3d is-turning" : "book-3d"}
         style={{ transform: `rotateY(${angle}deg) rotateX(2deg)` }}
-        onClick={() => setTurns((value) => value + 1)}
+        onClick={turnBook}
       >
         <span className="book-pages" />
         <span className="book-spine" />
         <span className="book-front"><BookArtwork book={book} /><span className="book-gloss" /></span>
         <span className="book-rear"><BookRear book={book} /></span>
       </button>
-      <span className="flip-hint"><Rotate3D size={13} /> Tap book to keep turning it</span>
+      <span className="flip-hint"><Rotate3D size={13} /> Tap to flip · {turns} turn{turns === 1 ? "" : "s"}</span>
     </>
   );
 }
@@ -149,7 +155,7 @@ function BookModal({ book, onClose }: { book: PhysicalBook | null; onClose: () =
             <div className="modal-copy">
               <div className="book-meta-row"><span className="category-chip">{book.category}</span><span className={book.verified ? "verified-chip" : "verify-chip"}>{book.verified ? "verified title" : "edition verification pending"}</span></div>
               <h2>{book.title}</h2><p className="modal-author">{book.author}</p><p className="modal-description">{book.description}</p>
-              <div className="modal-note"><BookOpen size={18} /><span>This is part of the NFCPS UNIZIK physical collection. Requesting it opens WhatsApp with the title already filled in.</span></div>
+              <div className="modal-note"><BookOpen size={18} /><span>This is part of the NFCPS UNIZIK physical collection. The preview rotates the full cover, spine and rear while animated leaves turn across the book.</span></div>
               <div className="modal-actions"><a className="primary-cta modal-request" href={requestUrl(book)} target="_blank" rel="noreferrer">Request this book <ExternalLink size={17} /></a>{book.source && <a className="secondary-cta" href={book.source} target="_blank" rel="noreferrer">View book information</a>}</div>
             </div>
           </motion.div>
@@ -184,14 +190,14 @@ export default function LibraryShell() {
       <section className="hero" id="top">
         <div className="ambient ambient-one" /><div className="ambient ambient-two" />
         <div className="star-field" aria-hidden="true">{Array.from({ length: 24 }).map((_, i) => <span key={i} style={{ left: `${(i * 47) % 100}%`, top: `${(i * 71) % 92}%`, animationDelay: `${(i % 7) * 0.45}s` }} />)}</div>
-        <motion.div className="hero-inner" initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.75 }}><div className="eyebrow"><Sparkles size={14} /> NFCPS UNIZIK CHAPTER</div><h1>NFCPS <span>BOOK LIBRARY</span></h1><p className="tagline">Christ, the Therapy for All.</p><p className="hero-copy">Discover physical books in the fellowship library, curated Christian recommendations and up to 500 trusted free public-domain e-books.</p><div className="hero-actions"><a href="#library" className="primary-cta">Explore Library <ArrowRight size={18} /></a><a href="#ebooks" className="secondary-cta">Browse Free E-books</a></div></motion.div>
+        <motion.div className="hero-inner" initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.75 }}><div className="eyebrow"><Sparkles size={14} /> NFCPS UNIZIK CHAPTER</div><h1>NFCPS <span>BOOK LIBRARY</span></h1><p className="tagline">Christ, the Therapy for All.</p><p className="hero-copy">Discover physical books in the fellowship library, curated Christian recommendations and more than 500 trusted free public-domain e-books.</p><div className="hero-actions"><a href="#library" className="primary-cta">Explore Library <ArrowRight size={18} /></a><a href="#ebooks" className="secondary-cta">Browse Free E-books</a></div></motion.div>
         <motion.div className="hero-books" initial={{ opacity: 0, scale: 0.93 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.28, duration: 0.75 }}>{physicalBooks.filter((book) => book.cover).slice(0, 5).map((book, i) => <motion.img key={book.id} src={book.cover} alt="" animate={{ y: [0, i % 2 ? 8 : -6, 0], rotate: [i - 2, 2 - i, i - 2] }} transition={{ duration: 5 + i, repeat: Infinity, ease: "easeInOut" }} />)}</motion.div>
       </section>
 
-      <section className="stats-wrap" aria-label="Library statistics"><div className="stat"><strong>{physicalBooks.length}</strong><span>Physical Books</span></div><div className="stat"><strong>500</strong><span>E-book Browse Cap</span></div><div className="stat"><strong>{recommendedChristianBooks.length}</strong><span>Recommended Reads</span></div><div className="stat"><strong>{categories.length - 1}</strong><span>Categories</span></div></section>
+      <section className="stats-wrap" aria-label="Library statistics"><div className="stat"><strong>{physicalBooks.length}</strong><span>Physical Books</span></div><div className="stat"><strong>600</strong><span>Free E-book Target</span></div><div className="stat"><strong>{recommendedChristianBooks.length}</strong><span>Recommended Reads</span></div><div className="stat"><strong>{categories.length - 1}</strong><span>Categories</span></div></section>
 
       <section id="library" className="library-section">
-        <div className="section-heading"><div><span className="section-kicker">PHYSICAL COLLECTION</span><h2>Choose your next book.</h2><p>Tap the actual 3D book to turn it over again and again. Use Details for a full rotating preview, or request the physical copy on WhatsApp.</p></div><LibraryBig size={36} /></div>
+        <div className="section-heading"><div><span className="section-kicker">PHYSICAL COLLECTION</span><h2>Choose your next book.</h2><p>Tap the actual 3D book to flip the whole volume front-to-back. Each turn now includes a page flick, while Details opens the cinematic rotating preview.</p></div><LibraryBig size={36} /></div>
         <label className="search-box"><Search size={19} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, author or category…" /></label>
         <div className="category-row" aria-label="Book categories">{categories.map((item) => <button key={item} onClick={() => setCategory(item)} className={category === item ? "category-filter active" : "category-filter"}>{item}</button>)}</div>
         <p className="results-note">Showing {filtered.length} of {physicalBooks.length} books</p>
