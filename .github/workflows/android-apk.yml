@@ -1,4 +1,4 @@
-name: Build NFCPS One Android APK
+name: Build Signed NFCPS One Android APK
 
 on:
   workflow_dispatch:
@@ -35,11 +35,61 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Build APK
-        run: gradle -p native/android --no-daemon assembleDebug
+      - name: Use official NFCPS logo as Android icon
+        run: |
+          curl --fail --location --retry 3 'https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/resources/nfcps-logo.png' --output native/android/app/src/main/res/drawable/nfcps_logo.png
+          test -s native/android/app/src/main/res/drawable/nfcps_logo.png
 
-      - name: Prepare APK
-        run: cp native/android/app/build/outputs/apk/debug/app-debug.apk NFCPS-One.apk
+      - name: Build unsigned release APK
+        run: gradle -p native/android --no-daemon assembleRelease
+
+      - name: Create dedicated NFCPS signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          SIGNING_PASSWORD="$(openssl rand -hex 24)"
+          echo "SIGNING_PASSWORD=$SIGNING_PASSWORD" >> "$GITHUB_ENV"
+          keytool -genkeypair -v \
+            -keystore "$RUNNER_TEMP/nfcps-one-release.jks" \
+            -storepass "$SIGNING_PASSWORD" \
+            -keypass "$SIGNING_PASSWORD" \
+            -alias nfcps-one \
+            -keyalg RSA \
+            -keysize 4096 \
+            -validity 10000 \
+            -dname 'CN=NFCPS UNIZIK, OU=NFCPS, O=National Fellowship of Christian Pharmacy Students, L=Awka, ST=Anambra, C=NG'
+
+      - name: Sign release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          UNSIGNED='native/android/app/build/outputs/apk/release/app-release-unsigned.apk'
+          "$BUILD_TOOLS/zipalign" -f -v -p 4 "$UNSIGNED" NFCPS-One-aligned.apk
+          "$BUILD_TOOLS/apksigner" sign \
+            --ks "$RUNNER_TEMP/nfcps-one-release.jks" \
+            --ks-key-alias nfcps-one \
+            --ks-pass "pass:$SIGNING_PASSWORD" \
+            --key-pass "pass:$SIGNING_PASSWORD" \
+            --out NFCPS-One.apk \
+            NFCPS-One-aligned.apk
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs NFCPS-One.apk
+
+      - name: Prepare signing backup
+        shell: bash
+        run: |
+          cp "$RUNNER_TEMP/nfcps-one-release.jks" NFCPS-One-signing-key.jks
+          {
+            echo 'NFCPS One Android signing backup'
+            echo 'Package: org.nfcpsunizik.one'
+            echo 'Alias: nfcps-one'
+            echo "Keystore password: $SIGNING_PASSWORD"
+            echo "Key password: $SIGNING_PASSWORD"
+            echo
+            echo 'KEEP THIS FILE AND THE .jks SAFE. Future native APK updates must use this same signing key.'
+            echo
+            keytool -list -v -keystore "$RUNNER_TEMP/nfcps-one-release.jks" -storepass "$SIGNING_PASSWORD" -alias nfcps-one | grep -E 'SHA1:|SHA256:' || true
+          } > NFCPS-One-signing-info.txt
 
       - name: Publish rolling Android release
         env:
@@ -48,11 +98,15 @@ jobs:
           if gh release view nfcps-one-latest >/dev/null 2>&1; then
             gh release upload nfcps-one-latest NFCPS-One.apk --clobber
           else
-            gh release create nfcps-one-latest NFCPS-One.apk --target main --title 'NFCPS One — Latest Android Build' --notes 'Installable Android build of NFCPS One. The app loads the live NFCPS experience, so normal content and interface deployments update inside the app automatically.'
+            gh release create nfcps-one-latest NFCPS-One.apk --target main --title 'NFCPS One — Signed Android APK' --notes 'Signed installable Android package for NFCPS One. The app loads the live NFCPS experience, so normal AppDeploy content and interface deployments update inside the installed app automatically.'
           fi
 
-      - name: Upload CI artifact
+      - name: Upload signed package and signing backup
         uses: actions/upload-artifact@v4
         with:
-          name: NFCPS-One-Android
-          path: NFCPS-One.apk
+          name: NFCPS-One-Signed-Android
+          retention-days: 90
+          path: |
+            NFCPS-One.apk
+            NFCPS-One-signing-key.jks
+            NFCPS-One-signing-info.txt
