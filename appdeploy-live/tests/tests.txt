@@ -1,73 +1,73 @@
 # Tests
 
-## Test 1 - Mobile Watch fits the phone and opens power features in focused sections [sanity]
+## Test 1 - NFCPS One opens as a calm app and Read never starts blank [sanity]
 Viewport: mobile (375x667)
-Covers: direct /watch shell delivery, phone-width layout, compact action buttons, Ask Sermon sheet, Watch Together sheet and Growth sheet
-Description: Verifies the Watch page no longer clips titles or actions and advanced features stay out of the main page until the member taps them.
+Covers: mature Home app shell, Home/Read/Watch/Library/You navigation, immediate locally owned e-book shelf, /api/ebooks/catalog enrichment, Read action and /api/reader/book
+Description: Verifies the new product shell is concise and the Read screen always has usable books even before or without the external catalogue.
 
 Steps:
-1. Open NFCPS Watch on mobile, open a sermon, and review the title, creator row and Like, Share, Save, Ask sermon, Watch together and Grow actions
-2. Tap Ask sermon, close its focused section, then tap Grow and close that section
-3. Tap Watch together and review the room setup section
+1. Open NFCPS One and confirm Home shows the NFCPS One identity, core destinations and no giant physical/e-book sections stacked on the page
+2. Tap Read and immediately confirm The Pursuit of God and other starter books are visible; open one with Read
+3. Advance one page, close the reader and return to Home
 
-Expected: The sermon page fits inside the phone width without clipped controls or horizontal page overflow, the main page stays concise, and Ask sermon, Grow and Watch together each open in their own focused section.
+Expected: Home stays concise, Read never renders a blank shelf, the selected book opens in the NFCPS reader, and Home can show Continue Reading after reading activity.
 
-## Test 2 - A shared Watch Together link lets a second member actually join the room
+## Test 2 - E-book catalogue failure keeps the owned shelf usable
 Viewport: mobile (375x667)
-Covers: /api/watch/rooms creation and join routes, shareable room link, guest join gate, realtime WebSocket entity subscription, participant presence and synchronized playback
-Description: Verifies Watch Together behaves like a real shareable room instead of exposing room state before the guest has joined.
-
-Steps:
-1. Actor A opens Watch Together, enters "Ada", creates a room and taps Share; note the six-character room code
-2. Actor B opens the shared room link on another client, enters "Chidi" on the Join room screen and joins
-3. Actor A plays and pauses together, sends a reaction and message; Actor B replies
-
-Expected: Actor B sees a clean Join room screen before entering, both members then appear in the same room, playback state synchronizes, and shared reactions and messages update without manual refresh.
-
-## Test 3 - Ask Sermon stays grounded and returns to the exact sermon moment
-Viewport: desktop (1280x800)
-Covers: /api/watch/sermon/:id/transcript, /api/watch/sermon/:id/ask, focused Ask Sermon section, timestamp evidence and player seek
-Description: Verifies the simplified Ask Sermon interface still uses the real transcript pipeline and does not invent unsupported answers.
-
-Steps:
-1. Open a trusted sermon and tap Ask sermon
-2. If captions are ready, ask "What should I apply?" and tap one timestamp result; if captions are unavailable, review the concise unavailable state
-3. Return to the player
-
-Expected: Transcript-ready sermons return a concise grounded answer with usable timestamp evidence and jump back to the referenced sermon moment; unavailable captions show a clear fallback instead of a fabricated answer.
-
-## Test 4 - Watch Home stays compact while growth features remain usable
-Viewport: mobile (375x667)
-Covers: compact Ask/Watch Together shortcuts, Daily Watch, focus chips, NFCPS Campus Mix, compact horizontal Growth Journeys, local journey progress and Growth notes
-Description: Verifies the home experience markets the features simply while keeping the deeper growth system available after interaction.
-
-Steps:
-1. Open Watch Home and review the compact Ask sermon and Watch together shortcuts, Today card, focus chips, Campus Mix and Growth Journeys
-2. Start Build a Prayer Life, open Grow, write a note and complete the journey day
-3. Return to You and review journey progress
-
-Expected: Home avoids oversized explanatory blocks, Journey cards do not consume the full phone screen, the note can be saved, and journey progress updates normally.
-
-## Test 5 - Watch fallback and Reading still work after the mobile cleanup
-Viewport: mobile (375x667)
-Covers: /api/watch/feed fallback, trusted seed videos, compact Watch UI, Growth-to-Reading bridge, /api/ebooks/catalog and /api/reader/book
-Description: Verifies the visual cleanup does not regress resilient Watch content or the connected reader experience.
+Covers: local e-book fallback guardrail, empty-cache protection, /api/ebooks/catalog failure behavior, Read and Download actions
+Description: Verifies a catalogue outage cannot erase books that NFCPS One already knows about.
 
 QA Faults:
 ```json
 [
   {
     "method": "GET",
-    "path": "/api/watch/feed",
+    "path": "/api/ebooks/catalog",
     "status": 500,
-    "body_json": { "error": "simulated_watch_outage" }
+    "body_json": { "error": "simulated_catalog_outage" }
   }
 ]
 ```
 
 Steps:
-1. Open Watch while the feed request fails and confirm trusted fallback videos remain usable
-2. Open one fallback sermon, tap Grow, then tap Reading
-3. Open a visible free e-book and advance to another page
+1. Open Read while the catalogue request fails
+2. Confirm the starter shelf remains visible and shows an unobtrusive Offline shelf state
+3. Open The Pursuit of God with Read
 
-Expected: Watch does not become blank during the simulated outage, the simplified controls remain usable, and the member can still move from Watch into a working NFCPS e-book reader.
+Expected: Visible starter books remain on screen throughout the failure and the in-app reader still opens a known public-domain title.
+
+## Test 3 - Watch Together behaves like a real shared viewing room
+Viewport: mobile (375x667)
+Covers: /api/watch/rooms create/join/state/message/reaction routes, realtime WebSocket subscription, shareable room invite, dominant synced player, member drawer and chat drawer
+Description: Verifies the Netflix-party-style Watch Together flow across two people.
+
+Steps:
+1. Actor A opens a sermon, taps Watch together, enters Ada and creates a room, then shares the invite
+2. Actor B opens the shared link, enters Chidi and joins; Actor A opens People and Actor B opens Chat
+3. Actor A pauses and resumes playback and sends a reaction; Actor B sends a chat reply
+
+Expected: Both actors enter the same dedicated viewing room with the video dominant, both members are visible, host playback changes synchronize through realtime updates, and shared reaction/chat activity appears without manual refresh.
+
+## Test 4 - Physical Library is a destination, not Home clutter
+Viewport: mobile (375x667)
+Covers: Library destination navigation, /api/circulation/catalog live status, physical book browsing and CirculationAction request flow
+Description: Verifies physical borrowing remains fully usable after moving it out of the main Home screen.
+
+Steps:
+1. From Home tap Library and search for a visible physical title
+2. Open that title and review its simplified detail sheet
+3. Use the available circulation action for the title
+
+Expected: The physical catalogue and live circulation controls work inside the Library destination while Home remains uncluttered.
+
+## Test 5 - You keeps personal activity separate from discovery
+Viewport: desktop (1280x800)
+Covers: You destination, My Books access, Personal Reading Home, Moments and persistent reader state
+Description: Verifies personal tools live in one place instead of being scattered through Home.
+
+Steps:
+1. Open You and review My Books and Reading shortcuts
+2. Open the reading area and return to You
+3. Open My Books and then return to the You destination
+
+Expected: Personal reading and borrowing tools remain accessible from You without adding large management panels to Home.
