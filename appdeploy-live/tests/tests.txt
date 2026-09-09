@@ -2,15 +2,15 @@
 
 ## Test 1 - NFCPS One opens as a calm app and Read never starts blank [sanity]
 Viewport: mobile (375x667)
-Covers: mature Home app shell, Home/Read/Watch/Library/You navigation, immediate locally owned e-book shelf, /api/ebooks/catalog enrichment, Read action and /api/reader/book
-Description: Verifies the new product shell is concise and the Read screen always has usable books even before or without the external catalogue.
+Covers: immersive Home app shell, floating glass Home/Read/Watch/Library/You navigation, immediate locally owned e-book shelf, Apple-Books-style Read discovery, /api/ebooks/catalog enrichment, Read action and /api/reader/book
+Description: Verifies the premium app shell stays concise, visually immersive and usable while Read always has books before or without the external catalogue.
 
 Steps:
 1. Open NFCPS One and confirm Home shows the NFCPS One identity, core destinations and no giant physical/e-book sections stacked on the page
 2. Tap Read and immediately confirm The Pursuit of God and other starter books are visible; open one with Read
 3. Advance one page, close the reader and return to Home
 
-Expected: Home stays concise, Read never renders a blank shelf, the selected book opens in the NFCPS reader, and Home can show Continue Reading after reading activity.
+Expected: Home uses the calm immersive shell with a floating glass dock, Read presents cover-led shelves without blank content, the selected book opens in the NFCPS reader, and Home can show Continue Reading after reading activity.
 
 ## Test 2 - E-book catalogue failure keeps the owned shelf usable
 Viewport: mobile (375x667)
@@ -38,7 +38,7 @@ Expected: Visible starter books remain on screen throughout the failure and the 
 
 ## Test 3 - Watch Together behaves like a real shared viewing room
 Viewport: mobile (375x667)
-Covers: /api/watch/rooms create/join/state/message/reaction routes, realtime WebSocket subscription, shareable room invite, dominant synced player, member drawer and chat drawer
+Covers: cinematic Watch discovery, /api/watch/rooms create/join/state/message/reaction routes, realtime WebSocket subscription, shareable room invite, Netflix-party-style dominant synced player, floating controls, member drawer and chat drawer
 Description: Verifies the Netflix-party-style Watch Together flow across two people.
 
 Steps:
