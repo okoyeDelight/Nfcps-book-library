@@ -1,73 +1,73 @@
 # Tests
 
-## Test 1 - Free e-books always show and open inside NFCPS [sanity]
+## Test 1 - Watch opens into a YouTube-style home feed and video page [sanity]
 Viewport: mobile (375x667)
-Covers: native/live shell delivery, prominent Watch and Free E-books shortcuts, /api/ebooks/catalog backend catalog proxy, visible free e-book shelf, Read action, /api/reader/book Gutenberg copy retrieval, reader pagination and saved progress
-Description: Verifies an installed/native-style session receives the current shell and can immediately reach the new e-book and Watch experiences.
+Covers: current installed shell delivery, /api/watch/feed trusted content, Home tab, topic chips, responsive video feed, watch page, related videos, save/share/like actions
+Description: Verifies NFCPS Watch now opens directly into content and a tapped video behaves like a proper watch page rather than a promotional landing screen.
 
 Steps:
-1. Open the app with ?source=native and confirm the upper shortcut area visibly includes FREE E-BOOKS · LIVE and NFCPS WATCH · LIVE
-2. Open Free E-books, confirm multiple Project Gutenberg books are visible, then tap Read now and advance to another page
-3. Close the reader and reopen the same title from Continue Reading
+1. Open NFCPS Watch from the installed/native-style app and confirm Home, Shorts, Subscriptions and You are available in the bottom navigation
+2. Tap a visible video card and review the player, title, creator row, Subscribe control, Like, Share, Save and Up next area
+3. Save and like the video, return to Home and continue scrolling beyond the first feed batch
 
-Expected: The current shell exposes Watch and e-books immediately, the shelf is not blank, the selected book opens inside NFCPS, page navigation works, and reopening returns to approximately the saved reading position.
+Expected: Watch opens directly into a YouTube-style content feed, the selected video has a dedicated watch layout with related videos and actions, saved/liked state updates visibly, and more cards continue loading as the user scrolls.
 
-## Test 2 - E-book catalog failure falls back to the NFCPS starter shelf
+## Test 2 - Shorts behave like a continuous vertical YouTube Shorts feed
 Viewport: mobile (375x667)
-Covers: e-book catalog failure guardrail, local starter shelf fallback, visible Read and Download actions
-Description: Verifies an upstream catalog outage cannot leave the e-book section empty.
+Covers: Shorts tab, vertical snap scrolling, active YouTube playback, creator rotation, local Like/Save/Subscribe actions and automatic feed extension
+Description: Verifies Shorts are a first-class navigation destination with one full-height video per swipe and no fixed terminal batch.
+
+Steps:
+1. Tap Shorts in the bottom navigation
+2. Swipe through enough Shorts to pass the initial rendered batch
+3. Like one Short, save another and subscribe to one creator while continuing to swipe
+
+Expected: One Short occupies the viewing area at a time, swiping snaps vertically, new Shorts continue appearing beyond the initial batch, creators remain mixed when alternatives exist, and Like/Save/Subscribe state updates visibly.
+
+## Test 3 - Subscriptions and You behave like a personal YouTube library
+Viewport: desktop (1280x800)
+Covers: local creator subscriptions, Subscriptions feed, You tab, Watch history, Watch Later and NFCPS reader bridge
+Description: Verifies personal Watch state is organized into familiar YouTube-style destinations and persists on the device.
+
+Steps:
+1. Subscribe to two trusted creators and open the Subscriptions tab
+2. Watch one video, save another to Watch Later, then open the You tab
+3. Refresh the page and return to Subscriptions and You
+
+Expected: Subscribed creators populate the Subscriptions feed, watched videos appear in History, saved videos appear in Watch Later, and the same local state remains after refresh.
+
+## Test 4 - Watch search and degraded fallback never leave the experience unusable
+Viewport: mobile (375x667)
+Covers: search results, no-results guardrail, /api/watch/feed failure fallback and trusted seed content
+Description: Verifies search has a clear empty state and a temporary Watch backend failure falls back to trusted curated content rather than a blank app.
 
 QA Faults:
 ```json
 [
   {
     "method": "GET",
-    "path": "/api/ebooks/catalog",
+    "path": "/api/watch/feed",
     "status": 500,
-    "body_json": { "error": "simulated_catalog_outage" }
+    "body_json": { "error": "simulated_watch_outage" }
   }
 ]
 ```
 
 Steps:
-1. Open the Free E-books section while the catalog request fails
-2. Review the visible starter shelf and outage notice
-3. Confirm a starter title still exposes Read now and Download
+1. Open NFCPS Watch while the Watch feed request fails
+2. Confirm trusted fallback videos still render, then search for a nonsense phrase with no match
+3. Clear the search and open one visible fallback video
 
-Expected: A visible NFCPS starter shelf replaces the failed catalog response, an explanatory notice is shown, and the section never becomes a blank area.
+Expected: The Watch home remains usable with curated fallback videos, a clear no-results state appears for the nonsense search, and clearing search restores tappable video content.
 
-## Test 3 - Advanced reader controls remain available
-Viewport: desktop (1280x800)
-Covers: reader appearance settings, Book Map search, bookmarks, multi-colour highlights, notes, immersive mode and per-book persistence
-Description: Verifies the catalog fix does not regress the novel-style reader experience.
-
-Steps:
-1. Open a free e-book and change typography, line spacing, page margins, brightness, text colour and page theme
-2. Search inside the book, save a bookmark, add two highlight colours and one note
-3. Activate immersive reading, exit it, close the book and reopen it
-
-Expected: Search and annotations work, immersive mode has a clear exit, and the book reopens with the saved reading appearance and study state.
-
-## Test 4 - Watch feed keeps extending as the user scrolls
+## Test 5 - Free e-books and reader remain available after the Watch redesign
 Viewport: mobile (375x667)
-Covers: /api/watch/feed trusted content, creator-interleaved long-form feed, automatic infinite-scroll batching, Watch Later and Continue Watching
-Description: Verifies NFCPS Watch behaves like a continuing feed instead of stopping after the first fixed group of videos.
+Covers: Watch-to-reader bridge, /api/ebooks/catalog, visible free e-book shelf, /api/reader/book, in-app reader pagination and saved reading state
+Description: Verifies the YouTube-style Watch redesign does not regress the connected NFCPS reading experience.
 
 Steps:
-1. Open NFCPS Watch and scroll through the For You feed until the initial visible batch is nearly exhausted
-2. Continue scrolling past the loading-more sentinel into the next batch
-3. Save and open one video, then close it and review Watch Later and Continue Watching
+1. Open You in NFCPS Watch and tap Read in NFCPS
+2. Open a visible free Project Gutenberg title with Read now and advance to another page
+3. Close the reader and reopen the same title from Continue Reading
 
-Expected: More video cards are appended automatically without an end-of-feed state, creators remain mixed when alternatives are available, and saved/history state remains usable.
-
-## Test 5 - Shorts continue beyond the first batch with creator-aware rotation
-Viewport: mobile (375x667)
-Covers: daily themed Shorts, full-height vertical snap scrolling, automatic Shorts extension, creator-aware reshuffling and trusted YouTube playback
-Description: Verifies the Shorts experience continues loading as the user swipes rather than ending after a fixed list.
-
-Steps:
-1. Open Shorts and note today's message/theme
-2. Swipe through enough clips to pass the initial Shorts batch
-3. Keep swiping into the automatically appended clips and inspect the creator sequence
-
-Expected: Shorts continue beyond the initial batch with no terminal end screen, the daily theme remains consistent, vertical snapping remains full-height, and different trusted creators are rotated whenever alternatives exist.
+Expected: The user can move from Watch to the e-book shelf, open a book inside NFCPS, navigate pages and return to approximately the saved reading position.
