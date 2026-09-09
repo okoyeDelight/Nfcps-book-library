@@ -1,57 +1,45 @@
 # Tests
 
-## Test 1 - Daily Watch opens a message and records meaningful growth [sanity]
+## Test 1 - Two members create and join a synchronized Watch Together room [sanity]
 Viewport: mobile (375x667)
-Covers: current installed shell delivery, /api/watch/feed, NFCPS Daily Watch, dedicated watch page, Sermon Companion, note persistence, response tracking and growth rhythm
-Description: Verifies the new difference layer turns a normal video into a guided spiritual next step without breaking the YouTube-style player.
+Covers: Watch Together room creation, /api/watch/rooms routes, realtime WebSocket entity subscription, persisted room state, participant presence, host playback controls, shared reactions and discussion
+Description: Verifies the core social Watch workflow works across two members without requiring an account wall.
 
 Steps:
-1. Open NFCPS Watch and start the visible NFCPS Daily Watch card
-2. On the watch page review Key Scripture, Reflect and Take Action, write a note, choose “I’m responding”, then complete Daily Watch
-3. Return to You and review the growth scoreboard, then refresh the page and reopen the same video
+1. Actor A opens a sermon, opens Watch Together, enters "Ada" and creates a room; note the six-character room code
+2. Actor B opens NFCPS Watch on another client, opens the shared room code, enters "Chidi" and joins
+3. Actor A taps Pause and then Play together, sends a prayer message and a reaction; Actor B sends a chat reply
 
-Expected: The Daily Watch opens normally, the Sermon Companion is visible below the player, the note and response persist after refresh, today is marked complete and the growth rhythm is reflected in You.
+Expected: Both clients show the same room code and two participants, Actor B receives host playback-state changes through the live room, and the prayer, reaction and reply appear in the shared conversation without manual refresh.
 
-## Test 2 - Growth goals reshape the Home feed while keeping creator diversity
+## Test 2 - Ask This Sermon uses captions and timestamp evidence instead of guessing
 Viewport: desktop (1280x800)
-Covers: growth-goal selection, local goal persistence, recommendation weighting, creator-aware diversity and Home feed
-Description: Verifies a user can tell NFCPS what they want to grow in and the feed adapts without becoming a single-creator tunnel.
+Covers: /api/watch/sermon/:id/transcript, transcript cache/fallback state, /api/watch/sermon/:id/ask, grounded AI answer, timestamp evidence and player jump
+Description: Verifies sermon Q&A is explicitly grounded in readable captions and refuses to invent an answer when a transcript is unavailable.
 
 Steps:
-1. In Home choose Prayer and Know the Word under Shape my growth feed
-2. Browse the next visible Home feed cards and note the mix of relevant categories and creators
-3. Refresh the page and return to Home
+1. Open a trusted sermon and review the Ask This Sermon status
+2. If Transcript ready is shown, ask "What practical instruction should I apply?" and open one timestamp evidence item; if captions are unavailable, review the explicit unavailable explanation
+3. Return to the sermon player
 
-Expected: The selected growth goals remain active after refresh, relevant categories are prioritised in the feed, and multiple trusted creators continue to appear.
+Expected: A transcript-ready sermon returns a concise answer with timestamp evidence and tapping evidence seeks the player to that moment; a sermon without readable captions shows a clear no-guess explanation rather than generating an unsupported answer.
 
-## Test 3 - Growth Journeys progress one day at a time and persist
-Viewport: mobile (375x667)
-Covers: guided Growth Journeys, journey video selection, journey-day completion, persistent progress and You growth summary
-Description: Verifies NFCPS Watch can guide a user through a defined discipleship path instead of only offering an endless feed.
-
-Steps:
-1. Start Build a Prayer Life from the Growth Journeys section
-2. Watch the selected journey message and tap Complete journey day in the Sermon Companion
-3. Return to You, confirm the journey shows 1/7 days, refresh, and open the journey again
-
-Expected: The first journey day completes once, 1/7 progress remains after refresh, the growth scoreboard updates and Continue journey selects the next journey step.
-
-## Test 4 - Shorts lead into deeper teaching instead of becoming a dead-end scroll
-Viewport: mobile (375x667)
-Covers: Shorts infinite vertical feed, Full message bridge, trusted long-form matching, watch page and Sermon Companion
-Description: Verifies short-form discovery can transition into deeper long-form teaching from a related trusted creator or topic.
+## Test 3 - Watch Together room permissions and reconnect behavior are safe
+Viewport: desktop (1280x800)
+Covers: room session token persistence, presence reconnect, host-only playback mutation guardrail, guest leave, host end-room state and 24-hour room lifetime messaging
+Description: Verifies room controls remain owned by the host while guests can reconnect and participate safely.
 
 Steps:
-1. Open Shorts and swipe through at least three available clips
-2. Tap Full message on one Short
-3. Review the resulting long-form player and Sermon Companion
+1. Actor A creates a Watch Together room and Actor B joins it
+2. Actor B refreshes the room page, confirms the saved room session reconnects, then uses Catch up to host
+3. Actor B leaves the room; Actor A ends the room
 
-Expected: Shorts remain vertically swipeable and continuous, Full message opens a related long-form trusted teaching when available, and the deeper watch page includes the growth companion.
+Expected: Actor B reconnects as the same local room member but does not receive host playback controls, leaving removes the guest session from the active room, and ending the room visibly disables synchronized playback and new discussion.
 
-## Test 5 - Watch failure fallback still preserves the growth experience and Reading bridge
+## Test 4 - Deep Watch features do not break Home, Shorts, growth journeys or fallback content
 Viewport: mobile (375x667)
-Covers: /api/watch/feed failure fallback, trusted seed content, Daily Watch fallback, Sermon Companion and NFCPS reader bridge
-Description: Verifies the new growth layer remains usable even when fresh Watch data temporarily fails.
+Covers: /api/watch/feed, Home infinite feed, Shorts, Subscriptions, Daily Watch, Growth Journeys, Sermon Companion notes and trusted fallback guardrail
+Description: Verifies the new deep infrastructure sits around the existing YouTube-style and growth experience without regressing it.
 
 QA Faults:
 ```json
@@ -66,8 +54,20 @@ QA Faults:
 ```
 
 Steps:
-1. Open NFCPS Watch while the Watch feed request fails and confirm trusted fallback videos plus Daily Watch still appear
-2. Open a fallback teaching and review its Sermon Companion
-3. Tap Go deeper in Reading and open a visible free e-book
+1. Open NFCPS Watch while the feed request fails and confirm trusted curated fallback videos remain visible
+2. Open Shorts, return Home, start a Growth Journey and open its sermon
+3. Write a private Sermon Companion note and save a takeaway
 
-Expected: Watch does not become blank during the simulated outage, the growth companion remains usable on fallback content, and the user can still move into the NFCPS e-book reader.
+Expected: Watch remains usable during the simulated feed outage, YouTube-style navigation and Shorts still work, and Journey/Companion state can still be saved locally.
+
+## Test 5 - Reading remains connected after deep Watch infrastructure
+Viewport: mobile (375x667)
+Covers: Watch-to-reader bridge, /api/ebooks/catalog, visible e-book shelf, /api/reader/book, in-app reader pagination and saved reading position
+Description: Verifies deep Watch work does not regress the connected NFCPS reading experience.
+
+Steps:
+1. From a sermon companion tap Go deeper in Reading
+2. Open a visible Project Gutenberg title with Read now and advance to another page
+3. Close and reopen the same title from Continue Reading
+
+Expected: The e-book shelf remains visible, the book opens in the NFCPS reader, page navigation works and the saved reading position is restored.
