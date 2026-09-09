@@ -12,50 +12,50 @@ Steps:
 
 Expected: The book opens inside NFCPS, page navigation works, page/progress status updates, and Continue Reading returns to approximately the same saved reading position.
 
-## Test 2 - Personalize reading appearance and keep advanced settings
+## Test 2 - Personalize, search and annotate a book
 Viewport: desktop (1280x800)
-Covers: reader settings panel, font size, line spacing, page margins, page brightness, text colour, four typeface choices, page colour themes and per-book persistence
-Description: Verifies a reader can make the reading surface comfortable and retain those choices.
+Covers: reader settings panel, font size, line spacing, page margins, brightness, text colour, four typefaces, page colour themes, search inside book, multi-colour highlights, notes and per-book persistence
+Description: Verifies the advanced reader controls and study tools remain usable together.
 
 Steps:
-1. Open a free e-book and open Reading Controls
-2. Change text size, line spacing, page margins, brightness, typeface, text colour and page colour
-3. Close and reopen the same book
+1. Open a free e-book, change typography, spacing, margins, brightness, text colour and page theme
+2. Open Book Map, search for a word in the book, jump to a result and save highlights in two colours plus one note
+3. Close and reopen the same book, then open Notes & Highlights
 
-Expected: The visible reading appearance changes immediately and the saved book reopens with the chosen reading settings.
+Expected: The reading appearance remains personalized, search jumps to matching pages, and the saved coloured highlights and note are still available on this device.
 
-## Test 3 - Search, highlight in multiple colours and revisit a note
-Viewport: desktop (1280x800)
-Covers: search inside book, annotation navigation, yellow/green/blue highlights, private notes, notes panel and deletion
-Description: Verifies the reader supports study-style discovery and annotation on the current device.
-
-Steps:
-1. Open a free e-book, open Book Map and search for a word that appears in the book
-2. Jump to a search result, select text and save highlights in at least two colours
-3. Select another passage, attach a note, open Notes & Highlights and tap the saved note
-
-Expected: Search results jump to matching reading pages, selected text keeps its chosen highlight colour, the note appears in the notes panel, and tapping it returns to the passage.
-
-## Test 4 - Free e-books expose Read and Download while immersive mode stays available
+## Test 3 - Free e-books expose Read and Download while immersive mode stays available
 Viewport: mobile (375x667)
-Covers: e-book card action consistency, legal free-download link, immersive/fullscreen reader control and recommendation wording guardrail
+Covers: e-book card action consistency, legal free-download link, mobile Book Map, immersive/fullscreen reader control and recommendation wording guardrail
 Description: Verifies free books have direct actions and the reading interface can remove distracting app chrome without mislabelling copyrighted recommendations.
 
 Steps:
-1. Browse several visible Project Gutenberg cards and confirm each has Read and Download
-2. Open one book, confirm Book Map is available on mobile, then open Reading Controls and activate Immersive reading
+1. Browse visible Project Gutenberg cards and confirm they have Read and Download
+2. Open one book, confirm Book Map is available, then activate Immersive reading
 3. Use the visible Exit immersive control and review NFCPS Recommendations
 
-Expected: Gutenberg books consistently show Read and Download, Book Map/search remains reachable on mobile, immersive mode hides normal reader chrome while keeping a clear exit control, and modern recommendations do not claim an unauthorized free download.
+Expected: Gutenberg books show Read and Download, Book Map/search remains reachable, immersive mode keeps a clear exit control, and modern recommendations do not claim an unauthorized free download.
 
-## Test 5 - Installed app identity uses the NFCPS logo and stable app scope
+## Test 4 - Installed app identity stays NFCPS One
 Viewport: mobile (375x667)
 Covers: web app manifest identity, official NFCPS logo install icon, maskable NFCPS icon, stable app id/scope, standalone theme configuration and Watch shortcut
-Description: Verifies the installable app behaves like one stable NFCPS One installation rather than a generic website shortcut.
+Description: Verifies the live update remains part of the same installable NFCPS One app rather than requiring a replacement APK.
 
 Steps:
 1. Load the app and inspect its installable app metadata
-2. Verify the manifest icon points to the NFCPS logo and the maskable icon embeds the NFCPS identity
-3. Confirm the manifest has a stable id/scope and exposes the NFCPS Watch shortcut
+2. Verify the manifest uses the NFCPS logo and maskable identity with stable root id/scope
+3. Confirm the NFCPS Watch shortcut is still exposed
 
-Expected: Install metadata uses NFCPS branding, a stable root scope and standalone NFCPS theme colours.
+Expected: Install metadata remains NFCPS-branded with stable app scope and the Watch shortcut, so this web update does not create a separate app identity.
+
+## Test 5 - Watch and Shorts rotate trusted voices instead of creator clusters
+Viewport: mobile (375x667)
+Covers: /watch experience, /api/watch/feed trusted-feed rendering, creator discovery, For You creator diversity, daily themed Shorts, vertical swipe snapping, Watch Later and continue watching history
+Description: Verifies NFCPS Watch feels like a focused Christian video home and Shorts do not bunch consecutive videos from the same creator when other trusted voices are available.
+
+Steps:
+1. Open NFCPS Watch and browse the trusted creator rail and For You feed
+2. Save one long-form video to Watch Later, open it, close the player and confirm it appears in Continue Watching
+3. Open Shorts and swipe through at least five available clips under today's message
+
+Expected: Watch shows multiple approved creators, saved/history state is visible on this device, Shorts fill the mobile screen and snap vertically, one daily message/theme is shown, and consecutive Shorts rotate across different creators whenever the feed has alternatives.
