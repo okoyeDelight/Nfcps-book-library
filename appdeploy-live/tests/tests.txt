@@ -1,0 +1,61 @@
+# Tests
+
+## Test 1 - Open any visible free e-book and read it page by page [sanity]
+Viewport: mobile (375x667)
+Covers: free e-book Read action, /api/reader/book Gutenberg copy retrieval, reader pagination, next/previous navigation, saved progress and offline cache
+Description: Verifies the primary e-book workflow behaves like a real reader instead of a long web page.
+
+Steps:
+1. Open the Free E-books section and tap Read on a visible Project Gutenberg title
+2. Use Next to advance several pages
+3. Close the reader, return to Continue Reading and reopen the same book
+
+Expected: The book opens inside NFCPS, page navigation works, page/progress status updates, and Continue Reading returns to approximately the same saved reading position.
+
+## Test 2 - Personalize reading appearance and keep advanced settings
+Viewport: desktop (1280x800)
+Covers: reader settings panel, font size, line spacing, page margins, page brightness, text colour, four typeface choices, page colour themes and per-book persistence
+Description: Verifies a reader can make the reading surface comfortable and retain those choices.
+
+Steps:
+1. Open a free e-book and open Reading Controls
+2. Change text size, line spacing, page margins, brightness, typeface, text colour and page colour
+3. Close and reopen the same book
+
+Expected: The visible reading appearance changes immediately and the saved book reopens with the chosen reading settings.
+
+## Test 3 - Search, highlight in multiple colours and revisit a note
+Viewport: desktop (1280x800)
+Covers: search inside book, annotation navigation, yellow/green/blue highlights, private notes, notes panel and deletion
+Description: Verifies the reader supports study-style discovery and annotation on the current device.
+
+Steps:
+1. Open a free e-book, open Book Map and search for a word that appears in the book
+2. Jump to a search result, select text and save highlights in at least two colours
+3. Select another passage, attach a note, open Notes & Highlights and tap the saved note
+
+Expected: Search results jump to matching reading pages, selected text keeps its chosen highlight colour, the note appears in the notes panel, and tapping it returns to the passage.
+
+## Test 4 - Free e-books expose Read and Download while immersive mode stays available
+Viewport: mobile (375x667)
+Covers: e-book card action consistency, legal free-download link, immersive/fullscreen reader control and recommendation wording guardrail
+Description: Verifies free books have direct actions and the reading interface can remove distracting app chrome without mislabelling copyrighted recommendations.
+
+Steps:
+1. Browse several visible Project Gutenberg cards and confirm each has Read and Download
+2. Open one book, open Reading Controls and activate Immersive reading
+3. Exit immersive reading and review NFCPS Recommendations
+
+Expected: Gutenberg books consistently show Read and Download, immersive mode hides normal reader chrome, and modern recommendations do not claim an unauthorized free download.
+
+## Test 5 - Installed app identity uses the NFCPS logo and stable app scope
+Viewport: mobile (375x667)
+Covers: web app manifest identity, official NFCPS logo install icon, maskable NFCPS icon, stable app id/scope, standalone theme configuration and Watch shortcut
+Description: Verifies the installable app behaves like one stable NFCPS One installation rather than a generic website shortcut.
+
+Steps:
+1. Load the app and inspect its installable app metadata
+2. Verify the manifest icon points to the NFCPS logo and the maskable icon embeds the NFCPS identity
+3. Confirm the manifest has a stable id/scope and exposes the NFCPS Watch shortcut
+
+Expected: Install metadata uses NFCPS branding, a stable root scope and standalone NFCPS theme colours.
