@@ -1,45 +1,57 @@
 # Tests
 
-## Test 1 - Watch opens into a YouTube-style home feed and video page [sanity]
+## Test 1 - Daily Watch opens a message and records meaningful growth [sanity]
 Viewport: mobile (375x667)
-Covers: current installed shell delivery, /api/watch/feed trusted content, Home tab, topic chips, responsive video feed, watch page, related videos, save/share/like actions
-Description: Verifies NFCPS Watch now opens directly into content and a tapped video behaves like a proper watch page rather than a promotional landing screen.
+Covers: current installed shell delivery, /api/watch/feed, NFCPS Daily Watch, dedicated watch page, Sermon Companion, note persistence, response tracking and growth rhythm
+Description: Verifies the new difference layer turns a normal video into a guided spiritual next step without breaking the YouTube-style player.
 
 Steps:
-1. Open NFCPS Watch from the installed/native-style app and confirm Home, Shorts, Subscriptions and You are available in the bottom navigation
-2. Tap a visible video card and review the player, title, creator row, Subscribe control, Like, Share, Save and Up next area
-3. Save and like the video, return to Home and continue scrolling beyond the first feed batch
+1. Open NFCPS Watch and start the visible NFCPS Daily Watch card
+2. On the watch page review Key Scripture, Reflect and Take Action, write a note, choose “I’m responding”, then complete Daily Watch
+3. Return to You and review the growth scoreboard, then refresh the page and reopen the same video
 
-Expected: Watch opens directly into a YouTube-style content feed, the selected video has a dedicated watch layout with related videos and actions, saved/liked state updates visibly, and more cards continue loading as the user scrolls.
+Expected: The Daily Watch opens normally, the Sermon Companion is visible below the player, the note and response persist after refresh, today is marked complete and the growth rhythm is reflected in You.
 
-## Test 2 - Shorts behave like a continuous vertical YouTube Shorts feed
-Viewport: mobile (375x667)
-Covers: Shorts tab, vertical snap scrolling, active YouTube playback, creator rotation, local Like/Save/Subscribe actions and automatic feed extension
-Description: Verifies Shorts are a first-class navigation destination with one full-height video per swipe and no fixed terminal batch.
-
-Steps:
-1. Tap Shorts in the bottom navigation
-2. Swipe through enough Shorts to pass the initial rendered batch
-3. Like one Short, save another and subscribe to one creator while continuing to swipe
-
-Expected: One Short occupies the viewing area at a time, swiping snaps vertically, new Shorts continue appearing beyond the initial batch, creators remain mixed when alternatives exist, and Like/Save/Subscribe state updates visibly.
-
-## Test 3 - Subscriptions and You behave like a personal YouTube library
+## Test 2 - Growth goals reshape the Home feed while keeping creator diversity
 Viewport: desktop (1280x800)
-Covers: local creator subscriptions, Subscriptions feed, You tab, Watch history, Watch Later and NFCPS reader bridge
-Description: Verifies personal Watch state is organized into familiar YouTube-style destinations and persists on the device.
+Covers: growth-goal selection, local goal persistence, recommendation weighting, creator-aware diversity and Home feed
+Description: Verifies a user can tell NFCPS what they want to grow in and the feed adapts without becoming a single-creator tunnel.
 
 Steps:
-1. Subscribe to two trusted creators and open the Subscriptions tab
-2. Watch one video, save another to Watch Later, then open the You tab
-3. Refresh the page and return to Subscriptions and You
+1. In Home choose Prayer and Know the Word under Shape my growth feed
+2. Browse the next visible Home feed cards and note the mix of relevant categories and creators
+3. Refresh the page and return to Home
 
-Expected: Subscribed creators populate the Subscriptions feed, watched videos appear in History, saved videos appear in Watch Later, and the same local state remains after refresh.
+Expected: The selected growth goals remain active after refresh, relevant categories are prioritised in the feed, and multiple trusted creators continue to appear.
 
-## Test 4 - Watch search and degraded fallback never leave the experience unusable
+## Test 3 - Growth Journeys progress one day at a time and persist
 Viewport: mobile (375x667)
-Covers: search results, no-results guardrail, /api/watch/feed failure fallback and trusted seed content
-Description: Verifies search has a clear empty state and a temporary Watch backend failure falls back to trusted curated content rather than a blank app.
+Covers: guided Growth Journeys, journey video selection, journey-day completion, persistent progress and You growth summary
+Description: Verifies NFCPS Watch can guide a user through a defined discipleship path instead of only offering an endless feed.
+
+Steps:
+1. Start Build a Prayer Life from the Growth Journeys section
+2. Watch the selected journey message and tap Complete journey day in the Sermon Companion
+3. Return to You, confirm the journey shows 1/7 days, refresh, and open the journey again
+
+Expected: The first journey day completes once, 1/7 progress remains after refresh, the growth scoreboard updates and Continue journey selects the next journey step.
+
+## Test 4 - Shorts lead into deeper teaching instead of becoming a dead-end scroll
+Viewport: mobile (375x667)
+Covers: Shorts infinite vertical feed, Full message bridge, trusted long-form matching, watch page and Sermon Companion
+Description: Verifies short-form discovery can transition into deeper long-form teaching from a related trusted creator or topic.
+
+Steps:
+1. Open Shorts and swipe through at least three available clips
+2. Tap Full message on one Short
+3. Review the resulting long-form player and Sermon Companion
+
+Expected: Shorts remain vertically swipeable and continuous, Full message opens a related long-form trusted teaching when available, and the deeper watch page includes the growth companion.
+
+## Test 5 - Watch failure fallback still preserves the growth experience and Reading bridge
+Viewport: mobile (375x667)
+Covers: /api/watch/feed failure fallback, trusted seed content, Daily Watch fallback, Sermon Companion and NFCPS reader bridge
+Description: Verifies the new growth layer remains usable even when fresh Watch data temporarily fails.
 
 QA Faults:
 ```json
@@ -54,20 +66,8 @@ QA Faults:
 ```
 
 Steps:
-1. Open NFCPS Watch while the Watch feed request fails
-2. Confirm trusted fallback videos still render, then search for a nonsense phrase with no match
-3. Clear the search and open one visible fallback video
+1. Open NFCPS Watch while the Watch feed request fails and confirm trusted fallback videos plus Daily Watch still appear
+2. Open a fallback teaching and review its Sermon Companion
+3. Tap Go deeper in Reading and open a visible free e-book
 
-Expected: The Watch home remains usable with curated fallback videos, a clear no-results state appears for the nonsense search, and clearing search restores tappable video content.
-
-## Test 5 - Free e-books and reader remain available after the Watch redesign
-Viewport: mobile (375x667)
-Covers: Watch-to-reader bridge, /api/ebooks/catalog, visible free e-book shelf, /api/reader/book, in-app reader pagination and saved reading state
-Description: Verifies the YouTube-style Watch redesign does not regress the connected NFCPS reading experience.
-
-Steps:
-1. Open You in NFCPS Watch and tap Read in NFCPS
-2. Open a visible free Project Gutenberg title with Read now and advance to another page
-3. Close the reader and reopen the same title from Continue Reading
-
-Expected: The user can move from Watch to the e-book shelf, open a book inside NFCPS, navigate pages and return to approximately the saved reading position.
+Expected: Watch does not become blank during the simulated outage, the growth companion remains usable on fallback content, and the user can still move into the NFCPS e-book reader.
