@@ -29,7 +29,7 @@ const creators:Creator[]=[
 ];
 
 const fallback:Video[]=[
-{id:'3RHdq_h0ZH4',title:'You Were Created For A Reason',creator:'Apostle Michael Orokpo',creatorKey:'orokpo',published:'2026-06-02T00:00:00Z',category:'Purpose',source:'curated',channelUrl:'https://www.youtube.com/@apostlearomeosayi'},
+{id:'3RHdq_h0ZH4',title:'You Were Created For A Reason',creator:'Apostle Michael Orokpo',creatorKey:'orokpo',published:'2026-06-02T00:00:00Z',category:'Purpose',source:'curated',channelUrl:'https://www.youtube.com/@apostleorokpomichael'},
 {id:'sNb2hzZAk0I',title:'The Question of God',creator:'Apostle Emmanuel Iren',creatorKey:'iren',published:'2026-03-17T00:00:00Z',category:'Bible Study',source:'curated',channelUrl:'https://www.youtube.com/@pst_iren'},
 {id:'IgyAYG5D8fM',title:'How to Pray Daily',creator:'Apostle Emmanuel Iren',creatorKey:'iren',published:'2026-02-11T00:00:00Z',category:'Prayer',source:'curated',channelUrl:'https://www.youtube.com/@pst_iren'},
 {id:'VtEV3LcG49U',title:'50 Days of Pentecost · Day 1',creator:'Apostle Edu Udechukwu',creatorKey:'edu',published:'2026-01-13T00:00:00Z',category:'Revival',source:'curated',channelUrl:'https://www.youtube.com/@ApostleEduUdechukwu'},
