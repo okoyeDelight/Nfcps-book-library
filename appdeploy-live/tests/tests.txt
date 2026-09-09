@@ -1,61 +1,73 @@
 # Tests
 
-## Test 1 - Open any visible free e-book and read it page by page [sanity]
+## Test 1 - Free e-books always show and open inside NFCPS [sanity]
 Viewport: mobile (375x667)
-Covers: free e-book Read action, /api/reader/book Gutenberg copy retrieval, reader pagination, next/previous navigation, saved progress and offline cache
-Description: Verifies the primary e-book workflow behaves like a real reader instead of a long web page.
+Covers: native/live shell delivery, prominent Watch and Free E-books shortcuts, /api/ebooks/catalog backend catalog proxy, visible free e-book shelf, Read action, /api/reader/book Gutenberg copy retrieval, reader pagination and saved progress
+Description: Verifies an installed/native-style session receives the current shell and can immediately reach the new e-book and Watch experiences.
 
 Steps:
-1. Open the Free E-books section and tap Read on a visible Project Gutenberg title
-2. Use Next to advance several pages
-3. Close the reader, return to Continue Reading and reopen the same book
+1. Open the app with ?source=native and confirm the upper shortcut area visibly includes FREE E-BOOKS · LIVE and NFCPS WATCH · LIVE
+2. Open Free E-books, confirm multiple Project Gutenberg books are visible, then tap Read now and advance to another page
+3. Close the reader and reopen the same title from Continue Reading
 
-Expected: The book opens inside NFCPS, page navigation works, page/progress status updates, and Continue Reading returns to approximately the same saved reading position.
+Expected: The current shell exposes Watch and e-books immediately, the shelf is not blank, the selected book opens inside NFCPS, page navigation works, and reopening returns to approximately the saved reading position.
 
-## Test 2 - Personalize, search and annotate a book
+## Test 2 - E-book catalog failure falls back to the NFCPS starter shelf
+Viewport: mobile (375x667)
+Covers: e-book catalog failure guardrail, local starter shelf fallback, visible Read and Download actions
+Description: Verifies an upstream catalog outage cannot leave the e-book section empty.
+
+QA Faults:
+```json
+[
+  {
+    "method": "GET",
+    "path": "/api/ebooks/catalog",
+    "status": 500,
+    "body_json": { "error": "simulated_catalog_outage" }
+  }
+]
+```
+
+Steps:
+1. Open the Free E-books section while the catalog request fails
+2. Review the visible starter shelf and outage notice
+3. Confirm a starter title still exposes Read now and Download
+
+Expected: A visible NFCPS starter shelf replaces the failed catalog response, an explanatory notice is shown, and the section never becomes a blank area.
+
+## Test 3 - Advanced reader controls remain available
 Viewport: desktop (1280x800)
-Covers: reader settings panel, font size, line spacing, page margins, brightness, text colour, four typefaces, page colour themes, search inside book, multi-colour highlights, notes and per-book persistence
-Description: Verifies the advanced reader controls and study tools remain usable together.
+Covers: reader appearance settings, Book Map search, bookmarks, multi-colour highlights, notes, immersive mode and per-book persistence
+Description: Verifies the catalog fix does not regress the novel-style reader experience.
 
 Steps:
-1. Open a free e-book, change typography, spacing, margins, brightness, text colour and page theme
-2. Open Book Map, search for a word in the book, jump to a result and save highlights in two colours plus one note
-3. Close and reopen the same book, then open Notes & Highlights
+1. Open a free e-book and change typography, line spacing, page margins, brightness, text colour and page theme
+2. Search inside the book, save a bookmark, add two highlight colours and one note
+3. Activate immersive reading, exit it, close the book and reopen it
 
-Expected: The reading appearance remains personalized, search jumps to matching pages, and the saved coloured highlights and note are still available on this device.
+Expected: Search and annotations work, immersive mode has a clear exit, and the book reopens with the saved reading appearance and study state.
 
-## Test 3 - Free e-books expose Read and Download while immersive mode stays available
+## Test 4 - Watch feed keeps extending as the user scrolls
 Viewport: mobile (375x667)
-Covers: e-book card action consistency, legal free-download link, mobile Book Map, immersive/fullscreen reader control and recommendation wording guardrail
-Description: Verifies free books have direct actions and the reading interface can remove distracting app chrome without mislabelling copyrighted recommendations.
+Covers: /api/watch/feed trusted content, creator-interleaved long-form feed, automatic infinite-scroll batching, Watch Later and Continue Watching
+Description: Verifies NFCPS Watch behaves like a continuing feed instead of stopping after the first fixed group of videos.
 
 Steps:
-1. Browse visible Project Gutenberg cards and confirm they have Read and Download
-2. Open one book, confirm Book Map is available, then activate Immersive reading
-3. Use the visible Exit immersive control and review NFCPS Recommendations
+1. Open NFCPS Watch and scroll through the For You feed until the initial visible batch is nearly exhausted
+2. Continue scrolling past the loading-more sentinel into the next batch
+3. Save and open one video, then close it and review Watch Later and Continue Watching
 
-Expected: Gutenberg books show Read and Download, Book Map/search remains reachable, immersive mode keeps a clear exit control, and modern recommendations do not claim an unauthorized free download.
+Expected: More video cards are appended automatically without an end-of-feed state, creators remain mixed when alternatives are available, and saved/history state remains usable.
 
-## Test 4 - Installed app identity stays NFCPS One
+## Test 5 - Shorts continue beyond the first batch with creator-aware rotation
 Viewport: mobile (375x667)
-Covers: web app manifest identity, official NFCPS logo install icon, maskable NFCPS icon, stable app id/scope, standalone theme configuration and Watch shortcut
-Description: Verifies the live update remains part of the same installable NFCPS One app rather than requiring a replacement APK.
+Covers: daily themed Shorts, full-height vertical snap scrolling, automatic Shorts extension, creator-aware reshuffling and trusted YouTube playback
+Description: Verifies the Shorts experience continues loading as the user swipes rather than ending after a fixed list.
 
 Steps:
-1. Load the app and inspect its installable app metadata
-2. Verify the manifest uses the NFCPS logo and maskable identity with stable root id/scope
-3. Confirm the NFCPS Watch shortcut is still exposed
+1. Open Shorts and note today's message/theme
+2. Swipe through enough clips to pass the initial Shorts batch
+3. Keep swiping into the automatically appended clips and inspect the creator sequence
 
-Expected: Install metadata remains NFCPS-branded with stable app scope and the Watch shortcut, so this web update does not create a separate app identity.
-
-## Test 5 - Watch and Shorts rotate trusted voices instead of creator clusters
-Viewport: mobile (375x667)
-Covers: /watch experience, /api/watch/feed trusted-feed rendering, creator discovery, For You creator diversity, daily themed Shorts, vertical swipe snapping, Watch Later and continue watching history
-Description: Verifies NFCPS Watch feels like a focused Christian video home and Shorts do not bunch consecutive videos from the same creator when other trusted voices are available.
-
-Steps:
-1. Open NFCPS Watch and browse the trusted creator rail and For You feed
-2. Save one long-form video to Watch Later, open it, close the player and confirm it appears in Continue Watching
-3. Open Shorts and swipe through at least five available clips under today's message
-
-Expected: Watch shows multiple approved creators, saved/history state is visible on this device, Shorts fill the mobile screen and snap vertically, one daily message/theme is shown, and consecutive Shorts rotate across different creators whenever the feed has alternatives.
+Expected: Shorts continue beyond the initial batch with no terminal end screen, the daily theme remains consistent, vertical snapping remains full-height, and different trusted creators are rotated whenever alternatives exist.
