@@ -6,7 +6,7 @@ Covers: Watch Together room creation, /api/watch/rooms routes, realtime WebSocke
 Description: Verifies the core social Watch workflow works across two members without requiring an account wall.
 
 Steps:
-1. Actor A opens a sermon, opens Watch Together, enters "Ada" and creates a room; note the six-character room code
+1. Actor A opens Watch Home, confirms the prominent Watch Together card is visible, uses it to open a sermon, enters "Ada" and creates a room; note the six-character room code
 2. Actor B opens NFCPS Watch on another client, opens the shared room code, enters "Chidi" and joins
 3. Actor A taps Pause and then Play together, sends a prayer message and a reaction; Actor B sends a chat reply
 
@@ -18,7 +18,7 @@ Covers: /api/watch/sermon/:id/transcript, transcript cache/fallback state, /api/
 Description: Verifies sermon Q&A is explicitly grounded in readable captions and refuses to invent an answer when a transcript is unavailable.
 
 Steps:
-1. Open a trusted sermon and review the Ask This Sermon status
+1. On Watch Home confirm the prominent Ask This Sermon card is visible, use it to open a trusted sermon, and review the Ask This Sermon status
 2. If Transcript ready is shown, ask "What practical instruction should I apply?" and open one timestamp evidence item; if captions are unavailable, review the explicit unavailable explanation
 3. Return to the sermon player
 
@@ -38,7 +38,7 @@ Expected: Actor B reconnects as the same local room member but does not receive 
 
 ## Test 4 - Deep Watch features do not break Home, Shorts, growth journeys or fallback content
 Viewport: mobile (375x667)
-Covers: /api/watch/feed, Home infinite feed, Shorts, Subscriptions, Daily Watch, Growth Journeys, Sermon Companion notes and trusted fallback guardrail
+Covers: direct /watch installed-app updater, /api/watch/feed, prominent deep-feature entry points, Home infinite feed, Shorts, Subscriptions, Daily Watch, Growth Journeys, Sermon Companion notes and trusted fallback guardrail
 Description: Verifies the new deep infrastructure sits around the existing YouTube-style and growth experience without regressing it.
 
 QA Faults:
@@ -54,7 +54,7 @@ QA Faults:
 ```
 
 Steps:
-1. Open NFCPS Watch while the feed request fails and confirm trusted curated fallback videos remain visible
+1. Open NFCPS Watch directly with ?source=native while the feed request fails; confirm Ask This Sermon and Watch Together remain visible above trusted curated fallback videos
 2. Open Shorts, return Home, start a Growth Journey and open its sermon
 3. Write a private Sermon Companion note and save a takeaway
 
