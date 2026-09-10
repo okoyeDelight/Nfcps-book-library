@@ -2,6 +2,7 @@ package org.nfcpsunizik.one;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Dialog;
 import android.app.PictureInPictureParams;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -9,29 +10,38 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Message;
 import android.util.Rational;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
-import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 public class MainActivity extends Activity {
     private static final String APP_HOST = "nfcps-book-library-c2ma7y.v2.appdeploy.ai";
+    private static final String AUTH_HOST = "api-v2.appdeploy.ai";
     private static final String APP_URL = "https://" + APP_HOST + "/?source=native";
+
     private FrameLayout root;
     private WebView webView;
     private ProgressBar progress;
     private View customView;
     private WebChromeClient.CustomViewCallback customViewCallback;
+    private Dialog authDialog;
+    private WebView authWebView;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -59,7 +69,20 @@ public class MainActivity extends Activity {
         root.addView(progress, progressParams);
         setContentView(root);
 
-        WebSettings settings = webView.getSettings();
+        configureWebView(webView, false);
+
+        webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> openExternal(Uri.parse(url)));
+
+        if (savedInstanceState != null) {
+            webView.restoreState(savedInstanceState);
+        } else {
+            webView.loadUrl(APP_URL);
+        }
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private void configureWebView(WebView target, boolean popup) {
+        WebSettings settings = target.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
@@ -68,16 +91,30 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.0");
+        settings.setSupportMultipleWindows(true);
+        settings.setJavaScriptCanOpenWindowsAutomatically(true);
+        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.1");
 
-        webView.setWebViewClient(new WebViewClient() {
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            cookieManager.setAcceptThirdPartyCookies(target, true);
+        }
+
+        target.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                String host = uri.getHost();
-                if (("http".equals(uri.getScheme()) || "https".equals(uri.getScheme())) && APP_HOST.equalsIgnoreCase(host)) {
+                String scheme = uri.getScheme();
+                boolean webUrl = "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
+
+                if (popup && webUrl) {
                     return false;
                 }
+                if (webUrl && isInternalHost(uri.getHost())) {
+                    return false;
+                }
+
                 openExternal(uri);
                 return true;
             }
@@ -85,24 +122,41 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                view.evaluateJavascript("window.__NFCPS_NATIVE__=true;document.documentElement.classList.add('nfcps-native-app');", null);
+                if (!popup) {
+                    view.evaluateJavascript(
+                            "window.__NFCPS_NATIVE__=true;document.documentElement.classList.add('nfcps-native-app');",
+                            null
+                    );
+                }
             }
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 super.onReceivedError(view, request, error);
-                if (request.isForMainFrame()) {
-                    String html = "<html><meta name='viewport' content='width=device-width,initial-scale=1'><body style='margin:0;background:#07101f;color:#fff;font-family:sans-serif;display:grid;place-items:center;min-height:100vh'><div style='max-width:340px;padding:32px;text-align:center'><div style='font-size:48px'>📖</div><h1>NFCPS One</h1><p style='opacity:.75;line-height:1.6'>You appear to be offline. Reading copies already cached by NFCPS can still work when available.</p><a style='display:inline-block;margin-top:12px;padding:14px 20px;border-radius:999px;background:#d8b868;color:#07101f;text-decoration:none;font-weight:700' href='" + APP_URL + "'>Try again</a></div></body></html>";
-                    view.loadDataWithBaseURL(APP_URL, html, "text/html", "UTF-8", null);
+                if (!popup && request.isForMainFrame()) {
+                    showOfflineFallback(view);
                 }
             }
         });
 
-        webView.setWebChromeClient(new WebChromeClient() {
+        target.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
-                progress.setProgress(newProgress);
-                progress.setVisibility(newProgress >= 100 ? View.GONE : View.VISIBLE);
+                if (!popup) {
+                    progress.setProgress(newProgress);
+                    progress.setVisibility(newProgress >= 100 ? View.GONE : View.VISIBLE);
+                }
+            }
+
+            @Override
+            public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
+                if (popup) return false;
+                return showInAppAuthWindow(resultMsg);
+            }
+
+            @Override
+            public void onCloseWindow(WebView window) {
+                if (popup) dismissAuthWindow();
             }
 
             @Override
@@ -112,6 +166,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onShowCustomView(View view, CustomViewCallback callback) {
+                if (popup) return;
                 if (customView != null) {
                     callback.onCustomViewHidden();
                     return;
@@ -128,17 +183,111 @@ public class MainActivity extends Activity {
 
             @Override
             public void onHideCustomView() {
-                hideCustomView();
+                if (!popup) hideCustomView();
             }
         });
+    }
 
-        webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> openExternal(Uri.parse(url)));
+    private boolean isInternalHost(String host) {
+        return host != null && (APP_HOST.equalsIgnoreCase(host) || AUTH_HOST.equalsIgnoreCase(host));
+    }
 
-        if (savedInstanceState != null) {
-            webView.restoreState(savedInstanceState);
-        } else {
-            webView.loadUrl(APP_URL);
+    @SuppressLint("SetJavaScriptEnabled")
+    private boolean showInAppAuthWindow(Message resultMsg) {
+        dismissAuthWindow();
+
+        authDialog = new Dialog(this, android.R.style.Theme_DeviceDefault_NoActionBar);
+        LinearLayout shell = new LinearLayout(this);
+        shell.setOrientation(LinearLayout.VERTICAL);
+        shell.setBackgroundColor(Color.rgb(3, 12, 9));
+
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(dp(10), 0, dp(8), 0);
+        bar.setBackgroundColor(Color.rgb(7, 24, 19));
+
+        TextView close = new TextView(this);
+        close.setText("‹");
+        close.setTextColor(Color.WHITE);
+        close.setTextSize(34);
+        close.setGravity(Gravity.CENTER);
+        close.setContentDescription("Close sign in");
+        close.setOnClickListener(view -> dismissAuthWindow());
+        bar.addView(close, new LinearLayout.LayoutParams(dp(48), dp(54)));
+
+        TextView title = new TextView(this);
+        title.setText("Sign in to NFCPS One");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(16);
+        title.setGravity(Gravity.CENTER_VERTICAL);
+        title.setSingleLine(true);
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0, dp(54), 1f);
+        bar.addView(title, titleParams);
+
+        TextView secure = new TextView(this);
+        secure.setText("Secure");
+        secure.setTextColor(Color.rgb(169, 205, 185));
+        secure.setTextSize(11);
+        secure.setGravity(Gravity.CENTER);
+        bar.addView(secure, new LinearLayout.LayoutParams(dp(58), dp(54)));
+
+        authWebView = new WebView(this);
+        configureWebView(authWebView, true);
+        shell.addView(bar, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(54)
+        ));
+        shell.addView(authWebView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+        ));
+
+        authDialog.setContentView(shell);
+        authDialog.setOnDismissListener(dialog -> {
+            if (authWebView != null) {
+                authWebView.stopLoading();
+                authWebView.loadUrl("about:blank");
+                authWebView.destroy();
+                authWebView = null;
+            }
+            authDialog = null;
+        });
+        authDialog.show();
+
+        Window window = authDialog.getWindow();
+        if (window != null) {
+            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            window.setStatusBarColor(Color.rgb(7, 24, 19));
+            window.setNavigationBarColor(Color.rgb(3, 12, 9));
         }
+
+        WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+        transport.setWebView(authWebView);
+        resultMsg.sendToTarget();
+        return true;
+    }
+
+    private void dismissAuthWindow() {
+        if (authDialog != null) {
+            authDialog.dismiss();
+            return;
+        }
+        if (authWebView != null) {
+            authWebView.destroy();
+            authWebView = null;
+        }
+    }
+
+    private void showOfflineFallback(WebView view) {
+        String html = "<html><meta name='viewport' content='width=device-width,initial-scale=1'>"
+                + "<body style='margin:0;background:#07101f;color:#fff;font-family:sans-serif;display:grid;place-items:center;min-height:100vh'>"
+                + "<div style='max-width:340px;padding:32px;text-align:center'><div style='font-size:48px'>📖</div>"
+                + "<h1>NFCPS One</h1><p style='opacity:.75;line-height:1.6'>You appear to be offline. Reading copies already cached by NFCPS can still work when available.</p>"
+                + "<a style='display:inline-block;margin-top:12px;padding:14px 20px;border-radius:999px;background:#d8b868;color:#07101f;text-decoration:none;font-weight:700' href='"
+                + APP_URL + "'>Try again</a></div></body></html>";
+        view.loadDataWithBaseURL(APP_URL, html, "text/html", "UTF-8", null);
     }
 
     private void openExternal(Uri uri) {
@@ -183,13 +332,28 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (customView != null) {
+        if (authWebView != null) {
+            if (authWebView.canGoBack()) {
+                authWebView.goBack();
+            } else {
+                dismissAuthWindow();
+            }
+        } else if (customView != null) {
             hideCustomView();
         } else if (webView.canGoBack()) {
             webView.goBack();
         } else {
             super.onBackPressed();
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        dismissAuthWindow();
+        if (webView != null) {
+            webView.destroy();
+        }
+        super.onDestroy();
     }
 
     private int dp(int value) {
