@@ -17,6 +17,8 @@ import '../styles/ui-v2.css';
 import '../styles/v45-fixes.css';
 import '../styles/concept-v3.css';
 import '../styles/account-sync.css';
+import '../styles/account-board.css';
+import '../styles/books-v49.css';
 import {NfcpsAccountProvider} from '../src/AccountSync';
 
 export default function App({ Component, pageProps }: AppProps) {
