@@ -1,30 +1,562 @@
 'use client';
-import {createContext,useCallback,useContext,useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
-import {api,auth} from '@appdeploy/client';
 
-type AnyObj=Record<string,any>;
-type AccountUser={userId:string;email?:string;name?:string;picture?:string;scope:string};
-type SyncState='local'|'syncing'|'synced'|'offline'|'error';
-type MemberSnapshot={v:1;profile:{name:string;phone:string};reader:AnyObj;watch:AnyObj;moments:AnyObj;circulation:Record<string,string>};
-type AccountContextValue={user:AccountUser|null;signedIn:boolean;displayName:string;firstName:string;initials:string;picture?:string;status:SyncState;lastSyncedAt:string|null;notice:string;signIn:()=>Promise<void>;signOut:()=>Promise<void>;syncNow:(force?:boolean)=>Promise<void>};
-const AccountContext=createContext<AccountContextValue|null>(null);
-const CACHE='nfcps-account-cache-v1';
-const asObj=(v:any):AnyObj=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
-const readJson=(key:string,fallback:any)=>{try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):fallback}catch{return fallback}};
-const cap=(v:any,n:number)=>String(v??'').slice(0,n);
-const unionStrings=(a:any,b:any,limit=400)=>Array.from(new Set([...(Array.isArray(a)?a:[]),...(Array.isArray(b)?b:[])].map(String))).slice(0,limit);
-const unionNums=(a:any,b:any)=>Array.from(new Set([...(Array.isArray(a)?a:[]),...(Array.isArray(b)?b:[])].map(Number).filter(Number.isFinite))).sort((x,y)=>x-y);
-const unionObjects=(a:any,b:any,key:string,limit=160)=>{const out:any[]=[];const seen=new Set<string>();for(const item of [...(Array.isArray(a)?a:[]),...(Array.isArray(b)?b:[])]){if(!item||typeof item!=='object')continue;const id=String(item[key]??'');if(!id||seen.has(id))continue;seen.add(id);out.push(item);if(out.length>=limit)break}return out};
-const pruneMap=(value:any,limit=120,textLimit=3000)=>Object.fromEntries(Object.entries(asObj(value)).slice(0,limit).map(([k,v])=>[k,typeof v==='string'?cap(v,textLimit):v]));
-const pruneReader=(value:any)=>{const raw=asObj(value);const items=Object.entries(asObj(raw.items)).sort(([,a],[,b])=>Number(asObj(b).lastOpened||0)-Number(asObj(a).lastOpened||0)).slice(0,40);const next:AnyObj={};for(const[key,value]of items){const r=asObj(value);const annotations=(Array.isArray(r.annotations)?r.annotations:[]).slice(-120).map((x:any)=>{const a=asObj(x);return{...a,text:cap(a.text,500),note:a.note?cap(a.note,1600):undefined}});next[key]={...r,offline:false,annotations}}return{items:next}};
-const captureSnapshot=():MemberSnapshot=>{const circulation:Record<string,string>={};for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!key||!/^nfcps-(loan|wait)-/.test(key))continue;const value=localStorage.getItem(key);if(value&&Object.keys(circulation).length<40)circulation[key]=value}return{v:1,profile:{name:cap(localStorage.getItem('nfcps-profile-name')||localStorage.getItem('nfcps-watch-name')||'',100),phone:cap(localStorage.getItem('nfcps-profile-phone')||'',30)},reader:pruneReader(readJson('nfcps-reader-v3',readJson('nfcps-reader-v2',{items:{}}))),watch:{history:(readJson('nfcps-watch-history',[])||[]).slice(0,120),later:(readJson('nfcps-watch-later',[])||[]).slice(0,120),liked:(readJson('nfcps-watch-liked',[])||[]).slice(0,300),subscribed:(readJson('nfcps-watch-subscribed',[])||[]).slice(0,120),goals:(readJson('nfcps-watch-goals',[])||[]).slice(0,8),notes:pruneMap(readJson('nfcps-watch-notes',{})),responses:pruneMap(readJson('nfcps-watch-responses',{}),120,500),journeys:pruneMap(readJson('nfcps-watch-journeys',{}),40,100),growthDays:(readJson('nfcps-watch-growth-days',[])||[]).slice(0,400),takeaways:(readJson('nfcps-watch-takeaways',[])||[]).slice(0,100),progress:pruneMap(readJson('nfcps-watch-progress',{}),120,200)},moments:asObj(readJson('nfcps-moments-settings',{})),circulation}};
-const mergeReader=(local:any,remote:any)=>{const li=asObj(asObj(local).items),ri=asObj(asObj(remote).items),items:AnyObj={};for(const key of new Set([...Object.keys(li),...Object.keys(ri)])){const l=asObj(li[key]),r=asObj(ri[key]);if(!Object.keys(l).length){items[key]={...r,offline:false};continue}if(!Object.keys(r).length){items[key]=l;continue}const newer=Number(l.lastOpened||0)>=Number(r.lastOpened||0)?l:r;const older=newer===l?r:l;items[key]={...older,...newer,lastOpened:Math.max(Number(l.lastOpened||0),Number(r.lastOpened||0)),saved:Boolean(l.saved||r.saved),bookmarks:unionNums(l.bookmarks,r.bookmarks),annotations:unionObjects(l.annotations,r.annotations,'id',160),offline:Boolean(l.offline)}}return{items}};
-const maxMap=(a:any,b:any)=>{const out:AnyObj={...asObj(b)};for(const[k,v]of Object.entries(asObj(a))){const n=Number(v),o=Number(out[k]);out[k]=Number.isFinite(n)&&Number.isFinite(o)?Math.max(n,o):v}return out};
-const mergeSnapshots=(local:MemberSnapshot,remoteRaw:any):MemberSnapshot=>{const remote=asObj(remoteRaw) as Partial<MemberSnapshot>;const lw=asObj(local.watch),rw=asObj(remote.watch);const lm=asObj(local.moments),rm=asObj(remote.moments);return{v:1,profile:{name:local.profile.name||cap(asObj(remote.profile).name,100),phone:local.profile.phone||cap(asObj(remote.profile).phone,30)},reader:mergeReader(local.reader,remote.reader),watch:{history:unionObjects(lw.history,rw.history,'id',120),later:unionObjects(lw.later,rw.later,'id',120),liked:unionStrings(lw.liked,rw.liked,300),subscribed:unionStrings(lw.subscribed,rw.subscribed,120),goals:unionStrings(lw.goals,rw.goals,8),notes:{...asObj(rw.notes),...asObj(lw.notes)},responses:{...asObj(rw.responses),...asObj(lw.responses)},journeys:maxMap(lw.journeys,rw.journeys),growthDays:unionStrings(lw.growthDays,rw.growthDays,400),takeaways:unionObjects(lw.takeaways,rw.takeaways,'videoId',100),progress:{...asObj(rw.progress),...asObj(lw.progress)}},moments:Object.keys(lm).length?lm:rm,circulation:{...asObj(remote.circulation),...local.circulation}}};
-const applySnapshot=(snapshot:MemberSnapshot)=>{if(snapshot.profile.name){localStorage.setItem('nfcps-profile-name',snapshot.profile.name);localStorage.setItem('nfcps-watch-name',snapshot.profile.name)}if(snapshot.profile.phone)localStorage.setItem('nfcps-profile-phone',snapshot.profile.phone);if(snapshot.reader&&Object.keys(asObj(snapshot.reader.items)).length)localStorage.setItem('nfcps-reader-v3',JSON.stringify(snapshot.reader));const w=asObj(snapshot.watch);const pairs:[string,any][]=[['nfcps-watch-history',w.history||[]],['nfcps-watch-later',w.later||[]],['nfcps-watch-liked',w.liked||[]],['nfcps-watch-subscribed',w.subscribed||[]],['nfcps-watch-goals',w.goals||[]],['nfcps-watch-notes',w.notes||{}],['nfcps-watch-responses',w.responses||{}],['nfcps-watch-journeys',w.journeys||{}],['nfcps-watch-growth-days',w.growthDays||[]],['nfcps-watch-takeaways',w.takeaways||[]],['nfcps-watch-progress',w.progress||{}]];for(const[k,v]of pairs)localStorage.setItem(k,JSON.stringify(v));if(snapshot.moments&&Object.keys(snapshot.moments).length)localStorage.setItem('nfcps-moments-settings',JSON.stringify(snapshot.moments));for(const[k,v]of Object.entries(snapshot.circulation||{}))if(/^nfcps-(loan|wait)-/.test(k)&&v)localStorage.setItem(k,String(v));window.dispatchEvent(new Event('nfcps-reader-updated'));window.dispatchEvent(new Event('nfcps-circulation-updated'));window.dispatchEvent(new Event('nfcps-cloud-applied'))};
-const cleanUser=(u:any):AccountUser=>({userId:String(u.userId),email:u.email?String(u.email):undefined,name:u.name?String(u.name):undefined,picture:u.picture?String(u.picture):undefined,scope:String(u.scope||'')});
-const first=(name:string)=>name.trim().replace(/,/g,' ').split(/\s+/).filter(Boolean)[0]||'';
-const initialsFor=(name:string)=>name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'N';
-export function NfcpsAccountProvider({children}:{children:ReactNode}){const[user,setUser]=useState<AccountUser|null>(null);const[profileName,setProfileName]=useState('');const[status,setStatus]=useState<SyncState>('local');const[lastSyncedAt,setLastSyncedAt]=useState<string|null>(null);const[notice,setNotice]=useState('');const inFlight=useRef(false);const lastFingerprint=useRef('');const timer=useRef<number|undefined>(undefined);const syncNow=useCallback(async(force=true)=>{if(typeof window==='undefined'||!auth.isSignedIn()){setStatus('local');return}if(!navigator.onLine){setStatus('offline');return}if(inFlight.current)return;const local=captureSnapshot();const fingerprint=JSON.stringify(local);if(!force&&fingerprint===lastFingerprint.current)return;inFlight.current=true;setStatus('syncing');try{const remote=await api.get('/api/member-sync');const merged=mergeSnapshots(local,remote.data?.snapshot);applySnapshot(merged);const clean=captureSnapshot();const saved=await api.put('/api/member-sync',{snapshot:clean});lastFingerprint.current=JSON.stringify(clean);setProfileName(clean.profile.name||'');setLastSyncedAt(String(saved.data?.updatedAt||new Date().toISOString()));setStatus('synced');setNotice('')}catch(e){setStatus(navigator.onLine?'error':'offline');setNotice(navigator.onLine?'Sync paused. Your device copy is safe.':'Offline. Changes will sync when you reconnect.')}finally{inFlight.current=false}},[]);const signIn=useCallback(async()=>{setNotice('');try{const result=await auth.signIn({scope:'openid email profile offline_access'});const next=cleanUser(result.user);setUser(next);localStorage.setItem(CACHE,JSON.stringify(next));const existing=localStorage.getItem('nfcps-profile-name')||localStorage.getItem('nfcps-watch-name')||next.name||'';if(existing){localStorage.setItem('nfcps-profile-name',existing);localStorage.setItem('nfcps-watch-name',existing);setProfileName(existing)}await syncNow(true);window.dispatchEvent(new Event('nfcps-account-changed'))}catch(e){const code=(e as {code?:string})?.code;setNotice(code==='popup_blocked'?'Allow the sign-in window, then try again.':code==='popup_closed'?'Sign-in was cancelled.':'Could not sign in right now. Your device data is unchanged.')}},[syncNow]);const signOut=useCallback(async()=>{try{await syncNow(true)}catch{}await auth.signOut();setUser(null);setStatus('local');setLastSyncedAt(null);setNotice('Signed out. Your offline copy stays on this device.');window.dispatchEvent(new Event('nfcps-account-changed'))},[syncNow]);useEffect(()=>{if(typeof window==='undefined')return;try{setProfileName(localStorage.getItem('nfcps-profile-name')||localStorage.getItem('nfcps-watch-name')||'')}catch{}let live=true;const start=async()=>{if(!auth.isSignedIn()){setStatus('local');return}try{const cached=readJson(CACHE,null);if(cached&&live)setUser(cleanUser(cached));const fresh=await auth.getUser();if(fresh&&live){const next=cleanUser(fresh);setUser(next);localStorage.setItem(CACHE,JSON.stringify(next));const existing=localStorage.getItem('nfcps-profile-name')||localStorage.getItem('nfcps-watch-name')||next.name||'';if(existing){localStorage.setItem('nfcps-profile-name',existing);localStorage.setItem('nfcps-watch-name',existing);setProfileName(existing)}}if(live)await syncNow(true)}catch{if(live)setStatus(navigator.onLine?'error':'offline')}};void start();const queue=()=>{if(timer.current)window.clearTimeout(timer.current);timer.current=window.setTimeout(()=>void syncNow(false),1200)};const focus=()=>void syncNow(true);const visible=()=>{if(document.visibilityState==='visible')void syncNow(true)};const online=()=>void syncNow(true);const offline=()=>{if(auth.isSignedIn())setStatus('offline')};for(const event of ['nfcps-reader-updated','nfcps-member-state-changed','nfcps-circulation-updated','storage'])window.addEventListener(event,queue);window.addEventListener('focus',focus);window.addEventListener('online',online);window.addEventListener('offline',offline);document.addEventListener('visibilitychange',visible);const scan=window.setInterval(()=>{if(!auth.isSignedIn()||!navigator.onLine)return;const now=JSON.stringify(captureSnapshot());if(now!==lastFingerprint.current)queue()},15000);return()=>{live=false;if(timer.current)window.clearTimeout(timer.current);window.clearInterval(scan);for(const event of ['nfcps-reader-updated','nfcps-member-state-changed','nfcps-circulation-updated','storage'])window.removeEventListener(event,queue);window.removeEventListener('focus',focus);window.removeEventListener('online',online);window.removeEventListener('offline',offline);document.removeEventListener('visibilitychange',visible)}},[syncNow]);const displayName=profileName||user?.name||'';const value=useMemo<AccountContextValue>(()=>({user,signedIn:Boolean(user)||auth.isSignedIn(),displayName,firstName:first(displayName),initials:initialsFor(displayName),picture:user?.picture,status,lastSyncedAt,notice,signIn,signOut,syncNow}),[user,displayName,status,lastSyncedAt,notice,signIn,signOut,syncNow]);return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>}
-export function useNfcpsAccount(){const value=useContext(AccountContext);if(!value)throw new Error('NfcpsAccountProvider is missing');return value}
-export function AccountAvatar(){const{picture,initials}=useNfcpsAccount();return picture?<img className='cx-account-photo' src={picture} alt='' referrerPolicy='no-referrer'/>:<>{initials.slice(0,1)}</>}
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type FormEvent,
+    type ReactNode,
+} from 'react';
+import { Eye, EyeOff, LoaderCircle, LockKeyhole, Mail, ShieldCheck, UserRound, X } from 'lucide-react';
+import { api } from '@appdeploy/client';
+
+type AnyObj = Record<string, any>;
+type AccountUser = { userId: string; email?: string; name?: string; picture?: string; scope: string };
+type SyncState = 'local' | 'syncing' | 'synced' | 'offline' | 'error';
+type MemberSnapshot = {
+    v: 1;
+    profile: { name: string; phone: string };
+    reader: AnyObj;
+    watch: AnyObj;
+    moments: AnyObj;
+    circulation: Record<string, string>;
+};
+
+type AccountContextValue = {
+    user: AccountUser | null;
+    signedIn: boolean;
+    displayName: string;
+    firstName: string;
+    initials: string;
+    picture?: string;
+    status: SyncState;
+    lastSyncedAt: string | null;
+    notice: string;
+    signIn: () => Promise<void>;
+    signOut: () => Promise<void>;
+    syncNow: (force?: boolean) => Promise<void>;
+};
+
+const AccountContext = createContext<AccountContextValue | null>(null);
+const CACHE = 'nfcps-account-cache-v2';
+const SESSION = 'nfcps-account-session-v1';
+
+const asObj = (value: any): AnyObj => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+const readJson = (key: string, fallback: any) => {
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+    } catch {
+        return fallback;
+    }
+};
+const cap = (value: any, limit: number) => String(value ?? '').slice(0, limit);
+const unionStrings = (a: any, b: any, limit = 400) => Array.from(new Set([
+    ...(Array.isArray(a) ? a : []),
+    ...(Array.isArray(b) ? b : []),
+].map(String))).slice(0, limit);
+const unionNums = (a: any, b: any) => Array.from(new Set([
+    ...(Array.isArray(a) ? a : []),
+    ...(Array.isArray(b) ? b : []),
+].map(Number).filter(Number.isFinite))).sort((x, y) => x - y);
+const unionObjects = (a: any, b: any, key: string, limit = 160) => {
+    const out: any[] = [];
+    const seen = new Set<string>();
+    for (const item of [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])]) {
+        if (!item || typeof item !== 'object') continue;
+        const id = String(item[key] ?? '');
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        out.push(item);
+        if (out.length >= limit) break;
+    }
+    return out;
+};
+const pruneMap = (value: any, limit = 120, stringLimit = 1200) => Object.fromEntries(
+    Object.entries(asObj(value)).slice(0, limit).map(([key, item]) => [key, typeof item === 'string' ? item.slice(0, stringLimit) : item]),
+);
+const pruneReader = (value: any) => {
+    const items = asObj(asObj(value).items);
+    return {
+        items: Object.fromEntries(Object.entries(items).slice(0, 80).map(([key, raw]) => {
+            const item = asObj(raw);
+            return [key, {
+                ...item,
+                annotations: (Array.isArray(item.annotations) ? item.annotations : []).slice(0, 160),
+            }];
+        })),
+    };
+};
+
+const captureSnapshot = (): MemberSnapshot => {
+    const circulation: Record<string, string> = {};
+    for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key || !/^nfcps-(loan|wait)-/.test(key)) continue;
+        const value = localStorage.getItem(key);
+        if (value && Object.keys(circulation).length < 40) circulation[key] = value;
+    }
+    return {
+        v: 1,
+        profile: {
+            name: cap(localStorage.getItem('nfcps-profile-name') || localStorage.getItem('nfcps-watch-name') || '', 100),
+            phone: cap(localStorage.getItem('nfcps-profile-phone') || '', 30),
+        },
+        reader: pruneReader(readJson('nfcps-reader-v3', readJson('nfcps-reader-v2', { items: {} }))),
+        watch: {
+            history: (readJson('nfcps-watch-history', []) || []).slice(0, 120),
+            later: (readJson('nfcps-watch-later', []) || []).slice(0, 120),
+            liked: (readJson('nfcps-watch-liked', []) || []).slice(0, 300),
+            subscribed: (readJson('nfcps-watch-subscribed', []) || []).slice(0, 120),
+            goals: (readJson('nfcps-watch-goals', []) || []).slice(0, 8),
+            notes: pruneMap(readJson('nfcps-watch-notes', {})),
+            responses: pruneMap(readJson('nfcps-watch-responses', {}), 120, 500),
+            journeys: pruneMap(readJson('nfcps-watch-journeys', {}), 40, 100),
+            growthDays: (readJson('nfcps-watch-growth-days', []) || []).slice(0, 400),
+            takeaways: (readJson('nfcps-watch-takeaways', []) || []).slice(0, 100),
+            progress: pruneMap(readJson('nfcps-watch-progress', {}), 120, 200),
+        },
+        moments: asObj(readJson('nfcps-moments-settings', {})),
+        circulation,
+    };
+};
+
+const mergeReader = (local: any, remote: any) => {
+    const localItems = asObj(asObj(local).items);
+    const remoteItems = asObj(asObj(remote).items);
+    const items: AnyObj = {};
+    for (const key of new Set([...Object.keys(localItems), ...Object.keys(remoteItems)])) {
+        const left = asObj(localItems[key]);
+        const right = asObj(remoteItems[key]);
+        if (!Object.keys(left).length) {
+            items[key] = { ...right, offline: false };
+            continue;
+        }
+        if (!Object.keys(right).length) {
+            items[key] = left;
+            continue;
+        }
+        const newer = Number(left.lastOpened || 0) >= Number(right.lastOpened || 0) ? left : right;
+        const older = newer === left ? right : left;
+        items[key] = {
+            ...older,
+            ...newer,
+            lastOpened: Math.max(Number(left.lastOpened || 0), Number(right.lastOpened || 0)),
+            saved: Boolean(left.saved || right.saved),
+            bookmarks: unionNums(left.bookmarks, right.bookmarks),
+            annotations: unionObjects(left.annotations, right.annotations, 'id', 160),
+            offline: Boolean(left.offline),
+        };
+    }
+    return { items };
+};
+
+const maxMap = (a: any, b: any) => {
+    const out: AnyObj = { ...asObj(b) };
+    for (const [key, value] of Object.entries(asObj(a))) {
+        const next = Number(value);
+        const current = Number(out[key]);
+        out[key] = Number.isFinite(next) && Number.isFinite(current) ? Math.max(next, current) : value;
+    }
+    return out;
+};
+
+const mergeSnapshots = (local: MemberSnapshot, remoteRaw: any): MemberSnapshot => {
+    const remote = asObj(remoteRaw) as Partial<MemberSnapshot>;
+    const localWatch = asObj(local.watch);
+    const remoteWatch = asObj(remote.watch);
+    const localMoments = asObj(local.moments);
+    const remoteMoments = asObj(remote.moments);
+    return {
+        v: 1,
+        profile: {
+            name: local.profile.name || cap(asObj(remote.profile).name, 100),
+            phone: local.profile.phone || cap(asObj(remote.profile).phone, 30),
+        },
+        reader: mergeReader(local.reader, remote.reader),
+        watch: {
+            history: unionObjects(localWatch.history, remoteWatch.history, 'id', 120),
+            later: unionObjects(localWatch.later, remoteWatch.later, 'id', 120),
+            liked: unionStrings(localWatch.liked, remoteWatch.liked, 300),
+            subscribed: unionStrings(localWatch.subscribed, remoteWatch.subscribed, 120),
+            goals: unionStrings(localWatch.goals, remoteWatch.goals, 8),
+            notes: { ...asObj(remoteWatch.notes), ...asObj(localWatch.notes) },
+            responses: { ...asObj(remoteWatch.responses), ...asObj(localWatch.responses) },
+            journeys: maxMap(localWatch.journeys, remoteWatch.journeys),
+            growthDays: unionStrings(localWatch.growthDays, remoteWatch.growthDays, 400),
+            takeaways: unionObjects(localWatch.takeaways, remoteWatch.takeaways, 'videoId', 100),
+            progress: { ...asObj(remoteWatch.progress), ...asObj(localWatch.progress) },
+        },
+        moments: Object.keys(localMoments).length ? localMoments : remoteMoments,
+        circulation: { ...asObj(remote.circulation), ...local.circulation },
+    };
+};
+
+const applySnapshot = (snapshot: MemberSnapshot) => {
+    if (snapshot.profile.name) {
+        localStorage.setItem('nfcps-profile-name', snapshot.profile.name);
+        localStorage.setItem('nfcps-watch-name', snapshot.profile.name);
+    }
+    if (snapshot.profile.phone) localStorage.setItem('nfcps-profile-phone', snapshot.profile.phone);
+    if (snapshot.reader && Object.keys(asObj(snapshot.reader.items)).length) {
+        localStorage.setItem('nfcps-reader-v3', JSON.stringify(snapshot.reader));
+    }
+    const watch = asObj(snapshot.watch);
+    const pairs: [string, any][] = [
+        ['nfcps-watch-history', watch.history || []],
+        ['nfcps-watch-later', watch.later || []],
+        ['nfcps-watch-liked', watch.liked || []],
+        ['nfcps-watch-subscribed', watch.subscribed || []],
+        ['nfcps-watch-goals', watch.goals || []],
+        ['nfcps-watch-notes', watch.notes || {}],
+        ['nfcps-watch-responses', watch.responses || {}],
+        ['nfcps-watch-journeys', watch.journeys || {}],
+        ['nfcps-watch-growth-days', watch.growthDays || []],
+        ['nfcps-watch-takeaways', watch.takeaways || []],
+        ['nfcps-watch-progress', watch.progress || {}],
+    ];
+    for (const [key, value] of pairs) localStorage.setItem(key, JSON.stringify(value));
+    if (snapshot.moments && Object.keys(snapshot.moments).length) {
+        localStorage.setItem('nfcps-moments-settings', JSON.stringify(snapshot.moments));
+    }
+    for (const [key, value] of Object.entries(snapshot.circulation || {})) {
+        if (/^nfcps-(loan|wait)-/.test(key) && value) localStorage.setItem(key, String(value));
+    }
+    window.dispatchEvent(new Event('nfcps-reader-updated'));
+    window.dispatchEvent(new Event('nfcps-circulation-updated'));
+    window.dispatchEvent(new Event('nfcps-cloud-applied'));
+};
+
+const cleanUser = (value: any): AccountUser => ({
+    userId: String(value.userId),
+    email: value.email ? String(value.email) : undefined,
+    name: value.name ? String(value.name) : undefined,
+    picture: value.picture ? String(value.picture) : undefined,
+    scope: String(value.scope || 'nfcps_account'),
+});
+const first = (name: string) => name.trim().replace(/,/g, ' ').split(/\s+/).filter(Boolean)[0] || '';
+const initialsFor = (name: string) => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(item => item[0]).join('').toUpperCase() || 'N';
+const sessionToken = () => {
+    try {
+        return localStorage.getItem(SESSION) || '';
+    } catch {
+        return '';
+    }
+};
+const messageFrom = (cause: unknown) => cause instanceof Error ? cause.message : 'Could not complete that request.';
+
+export function NfcpsAccountProvider({ children }: { children: ReactNode }) {
+    const [user, setUser] = useState<AccountUser | null>(null);
+    const [profileName, setProfileName] = useState('');
+    const [status, setStatus] = useState<SyncState>('local');
+    const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+    const [notice, setNotice] = useState('');
+    const [boardOpen, setBoardOpen] = useState(false);
+    const [mode, setMode] = useState<'signin' | 'create'>('signin');
+    const [formName, setFormName] = useState('');
+    const [formEmail, setFormEmail] = useState('');
+    const [formPassword, setFormPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [accountBusy, setAccountBusy] = useState(false);
+    const [accountError, setAccountError] = useState('');
+    const inFlight = useRef(false);
+    const lastFingerprint = useRef('');
+    const timer = useRef<number | undefined>(undefined);
+
+    const syncNow = useCallback(async (force = true) => {
+        if (typeof window === 'undefined') return;
+        const token = sessionToken();
+        if (!token) {
+            setStatus('local');
+            return;
+        }
+        if (!navigator.onLine) {
+            setStatus('offline');
+            return;
+        }
+        if (inFlight.current) return;
+        const local = captureSnapshot();
+        const fingerprint = JSON.stringify(local);
+        if (!force && fingerprint === lastFingerprint.current) return;
+        inFlight.current = true;
+        setStatus('syncing');
+        try {
+            const remote = await api.post('/api/member-sync/get', { sessionToken: token });
+            const merged = mergeSnapshots(local, remote.data?.snapshot);
+            applySnapshot(merged);
+            const clean = captureSnapshot();
+            const saved = await api.post('/api/member-sync/save', { sessionToken: token, snapshot: clean });
+            lastFingerprint.current = JSON.stringify(clean);
+            setProfileName(clean.profile.name || '');
+            setLastSyncedAt(String(saved.data?.updatedAt || new Date().toISOString()));
+            setStatus('synced');
+            setNotice('');
+        } catch (cause) {
+            setStatus(navigator.onLine ? 'error' : 'offline');
+            setNotice(navigator.onLine ? 'Sync paused. Your device copy is safe.' : 'Offline. Changes will sync when you reconnect.');
+        } finally {
+            inFlight.current = false;
+        }
+    }, []);
+
+    const signIn = useCallback(async () => {
+        setNotice('');
+        setAccountError('');
+        setMode('signin');
+        const cached = readJson(CACHE, null);
+        setFormEmail(cached?.email || '');
+        setFormPassword('');
+        setBoardOpen(true);
+    }, []);
+
+    const signOut = useCallback(async () => {
+        const token = sessionToken();
+        try {
+            await syncNow(true);
+        } catch {
+            // Keep sign-out available if syncing is temporarily unavailable.
+        }
+        if (token) {
+            try {
+                await api.post('/api/nfcps-account/sign-out', { sessionToken: token });
+            } catch {
+                // Local sign-out still completes.
+            }
+        }
+        localStorage.removeItem(SESSION);
+        localStorage.removeItem(CACHE);
+        setUser(null);
+        setStatus('local');
+        setLastSyncedAt(null);
+        setNotice('Signed out. Your offline copy stays on this device.');
+        window.dispatchEvent(new Event('nfcps-account-changed'));
+    }, [syncNow]);
+
+    const submitAccount = async (event: FormEvent) => {
+        event.preventDefault();
+        const name = formName.trim();
+        const email = formEmail.trim().toLowerCase();
+        const password = formPassword;
+        setAccountError('');
+        if (mode === 'create' && name.length < 2) {
+            setAccountError('Enter your name.');
+            return;
+        }
+        if (!/^\S+@\S+\.\S+$/.test(email)) {
+            setAccountError('Enter a valid email address.');
+            return;
+        }
+        if (password.length < 8) {
+            setAccountError('Use at least 8 characters for your password.');
+            return;
+        }
+
+        setAccountBusy(true);
+        try {
+            const endpoint = mode === 'create' ? '/api/nfcps-account/create' : '/api/nfcps-account/sign-in';
+            const response = await api.post(endpoint, mode === 'create' ? { name, email, password } : { email, password });
+            const next = cleanUser(response.data.user);
+            localStorage.setItem(SESSION, String(response.data.sessionToken));
+            localStorage.setItem(CACHE, JSON.stringify(next));
+            setUser(next);
+            const existingName = localStorage.getItem('nfcps-profile-name') || localStorage.getItem('nfcps-watch-name') || next.name || name;
+            if (existingName) {
+                localStorage.setItem('nfcps-profile-name', existingName);
+                localStorage.setItem('nfcps-watch-name', existingName);
+                setProfileName(existingName);
+            }
+            setBoardOpen(false);
+            setFormPassword('');
+            setNotice(response.data.created === true ? 'Account created. Your phone activity is now syncing.' : 'Signed in. Your NFCPS One is syncing.');
+            await syncNow(true);
+            window.dispatchEvent(new Event('nfcps-account-changed'));
+        } catch (cause) {
+            setAccountError(messageFrom(cause));
+        } finally {
+            setAccountBusy(false);
+        }
+    };
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            setProfileName(localStorage.getItem('nfcps-profile-name') || localStorage.getItem('nfcps-watch-name') || '');
+        } catch {
+            // Local storage may be unavailable in a restricted browser context.
+        }
+        let live = true;
+        const start = async () => {
+            const token = sessionToken();
+            if (!token) {
+                setStatus('local');
+                return;
+            }
+            const cached = readJson(CACHE, null);
+            if (cached && live) setUser(cleanUser(cached));
+            if (!navigator.onLine) {
+                if (live) setStatus('offline');
+                return;
+            }
+            try {
+                const response = await api.post('/api/nfcps-account/me', { sessionToken: token });
+                if (!live) return;
+                const next = cleanUser(response.data.user);
+                setUser(next);
+                localStorage.setItem(CACHE, JSON.stringify(next));
+                const existingName = localStorage.getItem('nfcps-profile-name') || localStorage.getItem('nfcps-watch-name') || next.name || '';
+                if (existingName) {
+                    localStorage.setItem('nfcps-profile-name', existingName);
+                    localStorage.setItem('nfcps-watch-name', existingName);
+                    setProfileName(existingName);
+                }
+                await syncNow(true);
+            } catch (cause) {
+                const message = messageFrom(cause).toLowerCase();
+                if (message.includes('expired') || message.includes('sign in')) {
+                    localStorage.removeItem(SESSION);
+                    localStorage.removeItem(CACHE);
+                    if (live) {
+                        setUser(null);
+                        setStatus('local');
+                        setNotice('Sign in again to continue cloud sync. Your device copy is safe.');
+                    }
+                } else if (live) {
+                    setStatus(navigator.onLine ? 'error' : 'offline');
+                }
+            }
+        };
+        void start();
+
+        const queue = () => {
+            if (timer.current) window.clearTimeout(timer.current);
+            timer.current = window.setTimeout(() => void syncNow(false), 1200);
+        };
+        const focus = () => void syncNow(true);
+        const visible = () => {
+            if (document.visibilityState === 'visible') void syncNow(true);
+        };
+        const online = () => void syncNow(true);
+        const offline = () => {
+            if (sessionToken()) setStatus('offline');
+        };
+        for (const event of ['nfcps-reader-updated', 'nfcps-member-state-changed', 'nfcps-circulation-updated', 'storage']) {
+            window.addEventListener(event, queue);
+        }
+        window.addEventListener('focus', focus);
+        window.addEventListener('online', online);
+        window.addEventListener('offline', offline);
+        document.addEventListener('visibilitychange', visible);
+        const scan = window.setInterval(() => {
+            if (!sessionToken() || !navigator.onLine) return;
+            const now = JSON.stringify(captureSnapshot());
+            if (now !== lastFingerprint.current) queue();
+        }, 15000);
+        return () => {
+            live = false;
+            if (timer.current) window.clearTimeout(timer.current);
+            window.clearInterval(scan);
+            for (const event of ['nfcps-reader-updated', 'nfcps-member-state-changed', 'nfcps-circulation-updated', 'storage']) {
+                window.removeEventListener(event, queue);
+            }
+            window.removeEventListener('focus', focus);
+            window.removeEventListener('online', online);
+            window.removeEventListener('offline', offline);
+            document.removeEventListener('visibilitychange', visible);
+        };
+    }, [syncNow]);
+
+    const displayName = profileName || user?.name || '';
+    const value = useMemo<AccountContextValue>(() => ({
+        user,
+        signedIn: Boolean(user && sessionToken()),
+        displayName,
+        firstName: first(displayName),
+        initials: initialsFor(displayName),
+        picture: user?.picture,
+        status,
+        lastSyncedAt,
+        notice,
+        signIn,
+        signOut,
+        syncNow,
+    }), [user, displayName, status, lastSyncedAt, notice, signIn, signOut, syncNow]);
+
+    return (
+        <AccountContext.Provider value={value}>
+            {children}
+            {boardOpen && (
+                <div className='nfcps-account-gate' onMouseDown={() => !accountBusy && setBoardOpen(false)}>
+                    <section className='nfcps-account-board' onMouseDown={event => event.stopPropagation()} aria-label='NFCPS One account'>
+                        <button className='nfcps-account-close' onClick={() => setBoardOpen(false)} disabled={accountBusy} aria-label='Close sign in'>
+                            <X />
+                        </button>
+                        <div className='nfcps-account-brand'>
+                            <img src='/resources/nfcps-logo.png' alt='NFCPS' />
+                            <small>NFCPS ONE</small>
+                            <h2>{mode === 'signin' ? 'Welcome back.' : 'Take your NFCPS One with you.'}</h2>
+                            <p>{mode === 'signin' ? 'Sign in and continue where you stopped.' : 'One account for your reading, notes and saved messages across devices.'}</p>
+                        </div>
+
+                        <div className='nfcps-account-tabs'>
+                            <button className={mode === 'signin' ? 'active' : ''} onClick={() => { setMode('signin'); setAccountError(''); }}>Sign in</button>
+                            <button className={mode === 'create' ? 'active' : ''} onClick={() => { setMode('create'); setAccountError(''); }}>Create account</button>
+                        </div>
+
+                        <form className='nfcps-account-form' onSubmit={submitAccount}>
+                            {mode === 'create' && (
+                                <label className='nfcps-account-field'>
+                                    <UserRound />
+                                    <span>
+                                        <small>Your name</small>
+                                        <input value={formName} onChange={event => setFormName(event.target.value)} autoComplete='name' placeholder='Full name' />
+                                    </span>
+                                </label>
+                            )}
+                            <label className='nfcps-account-field'>
+                                <Mail />
+                                <span>
+                                    <small>Email</small>
+                                    <input type='email' value={formEmail} onChange={event => setFormEmail(event.target.value)} autoComplete='email' inputMode='email' placeholder='you@example.com' />
+                                </span>
+                            </label>
+                            <label className='nfcps-account-field'>
+                                <LockKeyhole />
+                                <span>
+                                    <small>Password</small>
+                                    <input type={showPassword ? 'text' : 'password'} value={formPassword} onChange={event => setFormPassword(event.target.value)} autoComplete={mode === 'create' ? 'new-password' : 'current-password'} placeholder='At least 8 characters' />
+                                </span>
+                                <button type='button' onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                                    {showPassword ? <EyeOff /> : <Eye />}
+                                </button>
+                            </label>
+
+                            {accountError && <p className='nfcps-account-error'>{accountError}</p>}
+
+                            <button className='nfcps-account-submit' disabled={accountBusy}>
+                                {accountBusy ? <LoaderCircle className='spin' /> : <ShieldCheck />}
+                                {accountBusy ? 'One moment…' : mode === 'signin' ? 'Sign in to NFCPS One' : 'Create my account'}
+                            </button>
+                        </form>
+
+                        <p className='nfcps-account-foot'>Your device stays usable without an account. Signing in simply carries your NFCPS One activity with you.</p>
+                    </section>
+                </div>
+            )}
+        </AccountContext.Provider>
+    );
+}
+
+export function useNfcpsAccount() {
+    const value = useContext(AccountContext);
+    if (!value) throw new Error('NfcpsAccountProvider is missing');
+    return value;
+}
+
+export function AccountAvatar() {
+    const { picture, initials } = useNfcpsAccount();
+    return picture ? <img className='cx-account-photo' src={picture} alt='' referrerPolicy='no-referrer' /> : <>{initials.slice(0, 1)}</>;
+}
