@@ -1,21 +1,21 @@
 # Tests
 
-## Test 1 - NFCPS One opens as a calm app and Read never starts blank [sanity]
+## Test 1 - Living Sanctuary Home flows into editorial Read [sanity]
 Viewport: mobile (375x667)
-Covers: immersive Home app shell, floating glass Home/Read/Watch/Library/You navigation, immediate locally owned e-book shelf, Apple-Books-style Read discovery, /api/ebooks/catalog enrichment, Read action and /api/reader/book
-Description: Verifies the premium app shell stays concise, visually immersive and usable while Read always has books before or without the external catalogue.
+Covers: NFCPS One UI v2 Home composition, bottom navigation, Continue Reading state, editorial Read, immediate starter shelf, /api/ebooks/catalog enrichment, /api/reader/book
+Description: Verifies the approved mobile design direction is implemented as a calm content-first Home and light cover-led Read experience while preserving the real reader.
 
 Steps:
-1. Open NFCPS One and confirm Home shows the NFCPS One identity, core destinations and no giant physical/e-book sections stacked on the page
-2. Tap Read and immediately confirm The Pursuit of God and other starter books are visible; open one with Read
-3. Advance one page, close the reader and return to Home
+1. Open NFCPS One and confirm Home presents one dominant reading focus plus a small For You Today area instead of destination-card clutter
+2. Tap Read in the bottom navigation and confirm the screen changes to the light editorial Reading experience with visible book covers
+3. Open The Pursuit of God, advance one page, close the reader and return to Home
 
-Expected: Home uses the calm immersive shell with a floating glass dock, Read presents cover-led shelves without blank content, the selected book opens in the NFCPS reader, and Home can show Continue Reading after reading activity.
+Expected: Home is atmospheric and content-first, Read is light and cover-led, the book opens in the real NFCPS reader, and the reading activity can become the Home continue state.
 
-## Test 2 - E-book catalogue failure keeps the owned shelf usable
+## Test 2 - Catalogue outage never empties the new Read experience
 Viewport: mobile (375x667)
-Covers: local e-book fallback guardrail, empty-cache protection, /api/ebooks/catalog failure behavior, Read and Download actions
-Description: Verifies a catalogue outage cannot erase books that NFCPS One already knows about.
+Covers: local e-book fallback, empty-cache protection, /api/ebooks/catalog failure behavior, Read action
+Description: Verifies the redesigned Read page remains useful when the external catalogue fails.
 
 QA Faults:
 ```json
@@ -31,43 +31,43 @@ QA Faults:
 
 Steps:
 1. Open Read while the catalogue request fails
-2. Confirm the starter shelf remains visible and shows an unobtrusive Offline shelf state
-3. Open The Pursuit of God with Read
+2. Confirm the For You and Christian Classics shelves still contain locally known books and the offline message is visible
+3. Open The Pursuit of God
 
-Expected: Visible starter books remain on screen throughout the failure and the in-app reader still opens a known public-domain title.
+Expected: The light Read screen never becomes blank and a known public-domain title still opens in the reader.
 
-## Test 3 - Watch Together behaves like a real shared viewing room
+## Test 3 - Cinematic Watch opens a sermon and contextual tools
 Viewport: mobile (375x667)
-Covers: cinematic Watch discovery, /api/watch/rooms create/join/state/message/reaction routes, realtime WebSocket subscription, shareable room invite, Netflix-party-style dominant synced player, floating controls, member drawer and chat drawer
-Description: Verifies the Netflix-party-style Watch Together flow across two people.
+Covers: /api/watch/feed, cinematic Watch discovery, sermon playback, Save, Ask Sermon entry, Watch Together entry
+Description: Verifies Watch prioritizes media instead of showing growth and infrastructure controls on its discovery screen.
 
 Steps:
-1. Actor A opens a sermon, taps Watch together, enters Ada and creates a room, then shares the invite
-2. Actor B opens the shared link, enters Chidi and joins; Actor A opens People and Actor B opens Chat
-3. Actor A pauses and resumes playback and sends a reaction; Actor B sends a chat reply
+1. Open Watch from the NFCPS One bottom navigation and confirm the large featured sermon dominates the first screen
+2. Play the featured sermon and confirm the player, title and creator information are visible
+3. Confirm Save, Ask sermon and Watch together are available on the sermon page rather than as large Home panels
 
-Expected: Both actors enter the same dedicated viewing room with the video dominant, both members are visible, host playback changes synchronize through realtime updates, and shared reaction/chat activity appears without manual refresh.
+Expected: Watch behaves as a cinematic content product and advanced actions only become prominent in the viewing context.
 
-## Test 4 - Physical Library is a destination, not Home clutter
+## Test 4 - Watch Together keeps shared viewing and chat in one room
 Viewport: mobile (375x667)
-Covers: Library destination navigation, /api/circulation/catalog live status, physical book browsing and CirculationAction request flow
-Description: Verifies physical borrowing remains fully usable after moving it out of the main Home screen.
+Covers: /api/watch/rooms create/join/state/message/reaction routes, realtime WebSocket subscription, remembered display name, synced playback, reactions and chat
+Description: Verifies two members can enter the simplified shared viewing experience and communicate without exposed realtime machinery.
 
 Steps:
-1. From Home tap Library and search for a visible physical title
-2. Open that title and review its simplified detail sheet
-3. Use the available circulation action for the title
+1. Actor A opens a sermon, taps Watch together, enters Ada if needed, creates a room and shares the invite
+2. Actor B opens the shared link, enters Chidi if needed and joins; confirm Chat is the natural room conversation area
+3. Actor A changes playback and sends a reaction, then Actor B sends a chat reply
 
-Expected: The physical catalogue and live circulation controls work inside the Library destination while Home remains uncluttered.
+Expected: Both actors remain in the same room, playback changes synchronize, reactions and messages appear without refresh, and the active room does not expose connection status or technical synchronization controls.
 
-## Test 5 - You keeps personal activity separate from discovery
-Viewport: desktop (1280x800)
-Covers: You destination, My Books access, Personal Reading Home, Moments and persistent reader state
-Description: Verifies personal tools live in one place instead of being scattered through Home.
+## Test 5 - You and Library keep personal and borrowing tools accessible
+Viewport: mobile (375x667)
+Covers: You profile hierarchy, Reading panel, Moments panel, /api/circulation/catalog, My Books overlay, physical Library destination
+Description: Verifies the cleaner personal screen still exposes saved activity and borrowing while the physical collection remains a dedicated destination.
 
 Steps:
-1. Open You and review My Books and Reading shortcuts
-2. Open the reading area and return to You
-3. Open My Books and then return to the You destination
+1. Open You and confirm Saved and Your activity are presented as compact personal rows
+2. Open Notes & highlights, close it, then open Borrowed books
+3. Close My Books, open Library from the bottom navigation and open a physical title
 
-Expected: Personal reading and borrowing tools remain accessible from You without adding large management panels to Home.
+Expected: Personal tools stay hidden until requested, My Books remains usable, and physical borrowing remains accessible from its own Library destination.
