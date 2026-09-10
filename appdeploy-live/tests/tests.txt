@@ -1,49 +1,49 @@
 # Tests
 
-## Test 1 - Main account opens and authenticates entirely inside NFCPS One [sanity]
+## Test 1 - Premium in-app account screen stays inside NFCPS One [sanity]
 Viewport: mobile (375x667)
-Covers: in-app NFCPS One account board, account creation, account sign-in, session persistence, no popup-dependent main login
-Description: Verifies the main account flow is an app-owned board rather than the external popup that previously escaped to Chrome.
+Covers: in-app account board, Sign in/Create account switch, mobile-safe layout, password visibility control, anonymous continuation, no popup-dependent main login
+Description: Verifies the redesigned account experience behaves like a native app screen and keeps every primary control usable on a phone.
 
 Steps:
-1. Open You and tap Sign in, then confirm the full-screen NFCPS One account board appears inside the current app with Sign in and Create account tabs
-2. Choose Create account and create a fresh QA account using a valid test name, email and an 8+ character test password
-3. Sign out, tap Sign in again, and sign back into that same QA account
+1. Open You and tap Sign in
+2. Confirm the account screen shows NFCPS One identity, a large Sign in title, Sign in/Create account control, grouped email/password fields, Continue button and Continue without an account
+3. Switch to Create account, toggle password visibility, then switch back to Sign in and close the screen
 
-Expected: Account creation and sign-in complete in the NFCPS One interface, the account becomes signed in after both flows, and the main account experience does not depend on a separate Chrome or AppDeploy popup window.
+Expected: The account experience remains entirely inside NFCPS One, all controls fit within the mobile viewport and are tappable, mode switching is stable, and closing or continuing anonymously returns to the app without losing local state.
 
-## Test 2 - Existing phone activity merges into the NFCPS account and restores
+## Test 2 - Account validation remains clear and non-destructive
 Viewport: mobile (375x667)
-Covers: member sync read/write, local/cloud merge, reader progress, bookmarks, notes, Watch saves, account session
-Description: Verifies changing the login architecture does not lose the local-first data model.
+Covers: client validation guardrail, inline account error presentation, local-first safety
+Description: Verifies the visual redesign did not weaken account validation or clear device data on an invalid attempt.
 
 Steps:
-1. While signed out, open The Pursuit of God, advance several pages, add a bookmark and save a Watch message
-2. Sign in using the in-app NFCPS One account board and wait for sync to complete
-3. Sign out, sign back in to the same account and reopen Read and Watch Later
+1. Open Create account and enter a valid name with an invalid email address and a password shorter than 8 characters
+2. Submit the form and inspect the account screen
+3. Correct the email but leave the short password, submit again, then close the account screen
 
-Expected: The pre-login reading position/bookmark and saved Watch state remain available after sign-in and after the account is reopened.
+Expected: Clear inline validation remains on the account screen, no external browser opens, no account is created from invalid data, and the rest of NFCPS One remains usable.
 
-## Test 3 - Invalid credentials stay inside the board and preserve device data
+## Test 3 - Apple-style UI typography is consistent while reader font choices still work
 Viewport: mobile (375x667)
-Covers: account validation guardrail, rejected sign-in, non-destructive local-first failure state
-Description: Verifies a failed sign-in is handled as an in-app form error instead of navigating away or clearing local data.
+Covers: system UI font stack, Home, Read, Watch, Library, You, reader typography isolation
+Description: Verifies the app chrome and content-navigation UI share one system-style typographic language without overriding a reader's chosen book font.
 
 Steps:
-1. Open the NFCPS One sign-in board and enter a known QA email with an incorrect password
-2. Submit the form and inspect the account board
-3. Close the board and reopen the most recently read book
+1. Browse Home, Read, Library and You, then open Watch and inspect titles, navigation, buttons and form controls
+2. Return to Read, open The Pursuit of God and open Themes & Settings
+3. Switch the reading font between Serif and Sans and return to the page
 
-Expected: A visible email/password error remains on the NFCPS One board, no external login page is required, and existing reading progress on the device is unchanged.
+Expected: App interface typography is visually consistent across main areas, while the book page visibly changes between the selected reader font families and reading controls remain functional.
 
-## Test 4 - Read, Watch and physical Library remain intact after account replacement
+## Test 4 - Existing account create/sign-in and cloud merge still work after UI polish
 Viewport: mobile (375x667)
-Covers: five-tab shell, Read reader, Watch navigation, physical Library, anonymous mode after account refactor
-Description: Guards the rest of NFCPS One while the account transport changes.
+Covers: POST /api/nfcps-account/create, POST /api/nfcps-account/sign-in, POST /api/member-sync/get, POST /api/member-sync/save, session persistence, local/cloud merge
+Description: Guards the existing authentication and sync behavior while only its presentation is redesigned.
 
 Steps:
-1. Use NFCPS One without signing in and open a real e-book in Read
-2. Leave Read for Watch, then return and open the physical Library
-3. Return to You and open the new account board without submitting it
+1. While signed out, open a book and create local reading progress, then open the account screen and create an NFCPS account with valid details
+2. Confirm the account becomes signed in and sync completes, then sign out
+3. Sign back in to the same account and reopen the book
 
-Expected: Read, Watch and Library continue to work anonymously, and opening or closing the account board does not disturb those workflows.
+Expected: Account creation and sign-in still complete successfully, the session persists as before, and pre-login reading progress remains available after cloud sync and sign-in.
