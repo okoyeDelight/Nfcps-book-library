@@ -1,0 +1,14 @@
+{
+  "methods": ["google", "apple", "x"],
+  "headline": "Keep your NFCPS One with you",
+  "subtitle": "Sign in to sync your reading progress, notes, saved messages and fellowship activity across your devices.",
+  "style": {
+    "mode": "dark",
+    "accentColor": "#0F6A52",
+    "backgroundColor": "#030806",
+    "panelColor": "#08150F",
+    "textColor": "#F4F3ED",
+    "fontFamily": "Inter, system-ui, sans-serif",
+    "borderRadius": 20
+  }
+}
