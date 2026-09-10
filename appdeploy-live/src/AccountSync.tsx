@@ -267,6 +267,20 @@ export function NfcpsAccountProvider({ children }: { children: ReactNode }) {
     const lastFingerprint = useRef('');
     const timer = useRef<number | undefined>(undefined);
 
+    useEffect(() => {
+        if (!boardOpen || typeof document === 'undefined') return;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && !accountBusy) setBoardOpen(false);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener('keydown', onKeyDown);
+        };
+    }, [boardOpen, accountBusy]);
+
     const syncNow = useCallback(async (force = true) => {
         if (typeof window === 'undefined') return;
         const token = sessionToken();
@@ -490,59 +504,69 @@ export function NfcpsAccountProvider({ children }: { children: ReactNode }) {
             {children}
             {boardOpen && (
                 <div className='nfcps-account-gate' onMouseDown={() => !accountBusy && setBoardOpen(false)}>
-                    <section className='nfcps-account-board' onMouseDown={event => event.stopPropagation()} aria-label='NFCPS One account'>
-                        <button className='nfcps-account-close' onClick={() => setBoardOpen(false)} disabled={accountBusy} aria-label='Close sign in'>
-                            <X />
-                        </button>
+                    <section className='nfcps-account-board' onMouseDown={event => event.stopPropagation()} role='dialog' aria-modal='true' aria-labelledby='nfcps-account-title'>
+                        <header className='nfcps-account-top'>
+                            <div className='nfcps-account-identity'>
+                                <img src='/resources/nfcps-logo.png' alt='' />
+                                <span><strong>NFCPS One</strong><small>Christ, the Therapy for All.</small></span>
+                            </div>
+                            <button className='nfcps-account-close' onClick={() => setBoardOpen(false)} disabled={accountBusy} aria-label='Close account screen'>
+                                <X />
+                            </button>
+                        </header>
+
                         <div className='nfcps-account-brand'>
-                            <img src='/resources/nfcps-logo.png' alt='NFCPS' />
-                            <small>NFCPS ONE</small>
-                            <h2>{mode === 'signin' ? 'Welcome back.' : 'Take your NFCPS One with you.'}</h2>
-                            <p>{mode === 'signin' ? 'Sign in and continue where you stopped.' : 'One account for your reading, notes and saved messages across devices.'}</p>
+                            <small>{mode === 'signin' ? 'WELCOME BACK' : 'YOUR NFCPS ACCOUNT'}</small>
+                            <h2 id='nfcps-account-title'>{mode === 'signin' ? 'Sign in to NFCPS One' : 'Create your account'}</h2>
+                            <p>{mode === 'signin' ? 'Pick up your reading, Watch and notes on any device.' : 'Keep your reading, Watch, notes and library activity with you.'}</p>
                         </div>
 
-                        <div className='nfcps-account-tabs'>
-                            <button className={mode === 'signin' ? 'active' : ''} onClick={() => { setMode('signin'); setAccountError(''); }}>Sign in</button>
-                            <button className={mode === 'create' ? 'active' : ''} onClick={() => { setMode('create'); setAccountError(''); }}>Create account</button>
+                        <div className='nfcps-account-tabs' aria-label='Account action'>
+                            <button type='button' className={mode === 'signin' ? 'active' : ''} onClick={() => { setMode('signin'); setAccountError(''); }}>Sign in</button>
+                            <button type='button' className={mode === 'create' ? 'active' : ''} onClick={() => { setMode('create'); setAccountError(''); }}>Create account</button>
                         </div>
 
                         <form className='nfcps-account-form' onSubmit={submitAccount}>
-                            {mode === 'create' && (
+                            <div className='nfcps-account-fields'>
+                                {mode === 'create' && (
+                                    <label className='nfcps-account-field'>
+                                        <UserRound />
+                                        <span>
+                                            <small>Name</small>
+                                            <input name='name' value={formName} onChange={event => setFormName(event.target.value)} autoComplete='name' enterKeyHint='next' placeholder='Your name' minLength={2} required />
+                                        </span>
+                                    </label>
+                                )}
                                 <label className='nfcps-account-field'>
-                                    <UserRound />
+                                    <Mail />
                                     <span>
-                                        <small>Your name</small>
-                                        <input value={formName} onChange={event => setFormName(event.target.value)} autoComplete='name' placeholder='Full name' />
+                                        <small>Email</small>
+                                        <input name='email' type='email' value={formEmail} onChange={event => setFormEmail(event.target.value)} autoComplete='email' inputMode='email' enterKeyHint='next' placeholder='you@example.com' required />
                                     </span>
                                 </label>
-                            )}
-                            <label className='nfcps-account-field'>
-                                <Mail />
-                                <span>
-                                    <small>Email</small>
-                                    <input type='email' value={formEmail} onChange={event => setFormEmail(event.target.value)} autoComplete='email' inputMode='email' placeholder='you@example.com' />
-                                </span>
-                            </label>
-                            <label className='nfcps-account-field'>
-                                <LockKeyhole />
-                                <span>
-                                    <small>Password</small>
-                                    <input type={showPassword ? 'text' : 'password'} value={formPassword} onChange={event => setFormPassword(event.target.value)} autoComplete={mode === 'create' ? 'new-password' : 'current-password'} placeholder='At least 8 characters' />
-                                </span>
-                                <button type='button' onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
-                                    {showPassword ? <EyeOff /> : <Eye />}
-                                </button>
-                            </label>
+                                <label className='nfcps-account-field'>
+                                    <LockKeyhole />
+                                    <span>
+                                        <small>Password</small>
+                                        <input name='password' type={showPassword ? 'text' : 'password'} value={formPassword} onChange={event => setFormPassword(event.target.value)} autoComplete={mode === 'create' ? 'new-password' : 'current-password'} enterKeyHint='done' placeholder={mode === 'create' ? '8 characters or more' : 'Your password'} minLength={8} required />
+                                    </span>
+                                    <button type='button' onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                                        {showPassword ? <EyeOff /> : <Eye />}
+                                    </button>
+                                </label>
+                            </div>
 
-                            {accountError && <p className='nfcps-account-error'>{accountError}</p>}
+                            {mode === 'create' && <p className='nfcps-account-hint'>Use 8 or more characters. Your password is protected before it is stored.</p>}
+                            {accountError && <p className='nfcps-account-error' role='alert' aria-live='polite'>{accountError}</p>}
 
                             <button className='nfcps-account-submit' disabled={accountBusy}>
-                                {accountBusy ? <LoaderCircle className='spin' /> : <ShieldCheck />}
-                                {accountBusy ? 'One moment…' : mode === 'signin' ? 'Sign in to NFCPS One' : 'Create my account'}
+                                {accountBusy ? <LoaderCircle className='spin' /> : null}
+                                {accountBusy ? 'One moment…' : mode === 'signin' ? 'Continue' : 'Create account'}
                             </button>
                         </form>
 
-                        <p className='nfcps-account-foot'>Your device stays usable without an account. Signing in simply carries your NFCPS One activity with you.</p>
+                        <button type='button' className='nfcps-account-guest' onClick={() => setBoardOpen(false)} disabled={accountBusy}>Continue without an account</button>
+                        <div className='nfcps-account-trust'><ShieldCheck /><span><strong>Private sync</strong><small>Your device still works offline.</small></span></div>
                     </section>
                 </div>
             )}
