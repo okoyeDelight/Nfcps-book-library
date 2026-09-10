@@ -16,7 +16,9 @@ import '../styles/living-sanctuary-v2.css';
 import '../styles/ui-v2.css';
 import '../styles/v45-fixes.css';
 import '../styles/concept-v3.css';
+import '../styles/account-sync.css';
+import {NfcpsAccountProvider} from '../src/AccountSync';
 
 export default function App({ Component, pageProps }: AppProps) {
-    return <Component {...pageProps} />;
+    return <NfcpsAccountProvider><Component {...pageProps} /></NfcpsAccountProvider>;
 }
