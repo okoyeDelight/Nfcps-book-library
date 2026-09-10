@@ -1,21 +1,21 @@
 # Tests
 
-## Test 1 - Living Sanctuary Home flows into editorial Read [sanity]
+## Test 1 - Mobile shell, Home spacing and Read library are corrected [sanity]
 Viewport: mobile (375x667)
-Covers: NFCPS One UI v2 Home composition, bottom navigation, Continue Reading state, editorial Read, immediate starter shelf, /api/ebooks/catalog enrichment, /api/reader/book
-Description: Verifies the approved mobile design direction is implemented as a calm content-first Home and light cover-led Read experience while preserving the real reader.
+Covers: isolated NFCPS One top chrome, compact Home composition, bottom navigation, expanded local Read catalogue, /api/ebooks/catalog enrichment, /api/reader/book
+Description: Verifies the screenshot-reported mobile alignment and spacing problems are fixed while reading remains functional.
 
 Steps:
-1. Open NFCPS One and confirm Home presents one dominant reading focus plus a small For You Today area instead of destination-card clutter
-2. Tap Read in the bottom navigation and confirm the screen changes to the light editorial Reading experience with visible book covers
-3. Open The Pursuit of God, advance one page, close the reader and return to Home
+1. Open NFCPS One and confirm the top brand/avatar are aligned on one compact row and the Continue Reading block is visible without a giant empty middle
+2. Tap Read and confirm the same top chrome remains aligned, the page uses a clean neutral surface, and multiple shelves plus All books are visible
+3. Open The Pursuit of God, advance one page and close the reader
 
-Expected: Home is atmospheric and content-first, Read is light and cover-led, the book opens in the real NFCPS reader, and the reading activity can become the Home continue state.
+Expected: No oversized or overlapping top controls appear, Home is compact, Read shows a substantially larger book library, and the reader still works.
 
-## Test 2 - Catalogue outage never empties the new Read experience
+## Test 2 - Read stays populated when the external catalogue fails
 Viewport: mobile (375x667)
-Covers: local e-book fallback, empty-cache protection, /api/ebooks/catalog failure behavior, Read action
-Description: Verifies the redesigned Read page remains useful when the external catalogue fails.
+Covers: 20+ locally owned public-domain books, /api/ebooks/catalog failure behavior, author normalization, search and Read action
+Description: Verifies an upstream catalogue outage cannot reduce Read to a tiny or blank shelf.
 
 QA Faults:
 ```json
@@ -30,44 +30,44 @@ QA Faults:
 ```
 
 Steps:
-1. Open Read while the catalogue request fails
-2. Confirm the For You and Christian Classics shelves still contain locally known books and the offline message is visible
-3. Open The Pursuit of God
+1. Open Read while catalogue requests fail
+2. Confirm For You, Christian Classics, Prayer, Bible & Study and All books remain populated with locally known titles
+3. Search for Andrew Murray and open a matching title
 
-Expected: The light Read screen never becomes blank and a known public-domain title still opens in the reader.
+Expected: The local library remains substantial, author names display naturally, and books remain readable despite the simulated outage.
 
-## Test 3 - Cinematic Watch opens a sermon and contextual tools
+## Test 3 - Shorts video is centered on mobile
 Viewport: mobile (375x667)
-Covers: /api/watch/feed, cinematic Watch discovery, sermon playback, Save, Ask Sermon entry, Watch Together entry
-Description: Verifies Watch prioritizes media instead of showing growth and infrastructure controls on its discovery screen.
+Covers: NFCPS Watch Shorts layout, vertical media canvas, overlay actions, swipe feed
+Description: Verifies Shorts no longer reserves a one-sided gutter that pushes video away from the screen center.
 
 Steps:
-1. Open Watch from the NFCPS One bottom navigation and confirm the large featured sermon dominates the first screen
-2. Play the featured sermon and confirm the player, title and creator information are visible
-3. Confirm Save, Ask sermon and Watch together are available on the sermon page rather than as large Home panels
+1. Open Watch and switch to Shorts
+2. View the first Short and swipe to the next Short
+3. Confirm the video fills the centered vertical canvas while reaction/save/share/full-message controls overlay the right edge
 
-Expected: Watch behaves as a cinematic content product and advanced actions only become prominent in the viewing context.
+Expected: Each Short is visually centered with no blank one-sided strip and remains swipeable.
 
-## Test 4 - Watch Together keeps shared viewing and chat in one room
+## Test 4 - Watch Together still synchronizes two members
 Viewport: mobile (375x667)
-Covers: /api/watch/rooms create/join/state/message/reaction routes, realtime WebSocket subscription, remembered display name, synced playback, reactions and chat
-Description: Verifies two members can enter the simplified shared viewing experience and communicate without exposed realtime machinery.
+Covers: /api/watch/rooms create/join/state/message/reaction routes, realtime WebSocket subscription, synced playback, reactions and chat
+Description: Verifies the UI fixes do not regress the shared-room workflow.
 
 Steps:
-1. Actor A opens a sermon, taps Watch together, enters Ada if needed, creates a room and shares the invite
-2. Actor B opens the shared link, enters Chidi if needed and joins; confirm Chat is the natural room conversation area
-3. Actor A changes playback and sends a reaction, then Actor B sends a chat reply
+1. Actor A opens a sermon, creates a Watch Together room and shares the invite
+2. Actor B opens the shared link and joins
+3. Actor A changes playback and sends a reaction; Actor B sends a chat reply
 
-Expected: Both actors remain in the same room, playback changes synchronize, reactions and messages appear without refresh, and the active room does not expose connection status or technical synchronization controls.
+Expected: Both actors remain synchronized in the same room and shared activity appears without refresh.
 
-## Test 5 - You and Library keep personal and borrowing tools accessible
+## Test 5 - Physical Library and You remain reachable
 Viewport: mobile (375x667)
-Covers: You profile hierarchy, Reading panel, Moments panel, /api/circulation/catalog, My Books overlay, physical Library destination
-Description: Verifies the cleaner personal screen still exposes saved activity and borrowing while the physical collection remains a dedicated destination.
+Covers: global bottom navigation, /api/circulation/catalog, physical Library destination, You destination
+Description: Verifies the shell repair does not break the other primary destinations.
 
 Steps:
-1. Open You and confirm Saved and Your activity are presented as compact personal rows
-2. Open Notes & highlights, close it, then open Borrowed books
-3. Close My Books, open Library from the bottom navigation and open a physical title
+1. Open Library from the bottom navigation and open a physical title
+2. Close the title and open You
+3. Open Borrowed books from Your activity
 
-Expected: Personal tools stay hidden until requested, My Books remains usable, and physical borrowing remains accessible from its own Library destination.
+Expected: Library, You and My Books remain usable with the corrected shell chrome.
