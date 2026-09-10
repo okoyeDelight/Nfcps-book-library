@@ -1,70 +1,25 @@
 # Tests
 
-## Test 1 - Cold launch, local greeting and reading remain seamless [sanity]
+## Test 1 - Open a real ebook and read with compact controls [sanity]
 Viewport: mobile (375x667)
-Covers: Living Sanctuary cold-launch animation, device-local daypart greeting, anonymous local-first Home, Read, Book Detail, /api/reader/book and reader progress
-Description: Verifies NFCPS One opens with the restored short brand animation, greets from the device's current local time instead of a hard-coded daypart, and still works fully before sign-in.
+Covers: 44-title locally-owned NFCPS core shelf, /api/reader/book, validated text parsing, page navigation, compact reader controls
+Description: Verifies the primary Read workflow always has a substantial local shelf and never opens a visually empty book.
 
 Steps:
-1. Open NFCPS One in a fresh app session and confirm the NFCPS One launch mark/tagline resolves briefly into Home
-2. Confirm Home says Good morning, Good afternoon or Good evening according to the device's current local hour and does not show another member's hard-coded name when this browser has no profile
-3. Open Read, open The Pursuit of God, advance one page and return Home
+1. Open Read, confirm All Books contains at least 44 locally-owned titles, then open The Pursuit of God
+2. Confirm actual readable book text is visible below the opening title instead of an empty page
+3. Swipe or advance to another page, tap the page to reveal controls, then open Themes & Settings
 
-Expected: The launch animation is brief, the greeting matches the current local daypart, and anonymous reading progress remains available on this device.
+Expected: A real readable passage is visible, page navigation changes the reading position, and compact Contents, Notes, Themes & Settings and progress controls are available without covering the page permanently.
 
-## Test 2 - Sign-in merges existing phone data and restores it on another device
+## Test 2 - Core shelf survives catalogue outage
 Viewport: mobile (375x667)
-Covers: AppDeploy auth sign-in, Google/Apple/X login popup, GET/PUT /api/member-sync, per-user private database record, first-login local/cloud merge, profile name, reader progress/bookmarks/notes, Watch Later/history/subscriptions, circulation token continuity
-Description: Verifies creating an NFCPS account preserves existing phone activity instead of replacing it and makes that merged activity available after the same member signs in elsewhere.
-
-Setup:
-1. Actor A anonymously opens The Pursuit of God, advances several pages, adds a bookmark, saves a Watch message, and if available retains one physical loan or waitlist link on the device
-
-Steps:
-1. Actor A opens You, taps Sign in and completes sign-in, then confirms NFCPS Cloud reports a successful sync and the existing reading/Watch state is still present
-2. Actor B opens NFCPS One in a clean browser/device and signs in as the same account
-3. Actor B returns Home/Read and Watch Later, then opens Borrowed books if Actor A had a physical-library token
-
-Expected: Actor B sees the signed-in member's own name, restored reading position/bookmark and saved Watch state; any synced private loan/waitlist link is available through My Books; Actor A's pre-login data was not erased.
-
-## Test 3 - Sign-out preserves offline device data without exposing cloud state anonymously
-Viewport: mobile (375x667)
-Covers: auth sign-out, anonymous privacy boundary, local-first persistence, protected member sync behavior, offline-safe account status
-Description: Verifies signing out disconnects cloud identity while keeping the current device usable and does not reveal another signed-in member's cloud state to an anonymous fresh browser.
-
-Steps:
-1. From Settings on a signed-in account, sign out and return Home
-2. Confirm the current device still retains its local reading progress while the account area now offers Sign in rather than showing an active cloud identity
-3. Open NFCPS One in a separate clean anonymous browser and confirm the signed-out member's cloud-only profile/activity is not loaded there
-
-Expected: Sign-out removes cloud identity, local device data remains usable, and anonymous browsers cannot retrieve another member's private synced state.
-
-## Test 4 - Watch state sync does not regress Watch Together realtime
-Viewport: mobile (375x667)
-Covers: synced Watch Later/history/subscriptions, /api/member-sync, /api/watch/rooms create/join/state/message/reaction routes, realtime WebSocket subscription, shared playback and chat
-Description: Verifies account-state synchronization coexists with the existing dedicated Watch Together experience.
-
-Steps:
-1. While signed in, save a sermon and follow its creator, then open Together and create a room as Actor A
-2. Actor B joins the shared room, Actor A changes playback and sends a reaction, and Actor B sends a chat reply
-3. Leave the room and reopen Watch Later
-
-Expected: Watch Together remains live and synchronized across actors, while the signed-in member's saved/follow state remains intact and eligible for cloud sync.
-
-## Test 5 - Cloud or catalogue failure never blocks local reading
-Viewport: mobile (375x667)
-Covers: local-first member state, /api/member-sync failure handling, 23-book local catalogue, /api/ebooks/catalog fallback, visible non-destructive error state
-Description: Verifies network/cloud failures do not wipe or block the member's local library.
+Covers: local 44-title catalogue, /api/ebooks/catalog failure guardrail, search, category filters
+Description: Verifies external catalogue availability can never collapse NFCPS One back to a tiny or blank e-book shelf.
 
 QA Faults:
 ```json
 [
-  {
-    "method": "GET",
-    "path": "/api/member-sync",
-    "status": 500,
-    "body_json": { "error": "simulated_sync_outage" }
-  },
   {
     "method": "GET",
     "path": "/api/ebooks/catalog",
@@ -75,8 +30,32 @@ QA Faults:
 ```
 
 Steps:
-1. Open NFCPS One while both injected failures are active
-2. Open Read, browse the locally-owned shelves and open The Pursuit of God
-3. Return to You and inspect the account/sync message
+1. Open Read while catalogue enrichment requests fail and confirm All Books remains populated
+2. Browse Prayer, Bible, Theology, Devotional, Growth, Missions and Sermons, then search for Power Through Prayer
+3. Open the matching title and return to All
 
-Expected: Read remains populated and usable from the local catalogue, existing device progress is preserved, and the account area says sync is paused/device data is safe rather than losing personal state.
+Expected: The locally-owned NFCPS shelf remains populated, Power Through Prayer can be found from the local core, category filters retain useful books, and no reconnecting or engineering-status placeholder replaces the collection.
+
+## Test 3 - Reader preferences and annotations persist
+Viewport: mobile (375x667)
+Covers: reader page/continuous modes, themes, typography, progress persistence, bookmarks, highlights, notes, local reader state
+Description: Verifies Apple Books-inspired reading controls change durable reading state rather than acting as decorative UI.
+
+Steps:
+1. Open a known book, reveal Themes & Settings, switch to Continuous reading, change the theme and increase text size
+2. Return to the text, save a bookmark and create a highlight or note from selected text
+3. Close the book, reopen it and inspect the reading controls and Notes panel
+
+Expected: The reading mode, theme, text size, progress, bookmark and saved annotation remain available after reopening the book.
+
+## Test 4 - Existing Watch and Library flows remain intact
+Viewport: mobile (375x667)
+Covers: Watch navigation, physical Library navigation, five-tab app shell, existing personal reading state
+Description: Guards against the Read reliability work disrupting the rest of NFCPS One.
+
+Steps:
+1. Leave Read using the five-tab navigation and open Watch
+2. Return and open Library, then browse the physical collection
+3. Return to Read and reopen the most recently read e-book
+
+Expected: Watch and physical Library still open normally, the shared navigation remains aligned, and the last-read e-book can be resumed with its saved progress.
