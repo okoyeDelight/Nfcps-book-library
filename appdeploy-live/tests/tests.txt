@@ -1,25 +1,70 @@
 # Tests
 
-## Test 1 - Concept Home to Read to Book Detail to Reader [sanity]
+## Test 1 - Cold launch, local greeting and reading remain seamless [sanity]
 Viewport: mobile (375x667)
-Covers: Android-first NFCPS One Home composition, five-tab dock, Read shelves, locally-owned e-book catalogue, /api/ebooks/catalog enrichment, Book Detail, /api/reader/book, reader progress
-Description: Verifies the primary concept flow matches the approved Living Sanctuary direction while preserving real reading behavior.
+Covers: Living Sanctuary cold-launch animation, device-local daypart greeting, anonymous local-first Home, Read, Book Detail, /api/reader/book and reader progress
+Description: Verifies NFCPS One opens with the restored short brand animation, greets from the device's current local time instead of a hard-coded daypart, and still works fully before sign-in.
 
 Steps:
-1. Open NFCPS One and confirm the Home screen has the compact scenic greeting, one dominant book focus, Continue action, For You Today and a correctly aligned five-tab dock without a separate floating top chrome block
-2. Tap Read and confirm the page switches to the bright editorial layout with Continue Reading, search, category chips and multiple cover-led shelves
-3. Tap The Pursuit of God, confirm the Book Detail screen appears, then tap Read and advance one page
+1. Open NFCPS One in a fresh app session and confirm the NFCPS One launch mark/tagline resolves briefly into Home
+2. Confirm Home says Good morning, Good afternoon or Good evening according to the device's current local hour and does not show another member's hard-coded name when this browser has no profile
+3. Open Read, open The Pursuit of God, advance one page and return Home
 
-Expected: Home fits naturally without a large dead middle, Read presents many books with designed covers, Book Detail precedes reading, and the real reader opens and updates progress.
+Expected: The launch animation is brief, the greeting matches the current local daypart, and anonymous reading progress remains available on this device.
 
-## Test 2 - Read remains full during catalogue failure
+## Test 2 - Sign-in merges existing phone data and restores it on another device
 Viewport: mobile (375x667)
-Covers: 23-book local NFCPS catalogue, /api/ebooks/catalog failure behavior, search and category browsing, reader fallback
-Description: Verifies the reading experience never collapses to a tiny or blank shelf when the external catalogue is unavailable.
+Covers: AppDeploy auth sign-in, Google/Apple/X login popup, GET/PUT /api/member-sync, per-user private database record, first-login local/cloud merge, profile name, reader progress/bookmarks/notes, Watch Later/history/subscriptions, circulation token continuity
+Description: Verifies creating an NFCPS account preserves existing phone activity instead of replacing it and makes that merged activity available after the same member signs in elsewhere.
+
+Setup:
+1. Actor A anonymously opens The Pursuit of God, advances several pages, adds a bookmark, saves a Watch message, and if available retains one physical loan or waitlist link on the device
+
+Steps:
+1. Actor A opens You, taps Sign in and completes sign-in, then confirms NFCPS Cloud reports a successful sync and the existing reading/Watch state is still present
+2. Actor B opens NFCPS One in a clean browser/device and signs in as the same account
+3. Actor B returns Home/Read and Watch Later, then opens Borrowed books if Actor A had a physical-library token
+
+Expected: Actor B sees the signed-in member's own name, restored reading position/bookmark and saved Watch state; any synced private loan/waitlist link is available through My Books; Actor A's pre-login data was not erased.
+
+## Test 3 - Sign-out preserves offline device data without exposing cloud state anonymously
+Viewport: mobile (375x667)
+Covers: auth sign-out, anonymous privacy boundary, local-first persistence, protected member sync behavior, offline-safe account status
+Description: Verifies signing out disconnects cloud identity while keeping the current device usable and does not reveal another signed-in member's cloud state to an anonymous fresh browser.
+
+Steps:
+1. From Settings on a signed-in account, sign out and return Home
+2. Confirm the current device still retains its local reading progress while the account area now offers Sign in rather than showing an active cloud identity
+3. Open NFCPS One in a separate clean anonymous browser and confirm the signed-out member's cloud-only profile/activity is not loaded there
+
+Expected: Sign-out removes cloud identity, local device data remains usable, and anonymous browsers cannot retrieve another member's private synced state.
+
+## Test 4 - Watch state sync does not regress Watch Together realtime
+Viewport: mobile (375x667)
+Covers: synced Watch Later/history/subscriptions, /api/member-sync, /api/watch/rooms create/join/state/message/reaction routes, realtime WebSocket subscription, shared playback and chat
+Description: Verifies account-state synchronization coexists with the existing dedicated Watch Together experience.
+
+Steps:
+1. While signed in, save a sermon and follow its creator, then open Together and create a room as Actor A
+2. Actor B joins the shared room, Actor A changes playback and sends a reaction, and Actor B sends a chat reply
+3. Leave the room and reopen Watch Later
+
+Expected: Watch Together remains live and synchronized across actors, while the signed-in member's saved/follow state remains intact and eligible for cloud sync.
+
+## Test 5 - Cloud or catalogue failure never blocks local reading
+Viewport: mobile (375x667)
+Covers: local-first member state, /api/member-sync failure handling, 23-book local catalogue, /api/ebooks/catalog fallback, visible non-destructive error state
+Description: Verifies network/cloud failures do not wipe or block the member's local library.
 
 QA Faults:
 ```json
 [
+  {
+    "method": "GET",
+    "path": "/api/member-sync",
+    "status": 500,
+    "body_json": { "error": "simulated_sync_outage" }
+  },
   {
     "method": "GET",
     "path": "/api/ebooks/catalog",
@@ -30,44 +75,8 @@ QA Faults:
 ```
 
 Steps:
-1. Open Read while catalogue requests fail
-2. Browse For You, Christian Classics, Prayer, Bible & Study and All Books
-3. Search for Pursuit and open the matching title
+1. Open NFCPS One while both injected failures are active
+2. Open Read, browse the locally-owned shelves and open The Pursuit of God
+3. Return to You and inspect the account/sync message
 
-Expected: The locally-owned collection remains visibly populated across shelves and search, and a known title still opens Book Detail and the reader.
-
-## Test 3 - Cinematic Watch and centered Shorts
-Viewport: mobile (375x667)
-Covers: /api/watch/feed, cinematic Watch discovery, Watch history, save, subscriptions, full-screen Shorts, centered vertical media, full-message transition
-Description: Verifies Watch matches the approved media-first concept and Shorts no longer reserve a one-sided gutter.
-
-Steps:
-1. Open Watch and confirm a large cinematic featured message appears above Continue Watching/For You-style rails with the shared five-tab navigation
-2. Open Shorts and confirm the active short fills and centers the phone canvas with action controls overlaid on the right rather than pushing the video sideways
-3. Tap Watch full message, then save the message and follow its creator
-
-Expected: Watch is media-first, Shorts are visually centered/full-screen, and saved/follow state remains usable in the normal sermon view.
-
-## Test 4 - Watch Together behaves like a dedicated shared room
-Viewport: mobile (375x667)
-Covers: /api/watch/rooms create/join/state/message/reaction routes, realtime WebSocket subscription, synced YouTube playback, invite, reactions, chat and people
-Description: Verifies the Watch Together screen keeps the video and people central while hiding technical connection machinery.
-
-Steps:
-1. Actor A opens a sermon, taps Together, enters Ada if needed, creates a room and shares the invite
-2. Actor B opens the invite, enters Chidi if needed and joins the room
-3. Actor A uses the player, sends a reaction and Actor B sends a chat reply
-
-Expected: Both actors remain synchronized in the same full-screen room, reactions and chat update live, and the room does not present realtime/WebSocket terminology or a separate synchronization dashboard.
-
-## Test 5 - Library, You and Settings retain personal workflows
-Viewport: mobile (375x667)
-Covers: physical collection browsing, circulation actions, You saved/activity hierarchy, borrowed-books overlay, reading panel, Moments panel, Settings and app-update entry
-Description: Verifies the remaining concept screens preserve physical borrowing and personal tools behind the simplified UI.
-
-Steps:
-1. Open Library, browse the cover-led physical collection and open one physical book detail to reach its circulation action
-2. Open You and confirm Saved plus Your Activity exposes reading, Watch history, notes, subscriptions, growth journeys, borrowed books and Moments
-3. Open Settings, then open App & updates and return to You
-
-Expected: Library, personal activity and settings remain functional while using the same compact NFCPS One visual system.
+Expected: Read remains populated and usable from the local catalogue, existing device progress is preserved, and the account area says sync is paused/device data is safe rather than losing personal state.
