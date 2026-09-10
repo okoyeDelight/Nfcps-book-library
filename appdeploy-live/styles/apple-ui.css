@@ -1,0 +1,145 @@
+:root {
+    --nfcps-ui-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', 'Segoe UI', Roboto, Arial, sans-serif;
+    --cx-sans: var(--nfcps-ui-font);
+    --cx-serif: var(--nfcps-ui-font);
+    --v2-sans: var(--nfcps-ui-font);
+    --v2-serif: var(--nfcps-ui-font);
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea {
+    font-family: var(--nfcps-ui-font);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+.cx-shell,
+.cx-home,
+.cx-read-page,
+.cx-library-page,
+.cx-you-page,
+.cx-settings-page,
+.books-page,
+.books-detail,
+.wv3-app,
+.wv3-shorts,
+.party-room,
+.room-entry,
+.nfcps-account-gate,
+.app-install-sheet,
+.app-install-teaser {
+    font-family: var(--nfcps-ui-font) !important;
+}
+
+.cx-home-greeting small,
+.cx-home-greeting h1,
+.cx-home-focus-copy h2,
+.cx-section-title h2,
+.cx-section-title h3,
+.cx-read-bar h1,
+.cx-read-resume strong,
+.cx-read-shelf h2,
+.cx-read-book strong,
+.cx-detail-body h1,
+.cx-library-bar h1,
+.cx-library-shelf h2,
+.cx-library-book strong,
+.cx-physical-detail-body h1,
+.cx-you-hero h1,
+.cx-you-hero p,
+.cx-you-section h2,
+.cx-settings-bar h1,
+.books-page-bar h1,
+.books-page-bar p,
+.books-resume strong,
+.books-shelf-title h2,
+.books-tile strong,
+.books-detail h1,
+.books-detail-copy > p,
+.wv3-pagebar h1,
+.wv3-hero-copy h2,
+.wv3-rail-title h2,
+.wv3-selected-bar > span,
+.wv3-info > h1,
+.wv3-short-copy h2,
+.wv3-secondary-bar h1,
+.wv3-growth-block h2,
+.wv3-journeys article strong,
+.nfcps-account-brand h2,
+.app-identity h2,
+.app-install-hero h3 {
+    font-family: var(--nfcps-ui-font) !important;
+    font-style: normal;
+}
+
+.cx-home-greeting h1,
+.cx-read-bar h1,
+.cx-library-bar h1,
+.cx-you-hero h1,
+.books-page-bar h1,
+.books-detail h1,
+.wv3-pagebar h1,
+.wv3-hero-copy h2,
+.nfcps-account-brand h2 {
+    font-weight: 700 !important;
+    letter-spacing: -.045em !important;
+}
+
+.cx-section-title h2,
+.cx-section-title h3,
+.cx-home-focus-copy h2,
+.cx-read-resume strong,
+.cx-read-shelf h2,
+.cx-detail-body h1,
+.cx-library-shelf h2,
+.cx-you-section h2,
+.cx-settings-bar h1,
+.books-resume strong,
+.books-shelf-title h2,
+.wv3-rail-title h2,
+.wv3-info > h1,
+.wv3-secondary-bar h1 {
+    font-weight: 650 !important;
+    letter-spacing: -.025em !important;
+}
+
+.wv3-app button,
+.wv3-app input,
+.wv3-app select,
+.cx-shell button,
+.cx-shell input,
+.cx-shell select,
+.cx-shell textarea {
+    font-family: var(--nfcps-ui-font) !important;
+}
+
+/* Reading-page typography stays user-controlled; only its interface uses the system stack. */
+.book-reader,
+.reader-overlay {
+    font-family: var(--nfcps-ui-font);
+}
+
+.book-reader-family-serif .book-reader-page,
+.reader-family-serif .novel-page {
+    font-family: Georgia, 'Times New Roman', serif;
+}
+
+.book-reader-family-literary .book-reader-page,
+.reader-family-literary .novel-page {
+    font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+}
+
+.book-reader-family-sans .book-reader-page,
+.reader-family-sans .novel-page {
+    font-family: var(--nfcps-ui-font);
+}
+
+.book-reader-family-humanist .book-reader-page,
+.reader-family-humanist .novel-page {
+    font-family: 'Avenir Next', 'Segoe UI', var(--nfcps-ui-font);
+}
