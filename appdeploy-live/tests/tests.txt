@@ -1,61 +1,49 @@
 # Tests
 
-## Test 1 - Open a real ebook and read with compact controls [sanity]
+## Test 1 - Main account opens and authenticates entirely inside NFCPS One [sanity]
 Viewport: mobile (375x667)
-Covers: 44-title locally-owned NFCPS core shelf, /api/reader/book, validated text parsing, page navigation, compact reader controls
-Description: Verifies the primary Read workflow always has a substantial local shelf and never opens a visually empty book.
+Covers: in-app NFCPS One account board, account creation, account sign-in, session persistence, no popup-dependent main login
+Description: Verifies the main account flow is an app-owned board rather than the external popup that previously escaped to Chrome.
 
 Steps:
-1. Open Read, confirm All Books contains at least 44 locally-owned titles, then open The Pursuit of God
-2. Confirm actual readable book text is visible below the opening title instead of an empty page
-3. Swipe or advance to another page, tap the page to reveal controls, then open Themes & Settings
+1. Open You and tap Sign in, then confirm the full-screen NFCPS One account board appears inside the current app with Sign in and Create account tabs
+2. Choose Create account and create a fresh QA account using a valid test name, email and an 8+ character test password
+3. Sign out, tap Sign in again, and sign back into that same QA account
 
-Expected: A real readable passage is visible, page navigation changes the reading position, and compact Contents, Notes, Themes & Settings and progress controls are available without covering the page permanently.
+Expected: Account creation and sign-in complete in the NFCPS One interface, the account becomes signed in after both flows, and the main account experience does not depend on a separate Chrome or AppDeploy popup window.
 
-## Test 2 - Core shelf survives catalogue outage
+## Test 2 - Existing phone activity merges into the NFCPS account and restores
 Viewport: mobile (375x667)
-Covers: local 44-title catalogue, /api/ebooks/catalog failure guardrail, search, category filters
-Description: Verifies external catalogue availability can never collapse NFCPS One back to a tiny or blank e-book shelf.
-
-QA Faults:
-```json
-[
-  {
-    "method": "GET",
-    "path": "/api/ebooks/catalog",
-    "status": 500,
-    "body_json": { "error": "simulated_catalog_outage" }
-  }
-]
-```
+Covers: member sync read/write, local/cloud merge, reader progress, bookmarks, notes, Watch saves, account session
+Description: Verifies changing the login architecture does not lose the local-first data model.
 
 Steps:
-1. Open Read while catalogue enrichment requests fail and confirm All Books remains populated
-2. Browse Prayer, Bible, Theology, Devotional, Growth, Missions and Sermons, then search for Power Through Prayer
-3. Open the matching title and return to All
+1. While signed out, open The Pursuit of God, advance several pages, add a bookmark and save a Watch message
+2. Sign in using the in-app NFCPS One account board and wait for sync to complete
+3. Sign out, sign back in to the same account and reopen Read and Watch Later
 
-Expected: The locally-owned NFCPS shelf remains populated, Power Through Prayer can be found from the local core, category filters retain useful books, and no reconnecting or engineering-status placeholder replaces the collection.
+Expected: The pre-login reading position/bookmark and saved Watch state remain available after sign-in and after the account is reopened.
 
-## Test 3 - Reader preferences and annotations persist
+## Test 3 - Invalid credentials stay inside the board and preserve device data
 Viewport: mobile (375x667)
-Covers: reader page/continuous modes, themes, typography, progress persistence, bookmarks, highlights, notes, local reader state
-Description: Verifies Apple Books-inspired reading controls change durable reading state rather than acting as decorative UI.
+Covers: account validation guardrail, rejected sign-in, non-destructive local-first failure state
+Description: Verifies a failed sign-in is handled as an in-app form error instead of navigating away or clearing local data.
 
 Steps:
-1. Open a known book, reveal Themes & Settings, switch to Continuous reading, change the theme and increase text size
-2. Return to the text, save a bookmark and create a highlight or note from selected text
-3. Close the book, reopen it and inspect the reading controls and Notes panel
+1. Open the NFCPS One sign-in board and enter a known QA email with an incorrect password
+2. Submit the form and inspect the account board
+3. Close the board and reopen the most recently read book
 
-Expected: The reading mode, theme, text size, progress, bookmark and saved annotation remain available after reopening the book.
+Expected: A visible email/password error remains on the NFCPS One board, no external login page is required, and existing reading progress on the device is unchanged.
 
-## Test 4 - Existing Watch and Library flows remain intact
+## Test 4 - Read, Watch and physical Library remain intact after account replacement
 Viewport: mobile (375x667)
-Covers: Watch navigation, physical Library navigation, five-tab app shell, existing personal reading state
-Description: Guards against the Read reliability work disrupting the rest of NFCPS One.
+Covers: five-tab shell, Read reader, Watch navigation, physical Library, anonymous mode after account refactor
+Description: Guards the rest of NFCPS One while the account transport changes.
 
 Steps:
-1. Leave Read using the five-tab navigation and open Watch
-2. Return and open Library, then browse the physical collection
-3. Return to Read and reopen the most recently read e-book
+1. Use NFCPS One without signing in and open a real e-book in Read
+2. Leave Read for Watch, then return and open the physical Library
+3. Return to You and open the new account board without submitting it
 
-Expected: Watch and physical Library still open normally, the shared navigation remains aligned, and the last-read e-book can be resumed with its saved progress.
+Expected: Read, Watch and Library continue to work anonymously, and opening or closing the account board does not disturb those workflows.
