@@ -13,6 +13,7 @@ import '../styles/app-shell.css';
 import '../styles/product-v5.css';
 import '../styles/immersive-v6.css';
 import '../styles/living-sanctuary-v2.css';
+import '../styles/ui-v2.css';
 
 export default function App({ Component, pageProps }: AppProps) {
     return <Component {...pageProps} />;
