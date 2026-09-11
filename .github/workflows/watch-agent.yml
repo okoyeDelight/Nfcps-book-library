@@ -18,7 +18,7 @@ concurrency:
 jobs:
   tick:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - name: Refresh, learn, and prepare Watch intelligence
         env:
@@ -74,13 +74,16 @@ jobs:
           agent = feed.get('agent') or {}
           packages = []
           api_base = os.environ['API_BASE']
+          attempted = 0
+          available_count = 0
 
           for item in videos:
-              if len(packages) >= 3:
+              if attempted >= 10 or available_count >= 2:
                   break
               video_id = item.get('id') or ''
               if len(video_id) != 11 or item.get('source') == 'clip':
                   continue
+              attempted += 1
               query = urllib.parse.urlencode({
                   'title': item.get('title') or 'Sermon',
                   'creator': item.get('creator') or 'Trusted creator',
@@ -88,12 +91,14 @@ jobs:
               })
               url = f"{api_base}/api/watch/sermon/{video_id}/intelligence?{query}"
               try:
-                  with urllib.request.urlopen(url, timeout=70) as response:
+                  with urllib.request.urlopen(url, timeout=80) as response:
                       package = json.load(response)
+                  is_available = bool(package.get('available'))
+                  available_count += int(is_available)
                   packages.append({
                       'id': video_id,
                       'title': item.get('title'),
-                      'available': package.get('available'),
+                      'available': is_available,
                       'themes': (package.get('themes') or [])[:4],
                       'chapters': len(package.get('chapters') or []),
                       'claims': len(package.get('claims') or []),
@@ -116,7 +121,11 @@ jobs:
                   'references': [p.get('reference') for p in (live_lens.get('passages') or [])],
                   'translation': [p.get('translation') for p in (live_lens.get('passages') or [])],
               },
-              'sermonPackages': packages,
+              'sermonPreprocess': {
+                  'attempted': attempted,
+                  'available': available_count,
+                  'packages': packages,
+              },
               'firstFiveVideos': [
                   {'id': item.get('id'), 'title': item.get('title'), 'creator': item.get('creator'), 'category': item.get('category')}
                   for item in videos[:5]
