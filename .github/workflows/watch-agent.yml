@@ -28,7 +28,8 @@ jobs:
           SPEECH_HEARTBEAT_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/speech-intelligence/heartbeat
           TRANSCRIPT_SELFTEST_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/transcript-selftest
           PREPARE_DIVINE_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/sermon/b2xNY69gxGo/prepare-source
-          DIVINE_TRANSCRIPT_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/sermon/b2xNY69gxGo/transcript?title=Divine%20Prosperity%20%28Part%201%29%20%7C%20Pastor%20Lawrence%20Oyor%26creator=Lawrence%20Oyor
+          DIVINE_TRANSCRIPT_URL: 'https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/sermon/b2xNY69gxGo/transcript?title=Divine%20Prosperity%20%28Part%201%29%20%7C%20Pastor%20Lawrence%20Oyor&creator=Lawrence%20Oyor'
+          DIVINE_INTELLIGENCE_URL: 'https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/sermon/b2xNY69gxGo/intelligence?title=Divine%20Prosperity%20%28Part%201%29%20%7C%20Pastor%20Lawrence%20Oyor&creator=Lawrence%20Oyor&category=Bible%20Teaching'
           WATCH_FEED_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/feed
           SHORTS_FEED_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/shorts/feed
           LIVE_LENS_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/live-lens
@@ -52,6 +53,7 @@ jobs:
             cp prepared0.json prepared1.json
           fi
           curl --fail --silent --show-error --retry 2 "$DIVINE_TRANSCRIPT_URL" -o divine.json
+          curl --fail --silent --show-error --retry 2 --max-time 90 "$DIVINE_INTELLIGENCE_URL" -o divine-intelligence.json
 
           curl --fail --silent --show-error --retry 2 "$WATCH_FEED_URL" -o feed.json
           curl --fail --silent --show-error --retry 2 "$SHORTS_FEED_URL" -o shorts.json
@@ -74,6 +76,7 @@ jobs:
           prepared0=load('prepared0.json')
           prepared1=load('prepared1.json')
           divine=load('divine.json')
+          intelligence=load('divine-intelligence.json')
           feed=load('feed.json')
           shorts=load('shorts.json')
           lens=load('lens.json')
@@ -83,6 +86,15 @@ jobs:
               for x in videos
               if 'lawrence' in str(x.get('creator', '')).lower() or x.get('creatorKey') == 'lawrence'
           ][:12]
+          intelligence_summary = {
+              'available': intelligence.get('available'),
+              'themes': len(intelligence.get('themes') or []),
+              'chapters': len(intelligence.get('chapters') or []),
+              'claims': len(intelligence.get('claims') or []),
+              'scriptures': len(intelligence.get('scriptures') or []),
+              'passages': len(intelligence.get('passages') or []),
+              'trail': len(intelligence.get('trail') or []),
+          }
           summary = {
               'collector': collector,
               'agentTick': tick,
@@ -97,6 +109,7 @@ jobs:
               'divinePrepare0': prepared0,
               'divinePrepare1': prepared1,
               'divineTranscript': divine,
+              'divineIntelligence': intelligence_summary,
               'lawrenceWatchItems': lawrence,
               'watchDiscoveryCount': feed.get('discoveryCount'),
               'shortCount': shorts.get('count'),
@@ -111,7 +124,10 @@ jobs:
               print('ERROR: Known-caption control failed; YouTube transcript ingestion is unhealthy.', file=sys.stderr)
               sys.exit(1)
           if not divine.get('available') or not divine.get('segments') or not divine.get('durationSeconds'):
-              print('ERROR: Divine Prosperity still has no reusable timed transcript after trusted-source preparation.', file=sys.stderr)
+              print('ERROR: Divine Prosperity has no reusable timed transcript.', file=sys.stderr)
               sys.exit(1)
-          print('Divine Prosperity transcript verified:', divine.get('source'), divine.get('segments'), divine.get('durationSeconds'))
+          if not intelligence.get('available') or not intelligence.get('scriptures') or not intelligence.get('passages'):
+              print('ERROR: Divine Prosperity transcript exists but Scripture intelligence did not build.', file=sys.stderr)
+              sys.exit(1)
+          print('Divine Prosperity verified end-to-end:', divine.get('source'), divine.get('segments'), divine.get('durationSeconds'), intelligence_summary)
           PY
