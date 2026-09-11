@@ -20,12 +20,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Refresh, learn, and compile speech-first Watch intelligence
+      - name: Refresh, learn, and verify transcript-first Watch intelligence
         env:
           COLLECTOR_HEARTBEAT_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/collector/heartbeat
           AGENT_HEARTBEAT_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/agent/heartbeat
           AGENT_STATUS_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/agent/status
           SPEECH_HEARTBEAT_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/speech-intelligence/heartbeat
+          TRANSCRIPT_SELFTEST_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/transcript-selftest
           WATCH_FEED_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/feed
           SHORTS_FEED_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/shorts/feed
           LIVE_LENS_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/live-lens
@@ -35,6 +36,7 @@ jobs:
           curl --fail --silent --show-error --retry 2 "$AGENT_HEARTBEAT_URL" -o tick.json
           curl --fail --silent --show-error --retry 2 "$AGENT_STATUS_URL" -o status.json
           curl --fail --silent --show-error --retry 2 "$SPEECH_HEARTBEAT_URL" -o speech.json
+          curl --fail --silent --show-error --retry 2 --max-time 90 "$TRANSCRIPT_SELFTEST_URL" -o transcript.json
           curl --fail --silent --show-error --retry 2 "$WATCH_FEED_URL" -o feed.json
           curl --fail --silent --show-error --retry 2 "$SHORTS_FEED_URL" -o shorts.json
           curl --fail --silent --show-error --retry 2 -H 'Content-Type: application/json' \
@@ -42,15 +44,16 @@ jobs:
             "$LIVE_LENS_URL" -o lens.json
 
           python - <<'PY'
-          import json
+          import json, sys
           with open('collector.json', encoding='utf-8') as f: collector=json.load(f)
           with open('tick.json', encoding='utf-8') as f: tick=json.load(f)
           with open('status.json', encoding='utf-8') as f: status=json.load(f)
           with open('speech.json', encoding='utf-8') as f: speech=json.load(f)
+          with open('transcript.json', encoding='utf-8') as f: transcript=json.load(f)
           with open('feed.json', encoding='utf-8') as f: feed=json.load(f)
           with open('shorts.json', encoding='utf-8') as f: shorts=json.load(f)
           with open('lens.json', encoding='utf-8') as f: lens=json.load(f)
-          print(json.dumps({
+          summary = {
               'collector': collector,
               'agentTick': tick,
               'agent': {
@@ -60,6 +63,7 @@ jobs:
                   'frozenUntil': status.get('frozenUntil'),
               },
               'speechCompiler': speech,
+              'transcriptSelftest': transcript,
               'watchDiscoveryCount': feed.get('discoveryCount'),
               'shortCount': shorts.get('count'),
               'shortCreators': len({x.get('creatorKey') for x in (shorts.get('clips') or []) if x.get('creatorKey')}),
@@ -67,5 +71,14 @@ jobs:
                   'available': lens.get('available'),
                   'references': [p.get('reference') for p in (lens.get('passages') or [])],
               },
-          }, ensure_ascii=False))
+          }
+          print(json.dumps(summary, ensure_ascii=False))
+          if not transcript.get('ok'):
+              print('ERROR: NFCPS transcript-first self-test found no reusable timed transcript on the real Watch probes.', file=sys.stderr)
+              sys.exit(1)
+          successful = next((item for item in transcript.get('results', []) if item.get('available')), None)
+          if not successful or not successful.get('segments') or not successful.get('durationSeconds'):
+              print('ERROR: Transcript self-test returned no usable timed segments.', file=sys.stderr)
+              sys.exit(1)
+          print('Transcript path verified:', successful.get('title'), successful.get('source'), successful.get('segments'), successful.get('durationSeconds'))
           PY
