@@ -24,6 +24,7 @@ jobs:
         env:
           AGENT_HEARTBEAT_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/agent/heartbeat
           AGENT_STATUS_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/agent/status
+          WATCH_FEED_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/feed
         run: |
           set -euo pipefail
           echo 'Running the NFCPS Watch autonomous learning cycle...'
@@ -34,3 +35,20 @@ jobs:
           curl --fail --silent --show-error --retry 2 --retry-delay 2 "$AGENT_STATUS_URL" -o status.json
           cat status.json
           echo
+          echo 'Live Watch feed verification:'
+          curl --fail --silent --show-error --retry 2 --retry-delay 2 "$WATCH_FEED_URL" -o feed.json
+          python - <<'PY'
+          import json
+          with open('feed.json', encoding='utf-8') as handle:
+              feed = json.load(handle)
+          videos = feed.get('videos') or []
+          agent = feed.get('agent') or {}
+          print(json.dumps({
+              'discoveryCount': feed.get('discoveryCount'),
+              'publishedCount': agent.get('publishedCount'),
+              'firstFive': [
+                  {'id': item.get('id'), 'title': item.get('title'), 'creator': item.get('creator'), 'category': item.get('category')}
+                  for item in videos[:5]
+              ],
+          }, ensure_ascii=False))
+          PY
