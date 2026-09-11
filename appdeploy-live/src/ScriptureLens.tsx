@@ -19,6 +19,7 @@ type Recognition = { continuous: boolean; interimResults: boolean; lang: string;
 type RecognitionCtor = new()=>Recognition;
 
 const CACHE = new Map<string, Promise<Package>>();
+export const invalidateSermonPackage = (videoId:string) => CACHE.delete(videoId);
 const MEMORY = 'nfcps-watch-growth-memory';
 const SAVED = 'nfcps-watch-scripture-saves';
 const relationName: Record<Cue['relation'], string> = { cited:'Cited', quoted:'Quoted', related:'Related', compare:'Compare', context:'Context' };
