@@ -53,6 +53,12 @@ jobs:
           with open('feed.json', encoding='utf-8') as f: feed=json.load(f)
           with open('shorts.json', encoding='utf-8') as f: shorts=json.load(f)
           with open('lens.json', encoding='utf-8') as f: lens=json.load(f)
+          videos = feed.get('videos') or []
+          lawrence = [
+              {'id': x.get('id'), 'title': x.get('title'), 'creator': x.get('creator'), 'source': x.get('source')}
+              for x in videos
+              if 'lawrence' in str(x.get('creator', '')).lower() or x.get('creatorKey') == 'lawrence'
+          ][:12]
           summary = {
               'collector': collector,
               'agentTick': tick,
@@ -64,6 +70,7 @@ jobs:
               },
               'speechCompiler': speech,
               'transcriptSelftest': transcript,
+              'lawrenceWatchItems': lawrence,
               'watchDiscoveryCount': feed.get('discoveryCount'),
               'shortCount': shorts.get('count'),
               'shortCreators': len({x.get('creatorKey') for x in (shorts.get('clips') or []) if x.get('creatorKey')}),
@@ -73,12 +80,15 @@ jobs:
               },
           }
           print(json.dumps(summary, ensure_ascii=False))
-          if not transcript.get('ok'):
-              print('ERROR: NFCPS transcript-first self-test found no reusable timed transcript on the real Watch probes.', file=sys.stderr)
+          if not transcript.get('controlOk'):
+              print('ERROR: Even the known-caption control failed, so the server-side YouTube transcript route is blocked.', file=sys.stderr)
               sys.exit(1)
-          successful = next((item for item in transcript.get('results', []) if item.get('available')), None)
+          if not transcript.get('watchOk'):
+              print('ERROR: YouTube transcript control works, but none of the real NFCPS Watch probes exposed reusable captions.', file=sys.stderr)
+              sys.exit(1)
+          successful = next((item for item in transcript.get('results', []) if item.get('available') and not item.get('control')), None)
           if not successful or not successful.get('segments') or not successful.get('durationSeconds'):
-              print('ERROR: Transcript self-test returned no usable timed segments.', file=sys.stderr)
+              print('ERROR: Real Watch transcript returned no usable timed segments.', file=sys.stderr)
               sys.exit(1)
-          print('Transcript path verified:', successful.get('title'), successful.get('source'), successful.get('segments'), successful.get('durationSeconds'))
+          print('Watch transcript path verified:', successful.get('title'), successful.get('source'), successful.get('segments'), successful.get('durationSeconds'))
           PY
