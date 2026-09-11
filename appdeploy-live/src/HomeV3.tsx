@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { BookOpen, ChevronRight, Play } from 'lucide-react';
 import { openReader, type ReaderBook } from './ReaderExperience';
 import ConceptBookCover from './ConceptBookCover';
-import { AccountAvatar, useNfcpsAccount } from './AccountSync';
 
 type ReaderRecord = { book: ReaderBook; progress: number; lastOpened: number };
 type SpatialTier = 'full' | 'light' | 'static';
@@ -46,7 +45,6 @@ export default function HomeV3({
     onGoRead: () => void;
     watchHref: string;
 }) {
-    const account = useNfcpsAccount();
     const rootRef = useRef<HTMLElement | null>(null);
     const rafRef = useRef<number | null>(null);
     const [tier, setTier] = useState<SpatialTier>('static');
@@ -89,23 +87,8 @@ export default function HomeV3({
                 <div className='spatial-home-ridge spatial-home-ridge-near' />
 
                 <div className='spatial-home-content'>
-                    <header className='spatial-home-bar'>
-                        <div className='spatial-home-brand'>
-                            <img src='/resources/nfcps-logo.png' alt='NFCPS' />
-                            <span>
-                                <strong>NFCPS One</strong>
-                                <small>Christ, the Therapy for All.</small>
-                            </span>
-                        </div>
-                        <button className='spatial-home-avatar' onClick={() => { location.hash = 'you'; }} aria-label='Open your profile'>
-                            <AccountAvatar />
-                        </button>
-                    </header>
-
                     <div className='spatial-home-greeting'>
-                        <small>{greeting}{account.firstName ? `, ${account.firstName}` : ''}</small>
                         <h1>Make room<br />for what matters.</h1>
-                        <p>Stillness today. Strength tomorrow.</p>
                     </div>
 
                     <section className='spatial-home-focus' aria-label='Continue reading'>
