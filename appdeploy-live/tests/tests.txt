@@ -26,15 +26,15 @@ Expected: Clear inline validation remains on the account screen, no external bro
 
 ## Test 3 - Swipe pages like a physical book and keep reader preferences
 Viewport: mobile (375x667)
-Covers: swipe-driven page navigation, 3D page-flip presentation, page-turn sound preference, system UI font stack, reader typography isolation
+Covers: swipe-driven page navigation, 3D page-flip presentation, page-turn sound preference, reader safe-area exit control, system UI font stack, reader typography isolation
 Description: Verifies page mode behaves like a book rather than relying on next/previous buttons, while existing reader preferences remain intact.
 
 Steps:
-1. Open The Pursuit of God in Pages mode and swipe left across the reading page, then swipe right
-2. Confirm the reading position advances and returns without any next/previous arrow buttons on the page, then open Themes & Settings and turn Page turn sound off and back on
-3. Switch the reading font between Serif and Sans, close the book and reopen it
+1. Open The Pursuit of God in Pages mode, confirm the back button is fully inside the left edge, then swipe left across the reading page and swipe right
+2. Let the reading chrome fade and confirm the back button remains reachable, then reveal controls, open Themes & Settings and turn Page turn sound off and back on
+3. Switch the reading font between Serif and Sans, close the book with the safe back control and reopen it
 
-Expected: Horizontal swipes turn pages with the page-flip presentation, no page-navigation arrow buttons are required, the Page turn sound preference is available and persists, and the selected book font still changes independently of the app UI font.
+Expected: Horizontal swipes turn pages with the page-flip presentation, no page-navigation arrow buttons are required, the reader exit control never clips off-screen and remains reachable when reading chrome fades, the Page turn sound preference persists, and the selected book font still changes independently of the app UI font.
 
 ## Test 4 - Existing account create/sign-in and cloud merge still work after UI polish
 Viewport: mobile (375x667)
@@ -47,3 +47,15 @@ Steps:
 3. Sign back in to the same account and reopen the book
 
 Expected: Account creation and sign-in still complete successfully, the session persists as before, and pre-login reading progress remains available after cloud sync and sign-in.
+
+## Test 5 - Deep Read catalogue grows continuously and immersive Watch exits stay safe
+Viewport: mobile (375x667)
+Covers: GET /api/ebooks/catalog pagination, infinite catalogue discovery, progressive rendering, Watch selected-video back control, Shorts back control, full-screen safe-area navigation
+Description: Verifies the Read shelf can keep discovering more public-domain titles without a small hard cap and that other immersive screens keep a reachable exit.
+
+Steps:
+1. Open Read with the All filter and scroll repeatedly to the bottom sentinel until the discovered-title count increases beyond the initially loaded shelf
+2. Continue scrolling and confirm more book cards are appended automatically without a More button, then open and close a book detail screen
+3. Open Watch, enter a sermon, return with the top-left back control, open Shorts and return with its top-left back control
+
+Expected: Read progressively appends paged catalogue results as the member approaches the bottom, existing books remain stable while more are added, and book detail, Watch video and Shorts back controls stay fully inside the mobile safe area and return to the previous NFCPS screen.
