@@ -173,6 +173,7 @@ async function readTranscriptCache(videoId: string) {
     const first = sorted[0];
     const fresh = Date.now() - first.updatedAt < (first.unavailable ? CACHE_MISS : CACHE_OK);
     if (!fresh) return null;
+    if (first.unavailable && /caption/i.test(first.reason || '')) return null;
     if (first.unavailable) {
         return {
             available: false,
@@ -211,7 +212,7 @@ async function writeTranscriptCache(transcriptValue: Transcript) {
             totalParts: 1,
             segments: [],
             unavailable: true,
-            reason: transcriptValue.reason || 'Captions are unavailable.',
+            reason: transcriptValue.reason || 'Spoken transcript is not ready yet.',
         }]);
         return;
     }
@@ -479,7 +480,7 @@ async function fetchTranscript(videoId: string, title: string, creator: string):
             language: String(track.languageCode || ''),
             updatedAt: Date.now(),
             segments: [],
-            reason: 'Captions were detected, but the transcript could not be retrieved right now.',
+            reason: 'Spoken Lens has not learned enough of this message yet. Keep the sermon playing so NFCPS can build its own transcript from the speaker’s words.',
         };
     }
     return {
@@ -668,6 +669,7 @@ async function readPackage(videoId: string) {
     const { items } = await db.list<SermonPackage>(intelligenceTable(videoId), { limit: 1 });
     const value = items[0];
     if (!value) return null;
+    if (!value.available && /caption/i.test(value.reason || '')) return null;
     const ttl = value.available ? PACKAGE_TTL : CACHE_MISS;
     if (Date.now() - value.updatedAt > ttl) return null;
     return value as SermonPackage & { id: string };
