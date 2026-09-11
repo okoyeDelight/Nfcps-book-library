@@ -135,6 +135,16 @@ export default function HomeV3({
                 <div className='spatial-home-shade' />
                 <div className='spatial-home-glow spatial-home-glow-emerald' />
                 <div className='spatial-home-glow spatial-home-glow-brass' />
+                <div className='spatial-home-edge spatial-home-edge-left' />
+                <div className='spatial-home-edge spatial-home-edge-right' />
+                <div className='spatial-home-focal' aria-hidden='true'>
+                    <span className='spatial-home-focal-light' />
+                    <span className='spatial-home-focal-ring spatial-home-focal-ring-a' />
+                    <span className='spatial-home-focal-ring spatial-home-focal-ring-b' />
+                    <span className='spatial-home-focal-core'>
+                        <img src='/resources/nfcps-logo.png' alt='' />
+                    </span>
+                </div>
                 <div className='spatial-home-ridge spatial-home-ridge-distant' />
                 <div className='spatial-home-ridge spatial-home-ridge-near' />
 
