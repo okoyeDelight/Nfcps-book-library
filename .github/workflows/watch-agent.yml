@@ -22,12 +22,12 @@ jobs:
     steps:
       - name: Advance autonomous Watch agent
         env:
-          AGENT_TICK_URL: https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/api/watch/agent/tick
+          AGENT_HEARTBEAT_URL: https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/api/watch/agent/heartbeat
           AGENT_STATUS_URL: https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/api/watch/agent/status
         run: |
           set -euo pipefail
           echo 'Running the NFCPS Watch autonomous learning cycle...'
-          curl --fail --silent --show-error --retry 2 --retry-delay 2 -X POST "$AGENT_TICK_URL" -o tick.json
+          curl --fail --silent --show-error --retry 2 --retry-delay 2 "$AGENT_HEARTBEAT_URL" -o tick.json
           cat tick.json
           echo
           echo 'Agent health after tick:'
