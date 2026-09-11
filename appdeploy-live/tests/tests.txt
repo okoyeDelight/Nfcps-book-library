@@ -1,61 +1,61 @@
 # Tests
 
-## Test 1 - Premium in-app account screen stays inside NFCPS One [sanity]
+## Test 1 - Premium account flow stays in-app and validates safely [sanity]
 Viewport: mobile (375x667)
-Covers: in-app account board, Sign in/Create account switch, mobile-safe layout, password visibility control, anonymous continuation, no popup-dependent main login
-Description: Verifies the redesigned account experience behaves like a native app screen and keeps every primary control usable on a phone.
+Covers: in-app account board, Sign in/Create account switch, client validation guardrail, password visibility control, anonymous continuation, mobile-safe layout
+Description: Verifies the account experience remains native-feeling and invalid credentials do not create an account or damage local state.
 
 Steps:
-1. Open You and tap Sign in
-2. Confirm the account screen shows NFCPS One identity, a large Sign in title, Sign in/Create account control, grouped email/password fields, Continue button and Continue without an account
-3. Switch to Create account, toggle password visibility, then switch back to Sign in and close the screen
+1. Open You, tap Sign in, switch to Create account, and enter a valid name with an invalid email and a password shorter than 8 characters
+2. Submit, confirm inline validation appears, then correct the email while keeping the short password and submit again
+3. Toggle password visibility, switch back to Sign in, then close the account screen
 
-Expected: The account experience remains entirely inside NFCPS One, all controls fit within the mobile viewport and are tappable, mode switching is stable, and closing or continuing anonymously returns to the app without losing local state.
+Expected: Validation remains inside NFCPS One, no invalid account is created, all controls stay reachable on mobile, and closing the screen returns to the app without clearing local state.
 
-## Test 2 - Account validation remains clear and non-destructive
+## Test 2 - Swipe pages like a physical book and keep reader preferences
 Viewport: mobile (375x667)
-Covers: client validation guardrail, inline account error presentation, local-first safety
-Description: Verifies the visual redesign did not weaken account validation or clear device data on an invalid attempt.
+Covers: swipe-driven page navigation, 3D page-flip presentation, page-turn sound preference, reader safe-area exit control, reader typography isolation
+Description: Verifies page mode behaves like a book while reader preferences and exit controls remain stable.
 
 Steps:
-1. Open Create account and enter a valid name with an invalid email address and a password shorter than 8 characters
-2. Submit the form and inspect the account screen
-3. Correct the email but leave the short password, submit again, then close the account screen
+1. Open The Pursuit of God in Pages mode, confirm the back button is inside the safe area, swipe left to turn a page, then swipe right
+2. Reveal controls, open Themes & Settings, turn Page turn sound off and back on, and switch between Serif and Sans
+3. Close the book and reopen it
 
-Expected: Clear inline validation remains on the account screen, no external browser opens, no account is created from invalid data, and the rest of NFCPS One remains usable.
+Expected: Swipes turn pages reliably, the exit control remains reachable, and the reader sound and font preferences remain available without changing the app UI font.
 
-## Test 3 - Swipe pages like a physical book and keep reader preferences
-Viewport: mobile (375x667)
-Covers: swipe-driven page navigation, 3D page-flip presentation, page-turn sound preference, reader safe-area exit control, system UI font stack, reader typography isolation
-Description: Verifies page mode behaves like a book rather than relying on next/previous buttons, while existing reader preferences remain intact.
-
-Steps:
-1. Open The Pursuit of God in Pages mode, confirm the back button is fully inside the left edge, then swipe left across the reading page and swipe right
-2. Let the reading chrome fade and confirm the back button remains reachable, then reveal controls, open Themes & Settings and turn Page turn sound off and back on
-3. Switch the reading font between Serif and Sans, close the book with the safe back control and reopen it
-
-Expected: Horizontal swipes turn pages with the page-flip presentation, no page-navigation arrow buttons are required, the reader exit control never clips off-screen and remains reachable when reading chrome fades, the Page turn sound preference persists, and the selected book font still changes independently of the app UI font.
-
-## Test 4 - Existing account create/sign-in and cloud merge still work after UI polish
+## Test 3 - Account creation, sign-in, and cloud merge retain pre-login reading state
 Viewport: mobile (375x667)
 Covers: POST /api/nfcps-account/create, POST /api/nfcps-account/sign-in, POST /api/member-sync/get, POST /api/member-sync/save, session persistence, local/cloud merge
-Description: Guards the existing authentication and sync behavior while only its presentation is redesigned.
+Description: Guards authentication and sync behavior while preserving local-first reading progress.
 
 Steps:
-1. While signed out, open a book and create local reading progress, then open the account screen and create an NFCPS account with valid details
-2. Confirm the account becomes signed in and sync completes, then sign out
+1. While signed out, open a book and create local reading progress, then create an NFCPS account with valid details
+2. Confirm the account is signed in and sync completes, then sign out
 3. Sign back in to the same account and reopen the book
 
-Expected: Account creation and sign-in still complete successfully, the session persists as before, and pre-login reading progress remains available after cloud sync and sign-in.
+Expected: Account creation and sign-in succeed, the session behaves as before, and pre-login reading progress remains available after cloud sync.
 
-## Test 5 - Spatial Home keeps content readable and controls predictable
+## Test 4 - Spatial Home stays cinematic, readable, and predictable
 Viewport: mobile (375x667)
-Covers: Spatial Home cinematic perspective depth, living glass NFCPS medallion, dual orbital rings, shimmer and ambient particles, simplified hero statement, bounded touch/orientation parallax, current-book continuation, press-safe controls, reduced-motion/performance fallback, unchanged Home navigation
-Description: Verifies the upgraded focal object reads as a dimensional NFCPS glass medallion with restrained cinematic motion without moving essential controls or breaking the primary Home actions.
+Covers: Spatial Home cinematic perspective depth, living glass NFCPS medallion, dual orbital rings, simplified hero statement, reduced-motion/performance fallback, current-book continuation, unchanged Home navigation
+Description: Verifies the cinematic Home scene remains atmospheric without moving essential controls or obscuring content.
 
 Steps:
-1. Open Home and confirm the hero begins with only “Make room for what matters.” above the current-book focus card, with no top brand/profile header, greeting line or subtitle
-2. Scroll Home and, where motion input is available, move across the hero; confirm the forest/ridge atmosphere and living NFCPS medallion respond subtly, with layered rings/glass depth and restrained shimmer on capable devices, while the hero statement, Continue Reading controls and floating app dock remain stable and readable
-3. Open the current book from Continue Reading, return Home, then open You from the bottom dock
+1. Open Home and confirm the hero begins with only “Make room for what matters.” above the current-book focus card
+2. Move or scroll through the hero and confirm the scene and medallion remain subtle while Continue Reading and the floating dock stay readable
+3. Open the current book, return Home, then open You from the bottom dock
 
-Expected: Home presents layered cinematic perspective depth without obscuring content, the NFCPS focal object reads as a premium glass-and-metal medallion rather than a pasted logo, its orbit/shimmer/particle motion stays atmospheric rather than interactive, motion remains bounded to the scene and subtle card tilt, the hero keeps only “Make room for what matters.” as its statement, For You Today remains in normal flow below the hero, Continue Reading and bottom navigation still work, and reduced-motion or lower-capability devices retain the same composition with lighter or no motion.
+Expected: Home retains its premium spatial composition, the focal object remains atmospheric rather than interactive, Continue Reading works, For You Today stays in normal flow, and navigation remains stable on capable and reduced-motion devices.
+
+## Test 5 - Watch stays Christian, varied, and increasingly personal
+Viewport: mobile (375x667)
+Covers: GET /api/watch/feed, trusted plus guarded discovered catalogue merge, Christian category expansion, local recommendation ranking, creator diversity, likes/saves/subscriptions/history, Shorts creator interleaving, safe fallback behavior
+Description: Verifies Watch can accept safely discovered Christian content without breaking the existing catalogue, while For You responds to member signals and avoids repetitive creator runs.
+
+Steps:
+1. Open Watch and confirm the hero, For You rail, creator names, Christian categories, and Shorts all load even if external discovery is temporarily unavailable
+2. Open a message, Like it, Save it, Follow its creator, return to Watch, then open another message from a related category and return again
+3. Inspect For You and swipe through several Shorts
+
+Expected: Existing trusted content remains available as a fallback, For You increasingly favors followed creators and relevant categories without filling the rail with one creator when alternatives exist, Shorts rotate across creators instead of running long same-creator blocks, and no candidate needs autonomous code deployment to enter the catalogue.
