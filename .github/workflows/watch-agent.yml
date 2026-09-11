@@ -18,15 +18,21 @@ concurrency:
 jobs:
   tick:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 6
     steps:
-      - name: Advance autonomous Watch agent
+      - name: Refresh Shorts inventory and advance autonomous Watch agent
         env:
+          COLLECTOR_HEARTBEAT_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/collector/heartbeat
           AGENT_HEARTBEAT_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/agent/heartbeat
           AGENT_STATUS_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/agent/status
           WATCH_FEED_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/feed
+          SHORTS_FEED_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/shorts/feed
         run: |
           set -euo pipefail
+          echo 'Refreshing NFCPS Watch and Shorts inventory...'
+          curl --fail --silent --show-error --retry 2 --retry-delay 2 "$COLLECTOR_HEARTBEAT_URL" -o collector.json
+          cat collector.json
+          echo
           echo 'Running the NFCPS Watch autonomous learning cycle...'
           curl --fail --silent --show-error --retry 2 --retry-delay 2 "$AGENT_HEARTBEAT_URL" -o tick.json
           cat tick.json
@@ -35,20 +41,33 @@ jobs:
           curl --fail --silent --show-error --retry 2 --retry-delay 2 "$AGENT_STATUS_URL" -o status.json
           cat status.json
           echo
-          echo 'Live Watch feed verification:'
+          echo 'Live Watch and Shorts verification:'
           curl --fail --silent --show-error --retry 2 --retry-delay 2 "$WATCH_FEED_URL" -o feed.json
+          curl --fail --silent --show-error --retry 2 --retry-delay 2 "$SHORTS_FEED_URL" -o shorts.json
           python - <<'PY'
           import json
+          with open('collector.json', encoding='utf-8') as handle:
+              collector = json.load(handle)
           with open('feed.json', encoding='utf-8') as handle:
               feed = json.load(handle)
+          with open('shorts.json', encoding='utf-8') as handle:
+              shorts = json.load(handle)
           videos = feed.get('videos') or []
+          clips = shorts.get('clips') or []
           agent = feed.get('agent') or {}
           print(json.dumps({
+              'collector': collector,
               'discoveryCount': feed.get('discoveryCount'),
               'publishedCount': agent.get('publishedCount'),
-              'firstFive': [
+              'shortCount': shorts.get('count'),
+              'shortCreators': len({item.get('creatorKey') for item in clips if item.get('creatorKey')}),
+              'firstFiveVideos': [
                   {'id': item.get('id'), 'title': item.get('title'), 'creator': item.get('creator'), 'category': item.get('category')}
                   for item in videos[:5]
+              ],
+              'firstFiveShorts': [
+                  {'id': item.get('id'), 'title': item.get('title'), 'creator': item.get('creator'), 'category': item.get('category')}
+                  for item in clips[:5]
               ],
           }, ensure_ascii=False))
           PY
