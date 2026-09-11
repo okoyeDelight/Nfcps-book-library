@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.app.PictureInPictureParams;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.net.Uri;
@@ -30,6 +31,8 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import org.json.JSONObject;
+
 public class MainActivity extends Activity {
     private static final String APP_HOST = "nfcps-book-library-c2ma7y.v2.appdeploy.ai";
     private static final String AUTH_HOST = "api-v2.appdeploy.ai";
@@ -42,8 +45,9 @@ public class MainActivity extends Activity {
     private WebChromeClient.CustomViewCallback customViewCallback;
     private Dialog authDialog;
     private WebView authWebView;
+    private NativeSpeechBridge nativeSpeechBridge;
 
-    @SuppressLint("SetJavaScriptEnabled")
+    @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,6 +73,8 @@ public class MainActivity extends Activity {
         root.addView(progress, progressParams);
         setContentView(root);
 
+        nativeSpeechBridge = new NativeSpeechBridge(this, webView);
+        webView.addJavascriptInterface(nativeSpeechBridge, "NFCPSNativeSpeech");
         configureWebView(webView, false);
 
         webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> openExternal(Uri.parse(url)));
@@ -93,7 +99,7 @@ public class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setSupportMultipleWindows(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.1");
+        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.2");
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
@@ -123,8 +129,11 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 if (!popup) {
+                    String token = nativeSpeechBridge != null ? nativeSpeechBridge.getSessionToken() : "";
                     view.evaluateJavascript(
-                            "window.__NFCPS_NATIVE__=true;document.documentElement.classList.add('nfcps-native-app');",
+                            "window.__NFCPS_NATIVE__=true;window.__NFCPS_SPEECH_TOKEN__="
+                                    + JSONObject.quote(token)
+                                    + ";document.documentElement.classList.add('nfcps-native-app');",
                             null
                     );
                 }
@@ -325,6 +334,15 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == NativeSpeechBridge.REQUEST_RECORD_AUDIO && nativeSpeechBridge != null) {
+            boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            nativeSpeechBridge.onPermissionResult(granted);
+        }
+    }
+
+    @Override
     protected void onSaveInstanceState(Bundle outState) {
         webView.saveState(outState);
         super.onSaveInstanceState(outState);
@@ -350,6 +368,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         dismissAuthWindow();
+        if (nativeSpeechBridge != null) {
+            nativeSpeechBridge.destroy();
+            nativeSpeechBridge = null;
+        }
         if (webView != null) {
             webView.destroy();
         }
