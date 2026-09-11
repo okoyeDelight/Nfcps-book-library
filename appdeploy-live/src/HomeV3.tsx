@@ -47,6 +47,7 @@ export default function HomeV3({
 }) {
     const rootRef = useRef<HTMLElement | null>(null);
     const rafRef = useRef<number | null>(null);
+    const motionRef = useRef({ x: 0, y: 0 });
     const [tier, setTier] = useState<SpatialTier>('static');
     const book = current?.book || FALLBACK;
     const progress = Math.max(0, Math.min(100, current?.progress || 0));
@@ -55,23 +56,74 @@ export default function HomeV3({
     useEffect(() => {
         const nextTier = resolveSpatialTier();
         setTier(nextTier);
-        if (nextTier === 'static') return;
+        const node = rootRef.current;
+        if (!node || nextTier === 'static') return;
+
+        const intensity = nextTier === 'full' ? 1 : 0.45;
+        const clamp = (value: number) => Math.max(-1, Math.min(1, value));
+        let orientationBase: { beta: number; gamma: number } | null = null;
 
         const update = () => {
             rafRef.current = null;
-            const node = rootRef.current;
-            if (!node) return;
-            const y = Math.max(0, Math.min(window.scrollY, 420));
-            node.style.setProperty('--spatial-scroll', `${y}px`);
+            const scroll = Math.max(0, Math.min(window.scrollY, 420));
+            const { x, y } = motionRef.current;
+            const farScroll = scroll * (nextTier === 'full' ? 0.12 : 0.05);
+            const midScroll = scroll * (nextTier === 'full' ? 0.20 : 0.09);
+            const nearScroll = scroll * (nextTier === 'full' ? 0.28 : 0.12);
+
+            node.style.setProperty('--scene-far-x', `${x * 6 * intensity}px`);
+            node.style.setProperty('--scene-far-y', `${y * 4 * intensity + farScroll}px`);
+            node.style.setProperty('--scene-mid-x', `${x * 11 * intensity}px`);
+            node.style.setProperty('--scene-mid-y', `${y * 7 * intensity + midScroll}px`);
+            node.style.setProperty('--scene-near-x', `${x * 17 * intensity}px`);
+            node.style.setProperty('--scene-near-y', `${y * 11 * intensity + nearScroll}px`);
+            node.style.setProperty('--card-rx', `${-y * 1.5 * intensity}deg`);
+            node.style.setProperty('--card-ry', `${x * 2.2 * intensity}deg`);
         };
-        const onScroll = () => {
+
+        const scheduleUpdate = () => {
             if (rafRef.current !== null) return;
             rafRef.current = window.requestAnimationFrame(update);
         };
+
+        const onScroll = () => scheduleUpdate();
+        const onPointerMove = (event: PointerEvent) => {
+            const rect = node.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+            motionRef.current = {
+                x: clamp(((event.clientX - rect.left) / rect.width - 0.5) * 2),
+                y: clamp(((event.clientY - rect.top) / rect.height - 0.5) * 2),
+            };
+            scheduleUpdate();
+        };
+        const onPointerLeave = () => {
+            motionRef.current = { x: 0, y: 0 };
+            scheduleUpdate();
+        };
+        const onOrientation = (event: DeviceOrientationEvent) => {
+            if (nextTier !== 'full' || event.beta == null || event.gamma == null) return;
+            if (!orientationBase) {
+                orientationBase = { beta: event.beta, gamma: event.gamma };
+                return;
+            }
+            motionRef.current = {
+                x: clamp((event.gamma - orientationBase.gamma) / 24),
+                y: clamp((event.beta - orientationBase.beta) / 32),
+            };
+            scheduleUpdate();
+        };
+
         update();
         window.addEventListener('scroll', onScroll, { passive: true });
+        node.addEventListener('pointermove', onPointerMove, { passive: true });
+        node.addEventListener('pointerleave', onPointerLeave, { passive: true });
+        if (nextTier === 'full') window.addEventListener('deviceorientation', onOrientation, { passive: true });
+
         return () => {
             window.removeEventListener('scroll', onScroll);
+            node.removeEventListener('pointermove', onPointerMove);
+            node.removeEventListener('pointerleave', onPointerLeave);
+            window.removeEventListener('deviceorientation', onOrientation);
             if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current);
         };
     }, []);
