@@ -44,14 +44,9 @@ jobs:
           curl --silent --show-error --retry 1 --max-time 60 -H 'Content-Type: application/json' \
             -d '{"title":"Divine Prosperity (Part 1) | Pastor Lawrence Oyor","creator":"Lawrence Oyor","category":"Bible Teaching","at":0}' \
             "$PREPARE_DIVINE_URL" -o prepared0.json
-          READY="$(python -c "import json; d=json.load(open('prepared0.json')); print('1' if d.get('progress',{}).get('ready') else '0')" 2>/dev/null || echo 0)"
-          if [ "$READY" != "1" ]; then
-            curl --silent --show-error --retry 1 --max-time 60 -H 'Content-Type: application/json' \
-              -d '{"title":"Divine Prosperity (Part 1) | Pastor Lawrence Oyor","creator":"Lawrence Oyor","category":"Bible Teaching","at":90}' \
-              "$PREPARE_DIVINE_URL" -o prepared1.json
-          else
-            cp prepared0.json prepared1.json
-          fi
+          curl --silent --show-error --retry 1 --max-time 90 -H 'Content-Type: application/json' \
+            -d '{"title":"Divine Prosperity (Part 1) | Pastor Lawrence Oyor","creator":"Lawrence Oyor","category":"Bible Teaching","at":120}' \
+            "$PREPARE_DIVINE_URL" -o prepared120.json
           curl --fail --silent --show-error --retry 2 "$DIVINE_TRANSCRIPT_URL" -o divine.json
           curl --fail --silent --show-error --retry 2 --max-time 90 "$DIVINE_INTELLIGENCE_URL" -o divine-intelligence.json
 
@@ -74,18 +69,12 @@ jobs:
           speech=load('speech.json')
           transcript=load('transcript.json')
           prepared0=load('prepared0.json')
-          prepared1=load('prepared1.json')
+          prepared120=load('prepared120.json')
           divine=load('divine.json')
           intelligence=load('divine-intelligence.json')
           feed=load('feed.json')
           shorts=load('shorts.json')
           lens=load('lens.json')
-          videos = feed.get('videos') or []
-          lawrence = [
-              {'id': x.get('id'), 'title': x.get('title'), 'creator': x.get('creator'), 'source': x.get('source')}
-              for x in videos
-              if 'lawrence' in str(x.get('creator', '')).lower() or x.get('creatorKey') == 'lawrence'
-          ][:12]
           intelligence_summary = {
               'available': intelligence.get('available'),
               'themes': len(intelligence.get('themes') or []),
@@ -107,10 +96,9 @@ jobs:
               'speechCompiler': speech,
               'transcriptSelftest': transcript,
               'divinePrepare0': prepared0,
-              'divinePrepare1': prepared1,
+              'divinePrepare120': prepared120,
               'divineTranscript': divine,
               'divineIntelligence': intelligence_summary,
-              'lawrenceWatchItems': lawrence,
               'watchDiscoveryCount': feed.get('discoveryCount'),
               'shortCount': shorts.get('count'),
               'shortCreators': len({x.get('creatorKey') for x in (shorts.get('clips') or []) if x.get('creatorKey')}),
@@ -123,11 +111,14 @@ jobs:
           if not transcript.get('controlOk'):
               print('ERROR: Known-caption control failed; YouTube transcript ingestion is unhealthy.', file=sys.stderr)
               sys.exit(1)
-          if not divine.get('available') or not divine.get('segments') or not divine.get('durationSeconds'):
-              print('ERROR: Divine Prosperity has no reusable timed transcript.', file=sys.stderr)
+          if not prepared120.get('available'):
+              print('ERROR: Trusted-source preparation at 120 seconds failed.', file=sys.stderr)
+              sys.exit(1)
+          if not divine.get('available') or int(divine.get('durationSeconds') or 0) < 130:
+              print('ERROR: Divine Prosperity transcript did not expand beyond the opening slice.', file=sys.stderr)
               sys.exit(1)
           if not intelligence.get('available') or not intelligence.get('scriptures') or not intelligence.get('passages'):
-              print('ERROR: Divine Prosperity transcript exists but Scripture intelligence did not build.', file=sys.stderr)
+              print('ERROR: Expanded Divine Prosperity transcript did not produce Scripture intelligence.', file=sys.stderr)
               sys.exit(1)
-          print('Divine Prosperity verified end-to-end:', divine.get('source'), divine.get('segments'), divine.get('durationSeconds'), intelligence_summary)
+          print('Divine Prosperity growth verified:', divine.get('source'), divine.get('segments'), divine.get('durationSeconds'), intelligence_summary)
           PY
