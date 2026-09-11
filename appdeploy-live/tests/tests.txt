@@ -24,17 +24,17 @@ Steps:
 
 Expected: Clear inline validation remains on the account screen, no external browser opens, no account is created from invalid data, and the rest of NFCPS One remains usable.
 
-## Test 3 - Apple-style UI typography is consistent while reader font choices still work
+## Test 3 - Swipe pages like a physical book and keep reader preferences
 Viewport: mobile (375x667)
-Covers: system UI font stack, Home, Read, Watch, Library, You, reader typography isolation
-Description: Verifies the app chrome and content-navigation UI share one system-style typographic language without overriding a reader's chosen book font.
+Covers: swipe-driven page navigation, 3D page-flip presentation, page-turn sound preference, system UI font stack, reader typography isolation
+Description: Verifies page mode behaves like a book rather than relying on next/previous buttons, while existing reader preferences remain intact.
 
 Steps:
-1. Browse Home, Read, Library and You, then open Watch and inspect titles, navigation, buttons and form controls
-2. Return to Read, open The Pursuit of God and open Themes & Settings
-3. Switch the reading font between Serif and Sans and return to the page
+1. Open The Pursuit of God in Pages mode and swipe left across the reading page, then swipe right
+2. Confirm the reading position advances and returns without any next/previous arrow buttons on the page, then open Themes & Settings and turn Page turn sound off and back on
+3. Switch the reading font between Serif and Sans, close the book and reopen it
 
-Expected: App interface typography is visually consistent across main areas, while the book page visibly changes between the selected reader font families and reading controls remain functional.
+Expected: Horizontal swipes turn pages with the page-flip presentation, no page-navigation arrow buttons are required, the Page turn sound preference is available and persists, and the selected book font still changes independently of the app UI font.
 
 ## Test 4 - Existing account create/sign-in and cloud merge still work after UI polish
 Viewport: mobile (375x667)
