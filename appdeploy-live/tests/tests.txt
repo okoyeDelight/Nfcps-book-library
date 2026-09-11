@@ -48,14 +48,14 @@ Steps:
 
 Expected: Account creation and sign-in still complete successfully, the session persists as before, and pre-login reading progress remains available after cloud sync and sign-in.
 
-## Test 5 - Deep Read catalogue grows continuously and immersive Watch exits stay safe
+## Test 5 - Spatial Home keeps content readable and controls predictable
 Viewport: mobile (375x667)
-Covers: GET /api/ebooks/catalog pagination, infinite catalogue discovery, progressive rendering, Watch selected-video back control, Shorts back control, full-screen safe-area navigation
-Description: Verifies the Read shelf can keep discovering more public-domain titles without a small hard cap and that other immersive screens keep a reachable exit.
+Covers: Spatial Home depth hierarchy, dynamic greeting, current-book continuation, press-safe controls, reduced-motion/performance fallback, unchanged Home navigation
+Description: Verifies the new spatial treatment adds atmosphere and depth without moving essential controls or breaking the primary Home actions.
 
 Steps:
-1. Open Read with the All filter and scroll repeatedly to the bottom sentinel until the discovered-title count increases beyond the initially loaded shelf
-2. Continue scrolling and confirm more book cards are appended automatically without a More button, then open and close a book detail screen
-3. Open Watch, enter a sermon, return with the top-left back control, open Shorts and return with its top-left back control
+1. Open Home and confirm the NFCPS identity, time-aware greeting, profile control and current-book focus card are visible above the fold
+2. Scroll Home and confirm the atmospheric background/ridge layers move subtly while greeting text, Continue Reading controls and the floating app dock remain stable and readable
+3. Open the current book from Continue Reading, return Home, then open the profile from the top-right avatar
 
-Expected: Read progressively appends paged catalogue results as the member approaches the bottom, existing books remain stable while more are added, and book detail, Watch video and Shorts back controls stay fully inside the mobile safe area and return to the previous NFCPS screen.
+Expected: Home presents layered depth without obscuring content, the For You Today section remains in normal flow below the Spatial Home hero and never overlays the greeting, Continue Reading still opens the saved book, profile navigation still works, the floating dock remains fixed, and reduced-motion or lower-capability devices retain the same composition without requiring parallax.
