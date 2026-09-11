@@ -1,0 +1,277 @@
+.sermon-auto-lens {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 24;
+    width: min(390px, calc(100% - 24px));
+    overflow: hidden;
+    border: 1px solid rgba(224, 205, 139, 0.26);
+    border-radius: 22px;
+    background: linear-gradient(145deg, rgba(8, 18, 24, 0.84), rgba(9, 34, 28, 0.78));
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.38);
+    color: #f7f5ed;
+    backdrop-filter: blur(22px) saturate(135%);
+    -webkit-backdrop-filter: blur(22px) saturate(135%);
+    animation: sermonLensIn 320ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.sermon-auto-lens.listening {
+    border-color: rgba(134, 205, 158, 0.3);
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(97, 177, 124, 0.06) inset;
+}
+
+.sermon-auto-lens > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 12px 8px;
+}
+
+.sermon-auto-lens-title {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 8px;
+}
+
+.sermon-auto-lens-title > svg {
+    flex: none;
+    width: 17px;
+    color: #dfca84;
+}
+
+.sermon-auto-lens-title span {
+    min-width: 0;
+}
+
+.sermon-auto-lens-title small,
+.sermon-auto-lens-title strong {
+    display: block;
+}
+
+.sermon-auto-lens-title small {
+    color: #d9c57f;
+    font-size: 8px;
+    font-weight: 850;
+    letter-spacing: .13em;
+}
+
+.sermon-auto-lens-title strong {
+    margin-top: 2px;
+    overflow: hidden;
+    color: rgba(255,255,255,.7);
+    font-size: 10px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sermon-auto-lens-tools {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.sermon-auto-lens-tools > svg {
+    width: 14px;
+    color: #dbc983;
+}
+
+.sermon-auto-lens-tools button {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255,255,255,.07);
+    color: rgba(255,255,255,.72);
+}
+
+.sermon-auto-lens-tools button svg {
+    width: 14px;
+}
+
+.sermon-auto-lens-passage {
+    width: 100%;
+    padding: 5px 14px 10px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+}
+
+.sermon-auto-lens-passage > div {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.sermon-auto-lens-passage strong {
+    font-size: 15px;
+    letter-spacing: -.01em;
+}
+
+.sermon-auto-lens-passage small {
+    padding: 3px 5px;
+    border-radius: 999px;
+    background: rgba(224, 205, 139, .11);
+    color: rgba(224, 205, 139, .72);
+    font-size: 8px;
+    font-weight: 800;
+}
+
+.sermon-auto-lens-passage p {
+    display: -webkit-box;
+    margin: 5px 0 0;
+    overflow: hidden;
+    color: rgba(255,255,255,.88);
+    font-family: Georgia, serif;
+    font-size: 12px;
+    line-height: 1.46;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.sermon-auto-lens-passage > span {
+    display: block;
+    margin-top: 5px;
+    overflow: hidden;
+    color: rgba(216, 197, 131, .8);
+    font-size: 9px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sermon-auto-lens-waiting {
+    padding: 5px 14px 11px;
+}
+
+.sermon-auto-lens-waiting strong {
+    display: block;
+    font-size: 13px;
+}
+
+.sermon-auto-lens-waiting p {
+    margin: 4px 0 0;
+    color: rgba(255,255,255,.55);
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.sermon-auto-lens-waiting button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 9px;
+    padding: 8px 10px;
+    border: 1px solid rgba(226, 207, 142, .3);
+    border-radius: 999px;
+    background: rgba(226, 207, 142, .13);
+    color: #f1e4b3;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.sermon-auto-lens-waiting button svg {
+    width: 14px;
+}
+
+.sermon-auto-lens > footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 34px;
+    padding: 7px 11px 8px 14px;
+    border-top: 1px solid rgba(255,255,255,.055);
+    background: rgba(0,0,0,.08);
+}
+
+.sermon-auto-lens > footer > span {
+    overflow: hidden;
+    color: rgba(255,255,255,.42);
+    font-size: 8px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sermon-auto-lens > footer > button {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    border: 0;
+    background: transparent;
+    color: #e2d293;
+    font-size: 9px;
+    font-weight: 800;
+}
+
+.sermon-auto-lens > footer > button svg {
+    width: 12px;
+}
+
+.sermon-lens-pill {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    z-index: 24;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border: 1px solid rgba(224,205,139,.22);
+    border-radius: 999px;
+    background: rgba(8, 21, 23, .76);
+    box-shadow: 0 12px 32px rgba(0,0,0,.28);
+    color: #ebdfb1;
+    font-size: 9px;
+    font-weight: 800;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.sermon-lens-pill svg {
+    width: 13px;
+}
+
+.sermon-lens-pill i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #78d49b;
+    box-shadow: 0 0 0 4px rgba(120,212,155,.08);
+    animation: sermonLensPulse 1.8s infinite;
+}
+
+@keyframes sermonLensIn {
+    from { opacity: 0; transform: translateY(10px) scale(.985); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes sermonLensPulse {
+    50% { opacity: .45; transform: scale(.82); }
+}
+
+@media (max-width: 520px) {
+    .sermon-auto-lens {
+        right: 8px;
+        bottom: 8px;
+        width: calc(100% - 16px);
+        border-radius: 18px;
+    }
+
+    .sermon-auto-lens-passage p {
+        -webkit-line-clamp: 2;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sermon-auto-lens,
+    .sermon-lens-pill i {
+        animation: none;
+    }
+}
