@@ -50,12 +50,12 @@ Expected: Account creation and sign-in still complete successfully, the session 
 
 ## Test 5 - Spatial Home keeps content readable and controls predictable
 Viewport: mobile (375x667)
-Covers: Spatial Home depth hierarchy, simplified hero statement, current-book continuation, press-safe controls, reduced-motion/performance fallback, unchanged Home navigation
-Description: Verifies the spatial treatment stays focused on the single hero statement without moving essential controls or breaking the primary Home actions.
+Covers: Spatial Home perspective depth hierarchy, simplified hero statement, bounded touch/orientation parallax, current-book continuation, press-safe controls, reduced-motion/performance fallback, unchanged Home navigation
+Description: Verifies the lightweight 3D-style treatment adds real perspective and depth without moving essential controls or breaking the primary Home actions.
 
 Steps:
 1. Open Home and confirm the hero begins with only “Make room for what matters.” above the current-book focus card, with no top brand/profile header, greeting line or subtitle
-2. Scroll Home and confirm the atmospheric background/ridge layers move subtly while the hero statement, Continue Reading controls and the floating app dock remain stable and readable
+2. Scroll Home and, where motion input is available, move across the hero; confirm the forest/ridge atmosphere responds subtly while the hero statement, Continue Reading controls and floating app dock remain stable and readable
 3. Open the current book from Continue Reading, return Home, then open You from the bottom dock
 
-Expected: Home presents layered depth without obscuring content, the hero has no top header and keeps only “Make room for what matters.” as its statement, the For You Today section remains in normal flow below the Spatial Home hero, Continue Reading still opens the saved book, bottom navigation still works, and reduced-motion or lower-capability devices retain the same composition without requiring parallax.
+Expected: Home presents layered perspective depth without obscuring content, motion remains bounded to the atmospheric scene and subtle card tilt, the hero keeps only “Make room for what matters.” as its statement, For You Today remains in normal flow below the hero, Continue Reading and bottom navigation still work, and reduced-motion or lower-capability devices retain the same composition with lighter or no motion.
