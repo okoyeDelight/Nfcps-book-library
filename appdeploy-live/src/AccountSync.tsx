@@ -119,6 +119,8 @@ const captureSnapshot = (): MemberSnapshot => {
             growthDays: (readJson('nfcps-watch-growth-days', []) || []).slice(0, 400),
             takeaways: (readJson('nfcps-watch-takeaways', []) || []).slice(0, 100),
             progress: pruneMap(readJson('nfcps-watch-progress', {}), 120, 200),
+            growthMemory: asObj(readJson('nfcps-watch-growth-memory', {})),
+            scriptureSaves: (readJson('nfcps-watch-scripture-saves', []) || []).slice(0, 100),
         },
         moments: asObj(readJson('nfcps-moments-settings', {})),
         circulation,
@@ -165,6 +167,18 @@ const maxMap = (a: any, b: any) => {
     return out;
 };
 
+const mergeGrowthMemory = (a: any, b: any) => {
+    const left = asObj(a);
+    const right = asObj(b);
+    return {
+        videos: unionStrings(left.videos, right.videos, 120),
+        themes: maxMap(left.themes, right.themes),
+        categories: maxMap(left.categories, right.categories),
+        scriptures: maxMap(left.scriptures, right.scriptures),
+        updatedAt: String(left.updatedAt || right.updatedAt || ''),
+    };
+};
+
 const mergeSnapshots = (local: MemberSnapshot, remoteRaw: any): MemberSnapshot => {
     const remote = asObj(remoteRaw) as Partial<MemberSnapshot>;
     const localWatch = asObj(local.watch);
@@ -190,6 +204,8 @@ const mergeSnapshots = (local: MemberSnapshot, remoteRaw: any): MemberSnapshot =
             growthDays: unionStrings(localWatch.growthDays, remoteWatch.growthDays, 400),
             takeaways: unionObjects(localWatch.takeaways, remoteWatch.takeaways, 'videoId', 100),
             progress: { ...asObj(remoteWatch.progress), ...asObj(localWatch.progress) },
+            growthMemory: mergeGrowthMemory(localWatch.growthMemory, remoteWatch.growthMemory),
+            scriptureSaves: unionObjects(localWatch.scriptureSaves, remoteWatch.scriptureSaves, 'reference', 100),
         },
         moments: Object.keys(localMoments).length ? localMoments : remoteMoments,
         circulation: { ...asObj(remote.circulation), ...local.circulation },
@@ -218,6 +234,8 @@ const applySnapshot = (snapshot: MemberSnapshot) => {
         ['nfcps-watch-growth-days', watch.growthDays || []],
         ['nfcps-watch-takeaways', watch.takeaways || []],
         ['nfcps-watch-progress', watch.progress || {}],
+        ['nfcps-watch-growth-memory', watch.growthMemory || {}],
+        ['nfcps-watch-scripture-saves', watch.scriptureSaves || []],
     ];
     for (const [key, value] of pairs) localStorage.setItem(key, JSON.stringify(value));
     if (snapshot.moments && Object.keys(snapshot.moments).length) {
