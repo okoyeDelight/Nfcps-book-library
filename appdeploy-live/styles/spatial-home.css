@@ -81,6 +81,95 @@
     transform: translate3d(var(--scene-mid-x), var(--scene-mid-y), -18px);
 }
 
+.spatial-home-edge {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 32vw;
+    z-index: -4;
+    pointer-events: none;
+    filter: blur(42px);
+    opacity: .74;
+    backface-visibility: hidden;
+}
+
+.spatial-home-edge-left {
+    left: -18vw;
+    background: linear-gradient(180deg, rgba(31,214,119,.42), rgba(12,105,73,.14) 44%, transparent 76%);
+    transform: translate3d(var(--scene-far-x), 0, -28px);
+}
+
+.spatial-home-edge-right {
+    right: -20vw;
+    background: linear-gradient(180deg, rgba(155,73,214,.34), rgba(189,139,61,.17) 42%, transparent 78%);
+    transform: translate3d(var(--scene-far-x), 0, -24px);
+}
+
+.spatial-home-focal {
+    position: absolute;
+    z-index: -2;
+    left: 50%;
+    top: 47%;
+    width: 160px;
+    height: 160px;
+    pointer-events: none;
+    transform-style: preserve-3d;
+    transform: translate(-50%, -50%) translate3d(var(--scene-mid-x), var(--scene-mid-y), 34px);
+}
+
+.spatial-home-focal-light {
+    position: absolute;
+    inset: -72px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(222,177,90,.28) 0%, rgba(45,181,116,.14) 32%, rgba(15,72,48,.06) 52%, transparent 72%);
+    filter: blur(18px);
+    opacity: .95;
+}
+
+.spatial-home-focal-ring {
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(224,194,125,.44);
+    border-radius: 50%;
+    box-shadow: inset 0 0 28px rgba(217,175,85,.1), 0 0 26px rgba(50,191,126,.08);
+}
+
+.spatial-home-focal-ring-a {
+    transform: rotateX(70deg) rotateZ(-14deg) scaleX(1.16);
+}
+
+.spatial-home-focal-ring-b {
+    inset: 19px;
+    border-color: rgba(102,216,163,.28);
+    transform: rotateY(67deg) rotateZ(20deg) scaleY(1.12);
+}
+
+.spatial-home-focal-core {
+    position: absolute;
+    inset: 31px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 30%, rgba(255,255,255,.17), rgba(11,57,39,.72) 54%, rgba(3,20,14,.94) 100%);
+    border: 1px solid rgba(255,255,255,.13);
+    box-shadow: 0 22px 46px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.16), 0 0 34px rgba(48,180,119,.16);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: spatial-home-float 6.8s ease-in-out infinite;
+}
+
+.spatial-home-focal-core img {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 16px rgba(0,0,0,.26));
+}
+
+@keyframes spatial-home-float {
+    0%, 100% { transform: translateY(0) rotateZ(-1deg); }
+    50% { transform: translateY(-6px) rotateZ(1deg); }
+}
+
 .spatial-home-ridge {
     z-index: -4;
     left: -14vw;
@@ -423,6 +512,19 @@
     filter: blur(52px);
 }
 
+.spatial-home-light .spatial-home-edge {
+    filter: blur(34px);
+    opacity: .48;
+}
+
+.spatial-home-light .spatial-home-focal {
+    transform: translate(-50%, -50%) translate3d(var(--scene-far-x), var(--scene-far-y), 12px);
+}
+
+.spatial-home-light .spatial-home-focal-core {
+    animation: none;
+}
+
 .spatial-home-static .spatial-home-base,
 .spatial-home-static .spatial-home-glow,
 .spatial-home-static .spatial-home-ridge {
@@ -432,6 +534,20 @@
 
 .spatial-home-static .spatial-home-glow {
     filter: blur(48px);
+}
+
+.spatial-home-static .spatial-home-edge {
+    opacity: .34;
+    filter: blur(30px);
+    transform: none !important;
+}
+
+.spatial-home-static .spatial-home-focal {
+    transform: translate(-50%, -50%) !important;
+}
+
+.spatial-home-static .spatial-home-focal-core {
+    animation: none !important;
 }
 
 .spatial-home-static .spatial-home-focus {
@@ -475,6 +591,12 @@
 }
 
 @media (max-height: 700px) {
+    .spatial-home-focal {
+        top: 44%;
+        width: 132px;
+        height: 132px;
+    }
+
     .spatial-home-content {
         padding-top: max(30px, calc(env(safe-area-inset-top) + 18px));
     }
@@ -507,8 +629,17 @@
 @media (prefers-reduced-motion: reduce) {
     .spatial-home-base,
     .spatial-home-glow,
-    .spatial-home-ridge {
+    .spatial-home-ridge,
+    .spatial-home-edge {
         transform: none !important;
+    }
+
+    .spatial-home-focal {
+        transform: translate(-50%, -50%) !important;
+    }
+
+    .spatial-home-focal-core {
+        animation: none !important;
     }
 
     .spatial-home-focus {
