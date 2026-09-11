@@ -14,12 +14,14 @@ import android.webkit.WebView;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 public final class NativeSpeechBridge implements RecognitionListener {
     public static final int REQUEST_RECORD_AUDIO = 7201;
 
     private final Activity activity;
     private final WebView webView;
+    private final String sessionToken = UUID.randomUUID().toString();
     private SpeechRecognizer recognizer;
     private boolean active;
     private boolean pendingStart;
@@ -30,18 +32,28 @@ public final class NativeSpeechBridge implements RecognitionListener {
         this.webView = webView;
     }
 
-    @JavascriptInterface
-    public boolean isAvailable() {
-        return SpeechRecognizer.isRecognitionAvailable(activity);
+    String getSessionToken() {
+        return sessionToken;
+    }
+
+    private boolean validToken(String token) {
+        return sessionToken.equals(token);
     }
 
     @JavascriptInterface
-    public void start() {
+    public boolean isAvailable(String token) {
+        return validToken(token) && SpeechRecognizer.isRecognitionAvailable(activity);
+    }
+
+    @JavascriptInterface
+    public void start(String token) {
+        if (!validToken(token)) return;
         activity.runOnUiThread(this::requestStart);
     }
 
     @JavascriptInterface
-    public void stop() {
+    public void stop(String token) {
+        if (!validToken(token)) return;
         activity.runOnUiThread(() -> stopInternal(false));
     }
 
@@ -70,7 +82,7 @@ public final class NativeSpeechBridge implements RecognitionListener {
     }
 
     private void requestStart() {
-        if (!isAvailable()) {
+        if (!SpeechRecognizer.isRecognitionAvailable(activity)) {
             active = false;
             dispatchState("unsupported", "Android speech recognition is unavailable on this device.");
             return;
