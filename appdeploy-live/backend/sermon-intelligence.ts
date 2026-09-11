@@ -1,4 +1,5 @@
 import { ai, db, error, json } from '@appdeploy/sdk';
+import { createFile, MP4BoxBuffer } from 'mp4box';
 
 type Segment = { start: number; dur: number; text: string };
 type TranscriptPart = {
@@ -6,6 +7,7 @@ type TranscriptPart = {
     title: string;
     creator: string;
     language: string;
+    source?: string;
     updatedAt: number;
     part: number;
     totalParts: number;
@@ -19,6 +21,7 @@ type Transcript = {
     title: string;
     creator: string;
     language: string;
+    source?: string;
     updatedAt: number;
     segments: Segment[];
     reason?: string;
@@ -28,12 +31,15 @@ type CaptionTrack = {
     languageCode?: string;
     kind?: string;
     name?: { simpleText?: string; runs?: { text?: string }[] };
+    nfcpsClient?: string;
+    nfcpsSource?: string;
 };
 type SpeechTranscriptPart = {
     videoId: string;
     title: string;
     creator: string;
     category: string;
+    source?: string;
     start: number;
     end: number;
     text: string;
@@ -109,6 +115,8 @@ type IntelligenceRaw = {
 };
 
 type LiveLensRaw = { references?: unknown; theme?: unknown; note?: unknown };
+type AudioTranscriptRaw = { segments?: unknown };
+type PodcastEpisode = { title: string; audioUrl: string; durationSeconds: number; totalBytes: number };
 
 const CACHE_OK = 14 * 24 * 60 * 60 * 1000;
 const CACHE_MISS = 6 * 60 * 60 * 1000;
@@ -181,6 +189,7 @@ async function readTranscriptCache(videoId: string) {
             title: first.title,
             creator: first.creator,
             language: first.language,
+            source: first.source,
             updatedAt: first.updatedAt,
             segments: [],
             reason: first.reason,
@@ -192,6 +201,7 @@ async function readTranscriptCache(videoId: string) {
         title: first.title,
         creator: first.creator,
         language: first.language,
+        source: first.source,
         updatedAt: first.updatedAt,
         segments: sorted.flatMap(item => item.segments),
     } as Transcript;
@@ -207,6 +217,7 @@ async function writeTranscriptCache(transcriptValue: Transcript) {
             title: transcriptValue.title,
             creator: transcriptValue.creator,
             language: transcriptValue.language,
+            source: transcriptValue.source,
             updatedAt: transcriptValue.updatedAt,
             part: 0,
             totalParts: 1,
@@ -224,6 +235,7 @@ async function writeTranscriptCache(transcriptValue: Transcript) {
             title: transcriptValue.title,
             creator: transcriptValue.creator,
             language: transcriptValue.language,
+            source: transcriptValue.source,
             updatedAt: transcriptValue.updatedAt,
             part: chunks.length,
             totalParts: Math.ceil(transcriptValue.segments.length / size),
@@ -246,22 +258,129 @@ async function page(url: string) {
     return response.text();
 }
 
-async function tracksFor(videoId: string) {
-    for (const url of [
-        `https://www.youtube.com/watch?v=${videoId}&hl=en`,
-        `https://www.youtube-nocookie.com/embed/${videoId}`,
-    ]) {
+function captionTracksFromPlayer(value: unknown, client: string) {
+    const data = value as { captions?: { playerCaptionsTracklistRenderer?: { captionTracks?: CaptionTrack[] } } };
+    const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+    return tracks
+        .filter(track => Boolean(track?.baseUrl))
+        .map(track => ({ ...track, nfcpsClient: client, nfcpsSource: 'innertube' }));
+}
+
+const INNER_TUBE_FALLBACK_KEY = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8';
+
+async function innerTubeTracks(videoId: string, html: string) {
+    let apiKey = html.match(/"INNERTUBE_API_KEY":"([^"]+)"/)?.[1] || '';
+    if (!apiKey) {
         try {
-            const html = await page(url);
-            const raw = extractArray(html, '"captionTracks":');
-            if (!raw) continue;
-            const tracks = JSON.parse(raw) as CaptionTrack[];
-            if (Array.isArray(tracks) && tracks.length) return tracks;
+            const home = await page('https://www.youtube.com/?hl=en');
+            apiKey = home.match(/"INNERTUBE_API_KEY":"([^"]+)"/)?.[1] || '';
         } catch {
-            // Try the next YouTube surface.
+            // A missing public player key simply disables this optional transcript path.
         }
     }
-    return [] as CaptionTrack[];
+    if (!apiKey) apiKey = INNER_TUBE_FALLBACK_KEY;
+    const clients = [
+        {
+            name: 'ANDROID_VR',
+            version: '1.61.48',
+            clientId: '28',
+            userAgent: 'com.google.android.apps.youtube.vr.oculus/1.61.48 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip',
+            extras: { androidSdkVersion: 32, deviceMake: 'Oculus', deviceModel: 'Quest 3', osName: 'Android', osVersion: '12L' },
+        },
+        {
+            name: 'IOS',
+            version: '20.10.4',
+            clientId: '5',
+            userAgent: 'com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X)',
+            extras: { deviceMake: 'Apple', deviceModel: 'iPhone16,2', osName: 'iPhone', osVersion: '18.3.2.22D82' },
+        },
+        {
+            name: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
+            version: '2.0',
+            clientId: '85',
+            userAgent: 'Mozilla/5.0 (PlayStation; PlayStation 4/12.00) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15',
+            extras: {},
+        },
+        {
+            name: 'MWEB',
+            version: '2.20250606.01.00',
+            clientId: '2',
+            userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+            extras: {},
+        },
+    ];
+    const responses = await Promise.allSettled(clients.map(async client => {
+        const response = await fetch(`https://www.youtube.com/youtubei/v1/player?key=${encodeURIComponent(apiKey)}`, {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json',
+                'user-agent': client.userAgent,
+                'accept-language': 'en-US,en;q=0.9',
+                'x-youtube-client-name': client.clientId,
+                'x-youtube-client-version': client.version,
+                'origin': 'https://www.youtube.com',
+                'cookie': 'CONSENT=YES+cb.20210328-17-p0.en+FX+000',
+            },
+            body: JSON.stringify({
+                context: {
+                    client: {
+                        clientName: client.name,
+                        clientVersion: client.version,
+                        hl: 'en',
+                        gl: 'US',
+                        ...client.extras,
+                    },
+                },
+                videoId,
+                contentCheckOk: true,
+                racyCheckOk: true,
+            }),
+            signal: AbortSignal.timeout(8_000),
+        });
+        if (!response.ok) return [] as CaptionTrack[];
+        return captionTracksFromPlayer(await response.json(), client.name);
+    }));
+    return responses.flatMap(result => result.status === 'fulfilled' ? result.value : []);
+}
+
+async function tracksFor(videoId: string) {
+    const collected: CaptionTrack[] = [];
+    let watchHtml = '';
+    try {
+        watchHtml = await page(`https://www.youtube.com/watch?v=${videoId}&hl=en`);
+        const raw = extractArray(watchHtml, '"captionTracks":');
+        if (raw) {
+            const tracks = JSON.parse(raw) as CaptionTrack[];
+            if (Array.isArray(tracks)) collected.push(...tracks.map(track => ({ ...track, nfcpsClient: 'WEB', nfcpsSource: 'watch-page' })));
+        }
+    } catch {
+        // InnerTube and embed fallbacks remain available.
+    }
+    if (watchHtml) {
+        try {
+            collected.push(...await innerTubeTracks(videoId, watchHtml));
+        } catch {
+            // Keep the ordinary YouTube surfaces as fallbacks.
+        }
+    }
+    try {
+        const html = await page(`https://www.youtube-nocookie.com/embed/${videoId}`);
+        const raw = extractArray(html, '"captionTracks":');
+        if (raw) {
+            const tracks = JSON.parse(raw) as CaptionTrack[];
+            if (Array.isArray(tracks)) collected.push(...tracks.map(track => ({ ...track, nfcpsClient: 'EMBED', nfcpsSource: 'embed' })));
+        }
+        if (!watchHtml) collected.push(...await innerTubeTracks(videoId, html));
+    } catch {
+        // No reusable YouTube track from this surface.
+    }
+    const seen = new Set<string>();
+    return collected.filter(track => {
+        const key = `${track.nfcpsClient || ''}:${track.baseUrl}`;
+        if (!track.baseUrl || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
 }
 
 function group(raw: Segment[]) {
@@ -336,7 +455,7 @@ function speechTranscriptFromItems(videoId: string, title: string, creator: stri
     const ordered = [...items].sort((a, b) => a.start - b.start || b.updatedAt - a.updatedAt);
     const unique = new Map<number, SpeechTranscriptPart>();
     for (const item of ordered) {
-        const key = Math.round(item.start / 6);
+        const key = Math.round(item.start * 2);
         if (!unique.has(key)) unique.set(key, item);
     }
     const segments = [...unique.values()]
@@ -353,6 +472,7 @@ function speechTranscriptFromItems(videoId: string, title: string, creator: stri
             title,
             creator,
             language: 'spoken-word',
+            source: ordered.some(item => item.source === 'trusted-podcast-audio') ? 'trusted-podcast-audio' : 'nfcps-spoken',
             updatedAt,
             segments,
             reason: available ? undefined : `Spoken Lens has learned ${Math.round(coverageSeconds)} seconds of this message. Keep watching so NFCPS can build the full sermon map from the speaker's own words.`,
@@ -389,12 +509,13 @@ async function saveSpokenSegment(input: {
     title: string;
     creator: string;
     category: string;
+    source?: string;
     start: number;
     end: number;
     text: string;
 }) {
     const existingItems = await listSpeechParts(input.videoId);
-    const near = existingItems.find(item => Math.abs(item.start - input.start) < 7);
+    const near = existingItems.find(item => Math.abs(item.start - input.start) < 2.5);
     if (near && clean(near.text).length >= Math.max(24, clean(input.text).length * 0.8)) {
         const passages = await hydratePassages(near.references || []);
         const progress = speechTranscriptFromItems(input.videoId, input.title, input.creator, existingItems);
@@ -414,6 +535,7 @@ async function saveSpokenSegment(input: {
         title: input.title,
         creator: input.creator,
         category: input.category,
+        source: input.source || 'nfcps-spoken',
         start: input.start,
         end: Math.max(input.start + 1, input.end),
         text: clean(input.text).slice(0, 5000),
@@ -453,8 +575,317 @@ async function saveSpokenSegment(input: {
     };
 }
 
+function orderedCaptionTracks(tracks: CaptionTrack[]) {
+    const score = (track: CaptionTrack) => {
+        const language = String(track.languageCode || '').toLowerCase();
+        let value = language.startsWith('en') ? 100 : 0;
+        if (track.kind !== 'asr') value += 20;
+        if (track.nfcpsSource === 'innertube') value += 15;
+        if (track.nfcpsClient === 'IOS') value += 9;
+        if (track.nfcpsClient === 'ANDROID') value += 7;
+        if (track.nfcpsClient === 'MWEB') value += 4;
+        return value;
+    };
+    return [...tracks].sort((a, b) => score(b) - score(a));
+}
+
+const TRUSTED_AUDIO_FEEDS = [
+    { creator: 'lawrence oyor', rss: 'https://anchor.fm/s/f34d4f10/podcast/rss' },
+];
+
+function normalizeEpisodeTitle(value: string) {
+    return clean(value)
+        .toLowerCase()
+        .replace(/\|.*$/g, '')
+        .replace(/\bpastor\b|\bapostle\b|\blawrence\s+oyor\b/g, ' ')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function durationSeconds(value: string) {
+    const parts = value.trim().split(':').map(part => Number(part));
+    if (!parts.length || parts.some(part => !Number.isFinite(part))) return 0;
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return parts[0];
+}
+
+function tagValue(xml: string, tag: string) {
+    const match = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+    return xmlDecode(String(match?.[1] || '').replace(/<!\[CDATA\[|\]\]>/g, '')).trim();
+}
+
+function attrValue(tag: string, name: string) {
+    const match = tag.match(new RegExp(`${name}=["']([^"']+)["']`, 'i'));
+    return xmlDecode(String(match?.[1] || '')).trim();
+}
+
+async function trustedPodcastEpisode(title: string, creator: string) {
+    const source = TRUSTED_AUDIO_FEEDS.find(item => creator.toLowerCase().includes(item.creator));
+    if (!source) return null;
+    const response = await fetch(source.rss, {
+        headers: { 'user-agent': 'NFCPS-One-Sermon-Intelligence/4.0', 'accept': 'application/rss+xml,application/xml,text/xml' },
+        signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) throw new Error(`Trusted sermon feed ${response.status}`);
+    const xml = await response.text();
+    const target = normalizeEpisodeTitle(title);
+    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].map(match => match[1]);
+    let best: { score: number; episode: PodcastEpisode } | null = null;
+    for (const item of items) {
+        const episodeTitle = tagValue(item, 'title');
+        const normalized = normalizeEpisodeTitle(episodeTitle);
+        if (!normalized) continue;
+        let score = normalized === target ? 100 : 0;
+        if (!score && target && (normalized.includes(target) || target.includes(normalized))) score = 80;
+        if (!score) {
+            const targetTerms = new Set(target.split(' ').filter(Boolean));
+            const terms = normalized.split(' ').filter(Boolean);
+            score = terms.filter(term => targetTerms.has(term)).length * 8;
+        }
+        const enclosure = item.match(/<enclosure\b[^>]*>/i)?.[0] || '';
+        const audioUrl = attrValue(enclosure, 'url');
+        if (!audioUrl || score < 24) continue;
+        const totalBytes = Math.max(0, Number(attrValue(enclosure, 'length')) || 0);
+        const episodeDuration = durationSeconds(tagValue(item, 'itunes:duration'));
+        const episode = { title: episodeTitle, audioUrl, durationSeconds: episodeDuration, totalBytes };
+        if (!best || score > best.score) best = { score, episode };
+    }
+    return best?.episode || null;
+}
+
+function splitTranscriptSegments(value: unknown, clipDuration: number) {
+    const raw = (value as AudioTranscriptRaw)?.segments;
+    const items = Array.isArray(raw) ? raw : [];
+    const cleaned = items.map(item => {
+        const part = item as { start?: unknown; end?: unknown; text?: unknown };
+        const text = asString(part.text, 1500);
+        const start = Math.max(0, Math.min(clipDuration, asNumber(part.start, 0)));
+        const end = Math.max(start + 1, Math.min(clipDuration, asNumber(part.end, start + Math.max(6, clipDuration / Math.max(3, items.length)))));
+        return { start, end, text };
+    }).filter(item => item.text.length >= 8);
+    if (cleaned.length >= 3) {
+        const selected = cleaned.slice(0, 12);
+        const firstStart = Math.min(...selected.map(item => item.start));
+        const lastEnd = Math.max(...selected.map(item => item.end));
+        const observedSpan = Math.max(0, lastEnd - firstStart);
+        if (clipDuration >= 20 && observedSpan < clipDuration * 0.45) {
+            const slot = clipDuration / selected.length;
+            return selected.map((item, index) => ({
+                start: slot * index,
+                end: Math.min(clipDuration, slot * (index + 1)),
+                text: item.text,
+            }));
+        }
+        return selected;
+    }
+    const combined = cleaned.map(item => item.text).join(' ').trim();
+    if (!combined) return [] as Array<{ start: number; end: number; text: string }>;
+    const sentences = combined.split(/(?<=[.!?])\s+/).filter(Boolean);
+    const pieces = sentences.length >= 3 ? sentences : combined.match(/.{1,220}(?:\s|$)/g) || [combined];
+    const count = Math.max(1, Math.min(8, pieces.length));
+    return pieces.slice(0, count).map((text, index) => ({
+        start: (clipDuration * index) / count,
+        end: (clipDuration * (index + 1)) / count,
+        text: clean(text),
+    })).filter(item => item.text.length >= 8);
+}
+
+function mpegFrameOffset(bytes: Buffer) {
+    const limit = Math.min(bytes.length - 4, 32_768);
+    for (let index = 0; index < limit; index += 1) {
+        const first = bytes[index];
+        const second = bytes[index + 1];
+        const third = bytes[index + 2];
+        const versionBits = (second >> 3) & 0x03;
+        const layerBits = (second >> 1) & 0x03;
+        const bitrateIndex = (third >> 4) & 0x0f;
+        const sampleRateIndex = (third >> 2) & 0x03;
+        if (first === 0xff && (second & 0xe0) === 0xe0 && versionBits !== 1 && layerBits !== 0 && bitrateIndex > 0 && bitrateIndex < 15 && sampleRateIndex !== 3) return index;
+    }
+    return -1;
+}
+
+function mp4BoxOffset(bytes: Buffer, type: string) {
+    const marker = Buffer.from(type, 'ascii');
+    const markerOffset = bytes.indexOf(marker);
+    return markerOffset >= 4 ? markerOffset - 4 : -1;
+}
+
+function toMp4Buffer(bytes: Buffer, fileStart: number) {
+    const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    return MP4BoxBuffer.fromArrayBuffer(copy, fileStart);
+}
+
+async function fetchAudioRange(url: string, start: number, end: number) {
+    const response = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'NFCPS-One-Sermon-Intelligence/4.0', 'accept': 'audio/mp4,audio/*;q=0.9', 'range': `bytes=${start}-${end}` }, signal: AbortSignal.timeout(15_000) });
+    if (!(response.ok || response.status === 206)) throw new Error(`Trusted sermon MP4 ${response.status}`);
+    return Buffer.from(await response.arrayBuffer());
+}
+
+async function segmentMp4AudioWindow(episode: PodcastEpisode, requestedAt: number) {
+    const mp4 = createFile(true);
+    let audioTrack: { id: number; audio?: { sample_rate?: number } } | null = null;
+    let parseError = '';
+    mp4.onError = (module, message) => { parseError = `${module}:${message}`; };
+    mp4.onReady = info => { audioTrack = info.audioTracks?.[0] || info.tracks.find(track => Boolean(track.audio)) || null; };
+    const metadataEnd = Math.min(episode.totalBytes - 1, 1_249_999);
+    const metadata = await fetchAudioRange(episode.audioUrl, 0, metadataEnd);
+    let nextOffset = mp4.appendBuffer(toMp4Buffer(metadata, 0));
+    if (!audioTrack && Number.isFinite(nextOffset) && nextOffset > metadata.length && nextOffset < episode.totalBytes) {
+        const secondStart = Math.max(0, Math.floor(nextOffset));
+        const secondEnd = Math.min(episode.totalBytes - 1, secondStart + 1_249_999);
+        nextOffset = mp4.appendBuffer(toMp4Buffer(await fetchAudioRange(episode.audioUrl, secondStart, secondEnd), secondStart));
+    }
+    if (!audioTrack) return { available: false as const, reason: parseError ? 'The trusted MP4 metadata could not be parsed.' : 'The trusted MP4 audio track was not found.' };
+    const track = audioTrack;
+    const mediaSegments: Buffer[] = [];
+    mp4.onSegment = (id, _user, buffer) => { if (id === track.id && buffer.byteLength) mediaSegments.push(Buffer.from(buffer)); };
+    mp4.setSegmentOptions(track.id, null, { nbSamples: 1200, nbSamplesPerFragment: 1200, rapAlignement: false });
+    const initSegments = mp4.initializeSegmentation('per-track');
+    const init = initSegments.find(item => item.id === track.id)?.buffer;
+    if (!init) return { available: false as const, reason: 'NFCPS could not initialize the trusted MP4 audio track.' };
+    const seek = mp4.seek(Math.max(0, requestedAt - 8), false);
+    if (!Number.isFinite(seek.offset) || seek.offset < 0 || seek.offset >= episode.totalBytes) return { available: false as const, reason: 'NFCPS could not seek to this sermon section in the trusted MP4.' };
+    mp4.start();
+    const mediaStart = Math.floor(seek.offset);
+    const mediaEnd = Math.min(episode.totalBytes - 1, mediaStart + 1_399_999);
+    mp4.appendBuffer(toMp4Buffer(await fetchAudioRange(episode.audioUrl, mediaStart, mediaEnd), mediaStart));
+    mp4.flush();
+    if (!mediaSegments.length) return { available: false as const, reason: 'NFCPS could not segment this trusted MP4 sermon section.' };
+    const parts: Buffer[] = [Buffer.from(init)];
+    let total = parts[0].length;
+    let usedSegments = 0;
+    for (const segment of mediaSegments) {
+        if (total + segment.length > 1_850_000) break;
+        parts.push(segment);
+        total += segment.length;
+        usedSegments += 1;
+    }
+    if (!usedSegments) return { available: false as const, reason: 'The trusted MP4 sermon segment exceeded the safe transcription size.' };
+    const sampleRate = Math.max(8_000, Number(track.audio?.sample_rate || 44_100));
+    const duration = Math.max(20, Math.min(90, usedSegments * 1200 * 1024 / sampleRate));
+    return { available: true as const, bytes: Buffer.concat(parts), start: Math.max(0, Number(seek.time) || requestedAt - 8), duration };
+}
+
+async function prepareTrustedPodcastSegment(input: {
+    videoId: string;
+    title: string;
+    creator: string;
+    category: string;
+    at: number;
+}) {
+    const episode = await trustedPodcastEpisode(input.title, input.creator);
+    if (!episode) return { available: false, source: 'none', reason: 'No trusted reusable source audio is registered for this sermon yet.' };
+    const requestedAt = Math.max(0, Math.min(Math.max(0, episode.durationSeconds - 30), input.at || 0));
+    const existing = await listSpeechParts(input.videoId);
+    const trusted = existing.filter(item => item.source === 'trusted-podcast-audio');
+    const pointCovered = trusted.some(item => requestedAt >= Math.max(0, item.start - 6) && requestedAt <= item.end + 6);
+    if (pointCovered) {
+        const progress = await readSpeechTranscript(input.videoId, input.title, input.creator);
+        if (progress?.transcript.available) {
+            return { available: true, cached: true, source: 'trusted-podcast-audio', episodeTitle: episode.title, preparedAt: requestedAt, progress: { segments: progress.segments, coverageSeconds: progress.coverageSeconds, ready: true } };
+        }
+    }
+    if (!episode.totalBytes || !episode.durationSeconds) {
+        return { available: false, source: 'trusted-podcast-audio', reason: 'The trusted sermon source did not expose enough timing metadata to prepare safely.' };
+    }
+    const clipStart = Math.max(0, requestedAt - 8);
+    const startByte = clipStart < 4 ? 0 : Math.max(0, Math.floor((clipStart / episode.durationSeconds) * episode.totalBytes) - 8_192);
+    const maxBytes = 1_250_000;
+    const endByte = Math.min(episode.totalBytes - 1, startByte + maxBytes - 1);
+    const audioResponse = await fetch(episode.audioUrl, {
+        redirect: 'follow',
+        headers: {
+            'user-agent': 'NFCPS-One-Sermon-Intelligence/4.0',
+            'accept': 'audio/mpeg,audio/*;q=0.9',
+            'range': `bytes=${startByte}-${endByte}`,
+        },
+        signal: AbortSignal.timeout(15_000),
+    });
+    if (!(audioResponse.ok || audioResponse.status === 206)) throw new Error(`Trusted sermon audio ${audioResponse.status}`);
+    if (audioResponse.status !== 206 && episode.totalBytes > maxBytes) {
+        return { available: false, source: 'trusted-podcast-audio', reason: 'This trusted audio host did not allow bounded range processing.' };
+    }
+    const audioBytes = Buffer.from(await audioResponse.arrayBuffer());
+    if (!audioBytes.length || audioBytes.length > 1_900_000) throw new Error('Trusted sermon audio slice was outside the safe processing size.');
+    const mediaType = String(audioResponse.headers.get('content-type') || '').toLowerCase();
+    const contentRange = String(audioResponse.headers.get('content-range') || '');
+    const isMp4 = /audio\/(?:mp4|x-m4a)|video\/mp4/.test(mediaType);
+    const frameOffset = startByte > 0 && !isMp4 ? mpegFrameOffset(audioBytes) : 0;
+    if (frameOffset < 0) return { available: false, source: 'trusted-podcast-audio', reason: 'This later audio section could not be aligned to a valid MPEG frame.', diagnostic: { mediaType: mediaType.slice(0, 80), contentRange: contentRange.slice(0, 120), prefixHex: audioBytes.subarray(0, 16).toString('hex') } };
+    let usableAudioBytes = frameOffset > 0 ? audioBytes.subarray(frameOffset) : audioBytes;
+    let adjustedClipStart = clipStart + (episode.durationSeconds * (frameOffset / episode.totalBytes));
+    let clipDuration = Math.max(25, Math.min(95, episode.durationSeconds * (usableAudioBytes.length / episode.totalBytes)));
+    if (isMp4 && startByte > 0) {
+        const segmented = await segmentMp4AudioWindow(episode, requestedAt);
+        if (!segmented.available) return { available: false, source: 'trusted-podcast-audio', reason: segmented.reason };
+        usableAudioBytes = segmented.bytes;
+        adjustedClipStart = segmented.start;
+        clipDuration = segmented.duration;
+    }
+    const audioMimeType = isMp4 ? 'audio/mp4' : 'audio/mpeg';
+    const result = await ai.extract({
+        system: 'You are NFCPS sermon transcription. Transcribe only the spoken sermon words in the supplied audio. Do not summarize, interpret, add Scripture, or invent words. Ignore music and noise. Timestamps are relative to the beginning of this audio slice.',
+        prompt: 'Return 3 to 10 consecutive transcript segments with relative start/end seconds and verbatim spoken text. If speech is unclear, omit that portion instead of guessing.',
+        audios: [{ data: usableAudioBytes.toString('base64'), mimeType: audioMimeType }],
+        schema: {
+            type: 'object',
+            properties: {
+                segments: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            start: { type: 'number' },
+                            end: { type: 'number' },
+                            text: { type: 'string' },
+                        },
+                        required: ['start', 'end', 'text'],
+                    },
+                },
+            },
+            required: ['segments'],
+        },
+        maxRetries: 1,
+        maxTokens: 2600,
+        temperature: 0,
+        thinkingMode: 'NONE',
+    });
+    const relative = splitTranscriptSegments(result.data, clipDuration);
+    if (!relative.length) return { available: false, source: 'trusted-podcast-audio', reason: 'The trusted audio slice contained no clear spoken sermon text.' };
+    const saved = [] as Array<{ start: number; end: number; text: string }>;
+    for (const segment of relative) {
+        const absoluteStart = Math.max(0, adjustedClipStart + segment.start);
+        const absoluteEnd = Math.max(absoluteStart + 1, adjustedClipStart + segment.end);
+        await saveSpokenSegment({
+            videoId: input.videoId,
+            title: input.title,
+            creator: input.creator,
+            category: input.category,
+            source: 'trusted-podcast-audio',
+            start: absoluteStart,
+            end: absoluteEnd,
+            text: segment.text,
+        });
+        saved.push({ start: absoluteStart, end: absoluteEnd, text: segment.text });
+    }
+    const progress = await readSpeechTranscript(input.videoId, input.title, input.creator);
+    return {
+        available: saved.length > 0,
+        cached: false,
+        source: 'trusted-podcast-audio',
+        episodeTitle: episode.title,
+        preparedAt: requestedAt,
+        preparedSeconds: Math.round(clipDuration),
+        segmentsAdded: saved.length,
+        progress: { segments: progress?.segments || saved.length, coverageSeconds: progress?.coverageSeconds || clipDuration, ready: Boolean(progress?.transcript.available) },
+    };
+}
+
 async function fetchTranscript(videoId: string, title: string, creator: string): Promise<Transcript> {
-    const tracks = await tracksFor(videoId);
+    const tracks = orderedCaptionTracks(await tracksFor(videoId));
     if (!tracks.length) {
         return {
             available: false,
@@ -462,35 +893,36 @@ async function fetchTranscript(videoId: string, title: string, creator: string):
             title,
             creator,
             language: '',
+            source: 'none',
             updatedAt: Date.now(),
             segments: [],
-            reason: 'No reusable spoken transcript exists yet. Enable Spoken Lens and NFCPS will learn this message directly from the speaker’s own words.',
+            reason: 'No reusable YouTube transcript is available for this message yet.',
         };
     }
-    const track = tracks.find(item => String(item.languageCode || '').toLowerCase().startsWith('en'))
-        || tracks.find(item => item.kind !== 'asr')
-        || tracks[0];
-    const segments = await captionSegments(track);
-    if (!segments.length) {
+    for (const track of tracks.slice(0, 8)) {
+        const segments = await captionSegments(track);
+        if (!segments.length) continue;
         return {
-            available: false,
+            available: true,
             videoId,
             title,
             creator,
-            language: String(track.languageCode || ''),
+            language: String(track.languageCode || 'en'),
+            source: track.kind === 'asr' ? 'youtube-auto-cc' : 'youtube-caption',
             updatedAt: Date.now(),
-            segments: [],
-            reason: 'Spoken Lens has not learned enough of this message yet. Keep the sermon playing so NFCPS can build its own transcript from the speaker’s words.',
+            segments,
         };
     }
     return {
-        available: true,
+        available: false,
         videoId,
         title,
         creator,
-        language: String(track.languageCode || 'en'),
+        language: String(tracks[0]?.languageCode || ''),
+        source: 'youtube-track-blocked',
         updatedAt: Date.now(),
-        segments,
+        segments: [],
+        reason: 'YouTube exposed a caption track, but its timed text was not reusable from this playback surface.',
     };
 }
 
@@ -510,9 +942,10 @@ async function transcript(videoId: string, title: string, creator: string) {
             title,
             creator,
             language: '',
+            source: 'none',
             updatedAt: Date.now(),
             segments: [],
-            reason: 'No reusable spoken transcript exists yet. Enable Spoken Lens so NFCPS can learn the actual message while it plays.',
+            reason: 'No reusable transcript is available for this message yet.',
         };
         console.warn('Optional caption shortcut failed', videoId, cause);
     }
@@ -1020,11 +1453,85 @@ export const sermonIntelligenceRoutes = {
         return json({
             available: value.available,
             language: value.language,
+            source: value.source || (value.language === 'spoken-word' ? 'nfcps-spoken' : value.available ? 'cached-transcript' : 'none'),
             segments: value.segments.length,
             durationSeconds: last ? Math.ceil(last.start + last.dur) : 0,
             reason: value.reason || null,
             updatedAt: value.updatedAt,
         });
+    }],
+    'GET /api/watch/transcript-selftest': [async () => {
+        const probes = [
+            { videoId: 'dQw4w9WgXcQ', title: 'Known caption control', creator: 'YouTube control', control: true },
+            { videoId: 'b2xNY69gxGo', title: 'Divine Prosperity (Part 1) | Pastor Lawrence Oyor', creator: 'Lawrence Oyor', control: false },
+            { videoId: 'h6G5v37B_gg', title: 'Strength (Part 5) | Pastor Lawrence Oyor', creator: 'Lawrence Oyor', control: false },
+            { videoId: '-iPmCD89G6s', title: 'Strength (Part 4) | Pastor Lawrence Oyor', creator: 'Lawrence Oyor', control: false },
+            { videoId: 'Gpy4i8j0xgI', title: 'Strength (Part 3) | Pastor Lawrence Oyor', creator: 'Lawrence Oyor', control: false },
+        ];
+        const results: Array<Record<string, unknown>> = [];
+        for (const probe of probes) {
+            try {
+                const value = await fetchTranscript(probe.videoId, probe.title, probe.creator);
+                const last = value.segments[value.segments.length - 1];
+                results.push({
+                    videoId: probe.videoId,
+                    title: probe.title,
+                    available: value.available,
+                    source: value.source || 'unknown',
+                    language: value.language,
+                    segments: value.segments.length,
+                    durationSeconds: last ? Math.ceil(last.start + last.dur) : 0,
+                    reason: value.reason || null,
+                    control: probe.control,
+                });
+            } catch (cause) {
+                results.push({ videoId: probe.videoId, title: probe.title, available: false, source: 'error', reason: cause instanceof Error ? cause.message : 'probe_failed', control: probe.control });
+            }
+        }
+        const controlOk = results.some(item => item.control === true && item.available === true);
+        const watchOk = results.some(item => item.control === false && item.available === true);
+        return json({ ok: watchOk, controlOk, watchOk, checkedAt: new Date().toISOString(), results });
+    }],
+    'POST /api/watch/sermon/:id/prepare-source': [async ({ params, body }) => {
+        const id = String(params.id || '');
+        if (!validId(id)) return error('Invalid YouTube video id.', 400);
+        const input = (body || {}) as { title?: string; creator?: string; category?: string; at?: number };
+        try {
+            return json(await prepareTrustedPodcastSegment({
+                videoId: id,
+                title: String(input.title || 'Sermon').slice(0, 180),
+                creator: String(input.creator || 'Trusted creator').slice(0, 100),
+                category: String(input.category || 'Christian Growth').slice(0, 80),
+                at: Math.max(0, Number(input.at) || 0),
+            }));
+        } catch (cause) {
+            console.warn('Trusted sermon source preparation failed safely', id, cause);
+            const failure = cause as { statusCode?: number; message?: string };
+            const statusCode = Number(failure?.statusCode || 0);
+            const message = String(failure?.message || '');
+            const failureType = statusCode === 429
+                ? 'rate_limited'
+                : /timeout|timed out|abort/i.test(message)
+                    ? 'source_timeout'
+                    : /audio|media|decode|mime|format|mpeg/i.test(message)
+                        ? 'audio_slice_invalid'
+                        : statusCode >= 500
+                            ? 'upstream_unavailable'
+                            : 'prepare_failed';
+            return json({
+                available: false,
+                source: 'trusted-podcast-audio',
+                retryable: true,
+                failure: failureType,
+                reason: failureType === 'rate_limited'
+                    ? 'Trusted sermon transcription is temporarily rate limited.'
+                    : failureType === 'audio_slice_invalid'
+                        ? 'This later audio slice needs a safer decode boundary.'
+                        : failureType === 'source_timeout'
+                            ? 'The trusted sermon source timed out while preparing this section.'
+                            : 'NFCPS could not prepare this trusted sermon section right now.',
+            });
+        }
     }],
     'POST /api/watch/sermon/:id/speech-lens': [async ({ params, body }) => {
         const id = String(params.id || '');
