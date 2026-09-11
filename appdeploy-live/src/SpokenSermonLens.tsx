@@ -34,6 +34,25 @@ type Recognition = {
 };
 type RecognitionCtor = new () => Recognition;
 type QueuedSpeech = { text: string; start: number; end: number };
+type NativeSpeechBridge = {
+    start: (token: string) => void;
+    stop: (token: string) => void;
+    isAvailable?: (token: string) => boolean;
+};
+type NativeSpeechDetail = { text?: string; final?: boolean };
+type NativeSpeechStateDetail = { state?: 'listening' | 'permission-required' | 'unsupported' | 'paused'; message?: string };
+
+function nativeSpeechBridge(): NativeSpeechBridge | null {
+    if (typeof window === 'undefined') return null;
+    const value = window as unknown as { NFCPSNativeSpeech?: NativeSpeechBridge };
+    return value.NFCPSNativeSpeech || null;
+}
+
+function nativeSpeechToken() {
+    if (typeof window === 'undefined') return '';
+    const value = window as unknown as { __NFCPS_SPEECH_TOKEN__?: string };
+    return value.__NFCPS_SPEECH_TOKEN__ || '';
+}
 
 function recognitionCtor(): RecognitionCtor | null {
     if (typeof window === 'undefined') return null;
@@ -56,6 +75,7 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
     const [latest, setLatest] = useState<SpeechReply | null>(null);
     const [latestAt, setLatestAt] = useState(0);
     const [deep, setDeep] = useState<DeepPackage | null>(null);
+    const [timelineTime, setTimelineTime] = useState(currentTime);
     const recognitionRef = useRef<Recognition | null>(null);
     const activeRef = useRef(false);
     const currentTimeRef = useRef(currentTime);
@@ -67,17 +87,48 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
     const autoAttemptedRef = useRef(false);
     const readyAnnouncedRef = useRef(false);
     const lastCompiledSegmentsRef = useRef(0);
+    const nativeListeningRef = useRef(false);
+    const mountedAtRef = useRef(Date.now());
+    const lastKnownTimeRef = useRef(currentTime);
+    const lastKnownAtRef = useRef(Date.now());
+    const nativeTokenRetryRef = useRef(0);
+
+    function effectiveTime() {
+        const reported = currentTimeRef.current;
+        if (reported > 0.4) return reported;
+        const sinceMount = Math.max(0, (Date.now() - mountedAtRef.current) / 1000);
+        const extrapolated = Math.max(0, lastKnownTimeRef.current + (Date.now() - lastKnownAtRef.current) / 1000);
+        return Math.max(sinceMount, extrapolated);
+    }
 
     useEffect(() => {
         currentTimeRef.current = currentTime;
+        if (currentTime > 0.4) {
+            lastKnownTimeRef.current = currentTime;
+            lastKnownAtRef.current = Date.now();
+            setTimelineTime(currentTime);
+        }
     }, [currentTime]);
+
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            if (currentTimeRef.current <= 0.4) setTimelineTime(effectiveTime());
+        }, 1000);
+        return () => window.clearInterval(timer);
+    }, [video.id]);
 
     useEffect(() => {
         autoAttemptedRef.current = false;
         readyAnnouncedRef.current = false;
         lastCompiledSegmentsRef.current = 0;
+        nativeListeningRef.current = false;
+        nativeTokenRetryRef.current = 0;
+        mountedAtRef.current = Date.now();
+        lastKnownTimeRef.current = 0;
+        lastKnownAtRef.current = Date.now();
         queueRef.current = [];
         bufferRef.current = '';
+        setTimelineTime(0);
         setLatest(null);
         setDeep(null);
         setDismissed(false);
@@ -95,11 +146,53 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
     }, [video.id]);
 
     useEffect(() => {
-        if (currentTime <= 0.4 || autoAttemptedRef.current || activeRef.current) return;
+        if (autoAttemptedRef.current || activeRef.current) return;
         autoAttemptedRef.current = true;
-        const timer = window.setTimeout(() => startListening(false), 450);
+        const timer = window.setTimeout(() => startListening(false), 650);
         return () => window.clearTimeout(timer);
-    }, [currentTime, video.id]);
+    }, [video.id]);
+
+    useEffect(() => {
+        const speech = (event: Event) => {
+            const detail = (event as CustomEvent<NativeSpeechDetail>).detail;
+            if (detail?.text && detail.final !== false) acceptSpeech(detail.text);
+        };
+        const state = (event: Event) => {
+            const detail = (event as CustomEvent<NativeSpeechStateDetail>).detail;
+            if (!detail) return;
+            if (detail.state === 'listening') {
+                activeRef.current = true;
+                nativeListeningRef.current = true;
+                setListening(true);
+                setPermissionNeeded(false);
+                setUnsupported(false);
+                setNotice('');
+            } else if (detail.state === 'permission-required') {
+                activeRef.current = false;
+                nativeListeningRef.current = false;
+                setListening(false);
+                setPermissionNeeded(true);
+                setNotice(detail.message || 'Allow microphone access once so Scripture Lens can hear the sermon.');
+            } else if (detail.state === 'unsupported') {
+                activeRef.current = false;
+                nativeListeningRef.current = false;
+                setListening(false);
+                setUnsupported(true);
+                setNotice(detail.message || 'Speech recognition is unavailable on this device.');
+            } else if (detail.state === 'paused') {
+                activeRef.current = false;
+                nativeListeningRef.current = false;
+                setListening(false);
+                if (detail.message) setNotice(detail.message);
+            }
+        };
+        window.addEventListener('nfcps-native-speech', speech as EventListener);
+        window.addEventListener('nfcps-native-speech-state', state as EventListener);
+        return () => {
+            window.removeEventListener('nfcps-native-speech', speech as EventListener);
+            window.removeEventListener('nfcps-native-speech-state', state as EventListener);
+        };
+    }, [video.id]);
 
     async function warmDeepPackage(segments: number) {
         if (lastCompiledSegmentsRef.current && segments - lastCompiledSegmentsRef.current < 8) return;
@@ -158,7 +251,7 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
 
     function flush(force = false) {
         const text = bufferRef.current.replace(/\s+/g, ' ').trim();
-        const end = currentTimeRef.current;
+        const end = effectiveTime();
         const start = bufferStartRef.current;
         if (text.length < 12 || (!force && text.length < 120)) return;
         bufferRef.current = '';
@@ -171,7 +264,7 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
     function acceptSpeech(text: string) {
         const cleanText = text.replace(/\s+/g, ' ').trim();
         if (!cleanText) return;
-        if (!bufferRef.current) bufferStartRef.current = currentTimeRef.current;
+        if (!bufferRef.current) bufferStartRef.current = effectiveTime();
         bufferRef.current = `${bufferRef.current} ${cleanText}`.trim().slice(-5000);
         if (silenceTimerRef.current) window.clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = window.setTimeout(() => flush(true), 2200);
@@ -182,12 +275,59 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
         activeRef.current = false;
         if (silenceTimerRef.current) window.clearTimeout(silenceTimerRef.current);
         if (flushRemaining) flush(true);
+        if (nativeListeningRef.current) {
+            try {
+                const token = nativeSpeechToken();
+                if (token) nativeSpeechBridge()?.stop(token);
+            } catch {}
+            nativeListeningRef.current = false;
+        }
         try { recognitionRef.current?.stop(); } catch {}
         recognitionRef.current = null;
         setListening(false);
     }
 
     function startListening(userInitiated: boolean) {
+        const native = nativeSpeechBridge();
+        if (native) {
+            const token = nativeSpeechToken();
+            if (!token) {
+                activeRef.current = false;
+                nativeListeningRef.current = false;
+                setListening(false);
+                if (!userInitiated && nativeTokenRetryRef.current < 8) {
+                    nativeTokenRetryRef.current += 1;
+                    window.setTimeout(() => startListening(false), 350);
+                } else {
+                    setNotice('Preparing Android Scripture Lens…');
+                }
+                return;
+            }
+            nativeTokenRetryRef.current = 0;
+            if (native.isAvailable?.(token) ?? true) {
+                setUnsupported(false);
+                setPermissionNeeded(false);
+                bufferStartRef.current = effectiveTime();
+                activeRef.current = true;
+                nativeListeningRef.current = true;
+                try {
+                    native.start(token);
+                    setListening(true);
+                    setNotice('');
+                } catch {
+                    activeRef.current = false;
+                    nativeListeningRef.current = false;
+                    setListening(false);
+                    setPermissionNeeded(true);
+                    setNotice('Allow microphone access once so Scripture Lens can hear the sermon.');
+                }
+                return;
+            }
+            setUnsupported(true);
+            setPermissionNeeded(false);
+            setNotice('Android speech recognition is unavailable on this device.');
+            return;
+        }
         const Ctor = recognitionCtor();
         if (!Ctor) {
             setUnsupported(true);
@@ -232,7 +372,7 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
         };
         recognitionRef.current = recognition;
         activeRef.current = true;
-        bufferStartRef.current = currentTimeRef.current;
+        bufferStartRef.current = effectiveTime();
         try {
             recognition.start();
             setListening(true);
@@ -248,9 +388,9 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
 
     const activeCue = useMemo(() => {
         return (deep?.scriptures || [])
-            .filter(cue => currentTime >= cue.start - 1.5 && currentTime <= cue.end + 3)
-            .sort((a, b) => Math.abs(a.start - currentTime) - Math.abs(b.start - currentTime))[0] || null;
-    }, [deep, currentTime]);
+            .filter(cue => timelineTime >= cue.start - 1.5 && timelineTime <= cue.end + 3)
+            .sort((a, b) => Math.abs(a.start - timelineTime) - Math.abs(b.start - timelineTime))[0] || null;
+    }, [deep, timelineTime]);
     const timedPassage = activeCue
         ? (deep?.passages || []).find(item => item.reference.toLowerCase() === activeCue.reference.toLowerCase()) || null
         : null;
@@ -258,9 +398,6 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
     const passage = freshLatest?.passages?.[0] || timedPassage;
     const theme = freshLatest?.theme || activeCue?.reason || '';
     const progress = latest?.progress;
-    const started = currentTime > 0.4 || listening || permissionNeeded || Boolean(passage);
-
-    if (!started) return null;
 
     if (dismissed) {
         return (
