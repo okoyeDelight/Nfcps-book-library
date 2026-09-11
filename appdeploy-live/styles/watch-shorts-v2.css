@@ -1,0 +1,134 @@
+.nfcps-short-player,
+.nfcps-short-player > div,
+.nfcps-short-player iframe,
+.nfcps-short-fallback {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.nfcps-short-player {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+
+.nfcps-short-buffer {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(255,255,255,.78);
+  pointer-events: none;
+}
+
+.nfcps-short-buffer svg,
+.wv3-short-loading svg,
+.wv3-shorts-empty-v2 > svg {
+  width: 24px;
+  height: 24px;
+  animation: nfcps-short-spin .9s linear infinite;
+}
+
+.wv3-short-unmute {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%,-50%);
+  min-height: 42px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px;
+  background: rgba(5,12,9,.72);
+  color: #fff;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 800;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.wv3-short-unmute svg {
+  width: 17px;
+}
+
+.wv3-shorts-feed article > aside {
+  gap: 13px;
+  bottom: max(84px,calc(68px + env(safe-area-inset-bottom)));
+}
+
+.wv3-shorts-feed article > aside .wv3-short-sound.active {
+  color: #fff;
+}
+
+.wv3-short-loading {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: max(10px,env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(3,9,7,.7);
+  color: #d4ddd8;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 8px;
+  backdrop-filter: blur(14px);
+}
+
+.wv3-short-loading svg {
+  width: 13px;
+  height: 13px;
+}
+
+.wv3-shorts-empty-v2 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px;
+  text-align: center;
+}
+
+.wv3-shorts-empty-v2 > button {
+  position: absolute;
+  left: 14px;
+  top: max(14px,env(safe-area-inset-top));
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+}
+
+.wv3-shorts-empty-v2 h2 {
+  margin: 4px 0 0;
+  font-size: 24px;
+}
+
+.wv3-shorts-empty-v2 p {
+  max-width: 260px;
+  margin: 0;
+  color: #9da8a2;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+@keyframes nfcps-short-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (min-width: 760px) {
+  .wv3-shorts-feed > article {
+    width: min(460px,100%);
+    margin: 0 auto;
+  }
+}
