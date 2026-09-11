@@ -18,15 +18,17 @@ concurrency:
 jobs:
   tick:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 8
     steps:
-      - name: Refresh Shorts inventory and advance autonomous Watch agent
+      - name: Refresh, learn, and prepare Watch intelligence
         env:
+          API_BASE: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y
           COLLECTOR_HEARTBEAT_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/collector/heartbeat
           AGENT_HEARTBEAT_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/agent/heartbeat
           AGENT_STATUS_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/agent/status
           WATCH_FEED_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/feed
           SHORTS_FEED_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/shorts/feed
+          LIVE_LENS_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/live-lens
         run: |
           set -euo pipefail
           echo 'Refreshing NFCPS Watch and Shorts inventory...'
@@ -41,26 +43,80 @@ jobs:
           curl --fail --silent --show-error --retry 2 --retry-delay 2 "$AGENT_STATUS_URL" -o status.json
           cat status.json
           echo
-          echo 'Live Watch and Shorts verification:'
+          echo 'Fetching live Watch and Shorts feeds...'
           curl --fail --silent --show-error --retry 2 --retry-delay 2 "$WATCH_FEED_URL" -o feed.json
           curl --fail --silent --show-error --retry 2 --retry-delay 2 "$SHORTS_FEED_URL" -o shorts.json
+          echo 'Verifying Live Scripture Lens with canonical Bible retrieval...'
+          curl --fail --silent --show-error --retry 2 --retry-delay 2 \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"Jesus taught that we should love the Lord our God with all our heart, soul and mind, and love our neighbour as ourselves."}' \
+            "$LIVE_LENS_URL" -o live-lens.json
+          cat live-lens.json
+          echo
+          echo 'Preprocessing sermon intelligence packages...'
           python - <<'PY'
           import json
+          import os
+          import urllib.parse
+          import urllib.request
+
           with open('collector.json', encoding='utf-8') as handle:
               collector = json.load(handle)
           with open('feed.json', encoding='utf-8') as handle:
               feed = json.load(handle)
           with open('shorts.json', encoding='utf-8') as handle:
               shorts = json.load(handle)
+          with open('live-lens.json', encoding='utf-8') as handle:
+              live_lens = json.load(handle)
+
           videos = feed.get('videos') or []
           clips = shorts.get('clips') or []
           agent = feed.get('agent') or {}
+          packages = []
+          api_base = os.environ['API_BASE']
+
+          for item in videos:
+              if len(packages) >= 3:
+                  break
+              video_id = item.get('id') or ''
+              if len(video_id) != 11 or item.get('source') == 'clip':
+                  continue
+              query = urllib.parse.urlencode({
+                  'title': item.get('title') or 'Sermon',
+                  'creator': item.get('creator') or 'Trusted creator',
+                  'category': item.get('category') or 'Christian Growth',
+              })
+              url = f"{api_base}/api/watch/sermon/{video_id}/intelligence?{query}"
+              try:
+                  with urllib.request.urlopen(url, timeout=70) as response:
+                      package = json.load(response)
+                  packages.append({
+                      'id': video_id,
+                      'title': item.get('title'),
+                      'available': package.get('available'),
+                      'themes': (package.get('themes') or [])[:4],
+                      'chapters': len(package.get('chapters') or []),
+                      'claims': len(package.get('claims') or []),
+                      'scriptures': len(package.get('scriptures') or []),
+                      'trail': len(package.get('scriptureTrail') or []),
+                      'reason': package.get('reason'),
+                  })
+              except Exception as exc:
+                  packages.append({'id': video_id, 'title': item.get('title'), 'error': str(exc)[:180]})
+
           print(json.dumps({
               'collector': collector,
               'discoveryCount': feed.get('discoveryCount'),
               'publishedCount': agent.get('publishedCount'),
               'shortCount': shorts.get('count'),
               'shortCreators': len({item.get('creatorKey') for item in clips if item.get('creatorKey')}),
+              'liveLens': {
+                  'available': live_lens.get('available'),
+                  'theme': live_lens.get('theme'),
+                  'references': [p.get('reference') for p in (live_lens.get('passages') or [])],
+                  'translation': [p.get('translation') for p in (live_lens.get('passages') or [])],
+              },
+              'sermonPackages': packages,
               'firstFiveVideos': [
                   {'id': item.get('id'), 'title': item.get('title'), 'creator': item.get('creator'), 'category': item.get('category')}
                   for item in videos[:5]
