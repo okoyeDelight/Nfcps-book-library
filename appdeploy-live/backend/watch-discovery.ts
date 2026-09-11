@@ -115,11 +115,11 @@ const defaultConfig = (): DiscoveryConfig => ({
   enabled: true,
   autoPublish: true,
   strictMode: true,
-  maxPerRun: 8,
+  maxPerRun: 12,
   maxPublishedPerCreator: 4,
   trustedFastPathScore: 0.84,
   trustedFastPathMinAccepted: 4,
-  bootstrapAfterHours: 6,
+  bootstrapAfterHours: 3,
   autoFreezeHours: 6,
   updatedAt: new Date().toISOString(),
 });
@@ -491,7 +491,13 @@ function selectQueryIndexes(state: DiscoveryState) {
     .map((stat, index) => ({ index, score: queryWeight(stat) }))
     .filter(item => item.index !== explore)
     .sort((a, b) => b.score - a.score || a.index - b.index);
-  return [explore, ranked[0]?.index ?? ((explore + 1) % QUERY_SEEDS.length)];
+  const selected = [explore];
+  for (const item of ranked) {
+    if (!selected.includes(item.index)) selected.push(item.index);
+    if (selected.length >= 3) break;
+  }
+  while (selected.length < 3) selected.push((explore + selected.length) % QUERY_SEEDS.length);
+  return selected;
 }
 
 function updateQueryStats(current: QueryStat[] | undefined, query: string, outcome: CreatorOutcome) {
@@ -534,6 +540,25 @@ export async function getApprovedDiscoveries() {
   if (!config.enabled) return [] as WatchDiscoveryVideo[];
   const published = await readPublished();
   return published?.videos || [];
+}
+
+export async function getTrustedDiscoverySources() {
+  const [config, stateRaw] = await Promise.all([readConfig(), readState()]);
+  const state = stateRaw || defaultState();
+  return (state.creatorStats || [])
+    .filter(stat =>
+      (stat.accepted || 0) >= config.trustedFastPathMinAccepted &&
+      creatorTrust(stat) >= config.trustedFastPathScore &&
+      (stat.quarantinedUntil || 0) <= Date.now(),
+    )
+    .sort((a, b) => creatorTrust(b) - creatorTrust(a) || (b.accepted || 0) - (a.accepted || 0))
+    .slice(0, 16)
+    .map(stat => ({
+      key: stat.creatorKey,
+      name: stat.name,
+      channelUrl: stat.channelUrl,
+      category: 'Christian Growth',
+    }));
 }
 
 export async function runWatchDiscovery(options: { maxCandidates?: number; source?: 'cron' | 'feed_bootstrap' | 'external_tick'; minIntervalMinutes?: number } = {}) {
@@ -656,7 +681,7 @@ export async function runWatchDiscovery(options: { maxCandidates?: number; sourc
 
   await writeState({
     ...state,
-    queryCursor: (state.queryCursor + 2) % QUERY_SEEDS.length,
+    queryCursor: (state.queryCursor + 3) % QUERY_SEEDS.length,
     seenIds: Array.from(new Set([...processedIds, ...state.seenIds])).slice(0, 600),
     creatorStats,
     queryStats,
@@ -694,7 +719,7 @@ export async function maybeBootstrapWatchAgent() {
   const lastRun = state.lastRunAt ? Date.parse(state.lastRunAt) : 0;
   const stale = !lastRun || Date.now() - lastRun >= config.bootstrapAfterHours * 60 * 60 * 1000;
   if (!stale) return { skipped: true, reason: 'fresh' };
-  const maxCandidates = published?.videos?.length ? 1 : 2;
+  const maxCandidates = published?.videos?.length ? 2 : 4;
   return runWatchDiscovery({ maxCandidates, source: 'feed_bootstrap' });
 }
 
@@ -721,7 +746,7 @@ export async function getWatchAgentStatus() {
     autoPublish: config.autoPublish,
     strictMode: config.strictMode,
     feedBootstrap: true,
-    expectedSchedule: 'GitHub hourly heartbeat + feed bootstrap',
+    expectedSchedule: 'GitHub hourly engine heartbeat + 3h feed bootstrap + demand-driven Shorts replenishment',
     lastRunAt: state.lastRunAt,
     lastSource: state.lastSource || null,
     lastAccepted: state.lastAccepted,
