@@ -18,6 +18,7 @@ import '../styles/v45-fixes.css';
 import '../styles/concept-v3.css';
 import '../styles/watch-shorts-v2.css';
 import '../styles/scripture-lens.css';
+import '../styles/scripture-lens-auto.css';
 import '../styles/account-sync.css';
 import '../styles/account-board.css';
 import '../styles/books-v49.css';
