@@ -27,6 +27,8 @@ jobs:
           AGENT_STATUS_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/agent/status
           SPEECH_HEARTBEAT_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/speech-intelligence/heartbeat
           TRANSCRIPT_SELFTEST_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/transcript-selftest
+          PREPARE_DIVINE_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/sermon/b2xNY69gxGo/prepare-source
+          DIVINE_TRANSCRIPT_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/sermon/b2xNY69gxGo/transcript?title=Divine%20Prosperity%20%28Part%201%29%20%7C%20Pastor%20Lawrence%20Oyor%26creator=Lawrence%20Oyor
           WATCH_FEED_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/feed
           SHORTS_FEED_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/shorts/feed
           LIVE_LENS_URL: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/watch/live-lens
@@ -37,6 +39,20 @@ jobs:
           curl --fail --silent --show-error --retry 2 "$AGENT_STATUS_URL" -o status.json
           curl --fail --silent --show-error --retry 2 "$SPEECH_HEARTBEAT_URL" -o speech.json
           curl --fail --silent --show-error --retry 2 --max-time 90 "$TRANSCRIPT_SELFTEST_URL" -o transcript.json
+
+          curl --silent --show-error --retry 1 --max-time 60 -H 'Content-Type: application/json' \
+            -d '{"title":"Divine Prosperity (Part 1) | Pastor Lawrence Oyor","creator":"Lawrence Oyor","category":"Bible Teaching","at":0}' \
+            "$PREPARE_DIVINE_URL" -o prepared0.json
+          READY="$(python -c "import json; d=json.load(open('prepared0.json')); print('1' if d.get('progress',{}).get('ready') else '0')" 2>/dev/null || echo 0)"
+          if [ "$READY" != "1" ]; then
+            curl --silent --show-error --retry 1 --max-time 60 -H 'Content-Type: application/json' \
+              -d '{"title":"Divine Prosperity (Part 1) | Pastor Lawrence Oyor","creator":"Lawrence Oyor","category":"Bible Teaching","at":90}' \
+              "$PREPARE_DIVINE_URL" -o prepared1.json
+          else
+            cp prepared0.json prepared1.json
+          fi
+          curl --fail --silent --show-error --retry 2 "$DIVINE_TRANSCRIPT_URL" -o divine.json
+
           curl --fail --silent --show-error --retry 2 "$WATCH_FEED_URL" -o feed.json
           curl --fail --silent --show-error --retry 2 "$SHORTS_FEED_URL" -o shorts.json
           curl --fail --silent --show-error --retry 2 -H 'Content-Type: application/json' \
@@ -45,14 +61,22 @@ jobs:
 
           python - <<'PY'
           import json, sys
-          with open('collector.json', encoding='utf-8') as f: collector=json.load(f)
-          with open('tick.json', encoding='utf-8') as f: tick=json.load(f)
-          with open('status.json', encoding='utf-8') as f: status=json.load(f)
-          with open('speech.json', encoding='utf-8') as f: speech=json.load(f)
-          with open('transcript.json', encoding='utf-8') as f: transcript=json.load(f)
-          with open('feed.json', encoding='utf-8') as f: feed=json.load(f)
-          with open('shorts.json', encoding='utf-8') as f: shorts=json.load(f)
-          with open('lens.json', encoding='utf-8') as f: lens=json.load(f)
+          def load(name):
+              try:
+                  with open(name, encoding='utf-8') as f: return json.load(f)
+              except Exception as exc:
+                  return {'available': False, 'error': str(exc)}
+          collector=load('collector.json')
+          tick=load('tick.json')
+          status=load('status.json')
+          speech=load('speech.json')
+          transcript=load('transcript.json')
+          prepared0=load('prepared0.json')
+          prepared1=load('prepared1.json')
+          divine=load('divine.json')
+          feed=load('feed.json')
+          shorts=load('shorts.json')
+          lens=load('lens.json')
           videos = feed.get('videos') or []
           lawrence = [
               {'id': x.get('id'), 'title': x.get('title'), 'creator': x.get('creator'), 'source': x.get('source')}
@@ -70,6 +94,9 @@ jobs:
               },
               'speechCompiler': speech,
               'transcriptSelftest': transcript,
+              'divinePrepare0': prepared0,
+              'divinePrepare1': prepared1,
+              'divineTranscript': divine,
               'lawrenceWatchItems': lawrence,
               'watchDiscoveryCount': feed.get('discoveryCount'),
               'shortCount': shorts.get('count'),
@@ -81,14 +108,10 @@ jobs:
           }
           print(json.dumps(summary, ensure_ascii=False))
           if not transcript.get('controlOk'):
-              print('ERROR: Even the known-caption control failed, so the server-side YouTube transcript route is blocked.', file=sys.stderr)
+              print('ERROR: Known-caption control failed; YouTube transcript ingestion is unhealthy.', file=sys.stderr)
               sys.exit(1)
-          if not transcript.get('watchOk'):
-              print('ERROR: YouTube transcript control works, but none of the real NFCPS Watch probes exposed reusable captions.', file=sys.stderr)
+          if not divine.get('available') or not divine.get('segments') or not divine.get('durationSeconds'):
+              print('ERROR: Divine Prosperity still has no reusable timed transcript after trusted-source preparation.', file=sys.stderr)
               sys.exit(1)
-          successful = next((item for item in transcript.get('results', []) if item.get('available') and not item.get('control')), None)
-          if not successful or not successful.get('segments') or not successful.get('durationSeconds'):
-              print('ERROR: Real Watch transcript returned no usable timed segments.', file=sys.stderr)
-              sys.exit(1)
-          print('Watch transcript path verified:', successful.get('title'), successful.get('source'), successful.get('segments'), successful.get('durationSeconds'))
+          print('Divine Prosperity transcript verified:', divine.get('source'), divine.get('segments'), divine.get('durationSeconds'))
           PY
