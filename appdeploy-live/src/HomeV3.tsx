@@ -79,6 +79,8 @@ export default function HomeV3({
             node.style.setProperty('--scene-near-y', `${y * 11 * intensity + nearScroll}px`);
             node.style.setProperty('--card-rx', `${-y * 1.5 * intensity}deg`);
             node.style.setProperty('--card-ry', `${x * 2.2 * intensity}deg`);
+            node.style.setProperty('--focal-rx', `${-y * 4.2 * intensity}deg`);
+            node.style.setProperty('--focal-ry', `${x * 5.4 * intensity}deg`);
         };
 
         const scheduleUpdate = () => {
@@ -139,9 +141,16 @@ export default function HomeV3({
                 <div className='spatial-home-edge spatial-home-edge-right' />
                 <div className='spatial-home-focal' aria-hidden='true'>
                     <span className='spatial-home-focal-light' />
+                    <span className='spatial-home-focal-aura' />
+                    <span className='spatial-home-focal-particles'>
+                        <i /><i /><i /><i /><i />
+                    </span>
                     <span className='spatial-home-focal-ring spatial-home-focal-ring-a' />
                     <span className='spatial-home-focal-ring spatial-home-focal-ring-b' />
+                    <span className='spatial-home-focal-rim' />
                     <span className='spatial-home-focal-core'>
+                        <span className='spatial-home-focal-inner-light' />
+                        <span className='spatial-home-focal-shimmer' />
                         <img src='/resources/nfcps-logo.png' alt='' />
                     </span>
                 </div>
