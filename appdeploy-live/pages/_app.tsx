@@ -22,6 +22,7 @@ import '../styles/books-v49.css';
 import '../styles/apple-ui.css';
 import '../styles/reader-flip.css';
 import '../styles/navigation-safety.css';
+import '../styles/spatial-home.css';
 import {NfcpsAccountProvider} from '../src/AccountSync';
 
 export default function App({ Component, pageProps }: AppProps) {
