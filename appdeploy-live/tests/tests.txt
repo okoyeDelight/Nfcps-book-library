@@ -24,17 +24,17 @@ Steps:
 
 Expected: Swipes turn pages reliably, the exit control remains reachable, and the reader sound and font preferences remain available without changing the app UI font.
 
-## Test 3 - Account creation, sign-in, and cloud merge retain pre-login reading state
+## Test 3 - Account creation, sign-in, and cloud merge retain reading and discipleship memory
 Viewport: mobile (375x667)
-Covers: POST /api/nfcps-account/create, POST /api/nfcps-account/sign-in, POST /api/member-sync/get, POST /api/member-sync/save, session persistence, local/cloud merge
-Description: Guards authentication and sync behavior while preserving local-first reading progress.
+Covers: POST /api/nfcps-account/create, POST /api/nfcps-account/sign-in, POST /api/member-sync/get, POST /api/member-sync/save, session persistence, local/cloud merge, Watch growth memory and saved Scripture sync
+Description: Guards authentication and sync behavior while preserving local-first reading progress and Scripture-aware Watch memory.
 
 Steps:
-1. While signed out, open a book and create local reading progress, then create an NFCPS account with valid details
+1. While signed out, open a book and create local reading progress, then open Watch, save a Scripture Lens passage, and create an NFCPS account with valid details
 2. Confirm the account is signed in and sync completes, then sign out
-3. Sign back in to the same account and reopen the book
+3. Sign back in to the same account and reopen the book and Watch Growth view
 
-Expected: Account creation and sign-in succeed, the session behaves as before, and pre-login reading progress remains available after cloud sync.
+Expected: Account creation and sign-in succeed, pre-login reading progress remains available, and saved Scripture/growth memory remains available after cloud sync.
 
 ## Test 4 - Spatial Home stays cinematic, readable, and predictable
 Viewport: mobile (375x667)
@@ -48,14 +48,14 @@ Steps:
 
 Expected: Home retains its premium spatial composition, the focal object remains atmospheric rather than interactive, Continue Reading works, For You Today stays in normal flow, and navigation remains stable on capable and reduced-motion devices.
 
-## Test 5 - Watch stays Christian, varied, and increasingly personal
+## Test 5 - Watch intelligence connects sermons to Scripture without replacing Scripture
 Viewport: mobile (375x667)
-Covers: GET /api/watch/feed, GET /api/watch/shorts/feed, autonomous Watch agent bootstrap, independent Shorts collector, trusted plus discovered catalogue merge, evidence-aware Christian classification, persistent creator-trust learning, automatic reject/quarantine/freeze guardrails, local recommendation ranking, creator diversity, sound-on Shorts playback with persistent mute control, watch-through/skip affinity learning, endless Shorts replenishment, safe fallback behavior
-Description: Verifies Watch can autonomously discover and publish clearly Christian content without admin approval, keep a much deeper Shorts queue supplied, learn both creator reliability and viewer behavior, and fail safely when discovery, collection or AI is unavailable.
+Covers: GET /api/watch/feed, GET /api/watch/shorts/feed, GET /api/watch/sermon/:id/intelligence, POST /api/watch/sermon/:id/ask, POST /api/watch/live-lens, autonomous Watch discovery, Scripture Lens timed cards, canonical KJV retrieval, Sermon Map, claim comparison, Scripture Trail, knowledge graph, Live Church Lens, growth-balanced recommendation, sound-on endless Shorts, safe fallback behavior
+Description: Verifies Watch can autonomously supply Christian media and add a Scripture-aware study layer while keeping AI separate from canonical Bible text.
 
 Steps:
-1. Open Watch and confirm the hero, For You rail, creator names, Christian categories, and Shorts all load even if external discovery is temporarily unavailable
-2. Open a message, Like it, Save it, Follow its creator, return to Watch, then open another message from a related category and return again
-3. Inspect For You, open Shorts from a deliberate tap, confirm playback attempts to start with sound and exposes an obvious sound control, then swipe through enough Shorts to trigger queue replenishment
+1. Open Watch, open a captioned sermon, and confirm Scripture Lens can prepare the message package, show a timed Scripture card during playback, and open Lens, Map, Claims, Trail, Connections, and Ask views
+2. Jump from the Sermon Map to a timestamp, inspect a claim with Read With/Compare passages, save a KJV passage, then ask which Scriptures support the sermon point and confirm transcript timestamps plus canonical Scripture cards are returned
+3. Return to Watch, open Live Scripture Lens, type a short teaching statement into its fallback box and examine it alongside Scripture; then open Shorts, confirm visible sound control and swipe far enough to trigger replenishment
 
-Expected: Existing trusted content remains available as a fallback, safely accepted discoveries can enter Watch without admin approval or production-code deployment, uncertain or unsafe candidates do not appear, learned creator trust never removes periodic auditing, high-trust learned creators can expand the Shorts collector, For You increasingly favors relevant content without filling the rail with one creator, Shorts default to sound-on when the platform permits it with a persistent mute/unmute fallback, only nearby players stay warm, watch-through/skips influence future ordering, and the Shorts queue replenishes instead of stopping after a small fixed set.
+Expected: Verse text displayed by Scripture Lens comes from the Bible retrieval layer rather than model-generated quotations, the agent describes support/context/compare relationships without declaring a preacher spiritually approved or condemned, sermon intelligence is cached for reuse, saved passages feed discipleship memory, recommendations remain diverse and growth-balanced, Live Church Lens has a usable text fallback when microphone transcription is unsupported, and trusted Watch/Shorts content remains available if AI or external services fail.
