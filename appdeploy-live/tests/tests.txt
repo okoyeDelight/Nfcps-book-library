@@ -50,12 +50,12 @@ Expected: Home retains its premium spatial composition, the focal object remains
 
 ## Test 5 - Watch stays Christian, varied, and increasingly personal
 Viewport: mobile (375x667)
-Covers: GET /api/watch/feed, autonomous Watch agent bootstrap, trusted plus discovered catalogue merge, evidence-aware Christian classification, persistent creator-trust learning, automatic reject/quarantine/freeze guardrails, local recommendation ranking, creator diversity, Shorts creator interleaving, safe fallback behavior
-Description: Verifies Watch can autonomously discover and publish clearly Christian content without admin approval, while preserving the trusted catalogue, learning creator reliability over time and failing safely when discovery or AI is unavailable.
+Covers: GET /api/watch/feed, GET /api/watch/shorts/feed, autonomous Watch agent bootstrap, independent Shorts collector, trusted plus discovered catalogue merge, evidence-aware Christian classification, persistent creator-trust learning, automatic reject/quarantine/freeze guardrails, local recommendation ranking, creator diversity, sound-on Shorts playback with persistent mute control, watch-through/skip affinity learning, endless Shorts replenishment, safe fallback behavior
+Description: Verifies Watch can autonomously discover and publish clearly Christian content without admin approval, keep a much deeper Shorts queue supplied, learn both creator reliability and viewer behavior, and fail safely when discovery, collection or AI is unavailable.
 
 Steps:
 1. Open Watch and confirm the hero, For You rail, creator names, Christian categories, and Shorts all load even if external discovery is temporarily unavailable
 2. Open a message, Like it, Save it, Follow its creator, return to Watch, then open another message from a related category and return again
-3. Inspect For You and swipe through several Shorts
+3. Inspect For You, open Shorts from a deliberate tap, confirm playback attempts to start with sound and exposes an obvious sound control, then swipe through enough Shorts to trigger queue replenishment
 
-Expected: Existing trusted content remains available as a fallback, safely accepted discoveries can enter Watch without admin approval or production-code deployment, uncertain or unsafe candidates do not appear, learned creator trust never removes periodic auditing, For You increasingly favors relevant content without filling the rail with one creator, and Shorts rotate across creators instead of running long same-creator blocks.
+Expected: Existing trusted content remains available as a fallback, safely accepted discoveries can enter Watch without admin approval or production-code deployment, uncertain or unsafe candidates do not appear, learned creator trust never removes periodic auditing, high-trust learned creators can expand the Shorts collector, For You increasingly favors relevant content without filling the rail with one creator, Shorts default to sound-on when the platform permits it with a persistent mute/unmute fallback, only nearby players stay warm, watch-through/skips influence future ordering, and the Shorts queue replenishes instead of stopping after a small fixed set.
