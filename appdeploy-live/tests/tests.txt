@@ -50,12 +50,12 @@ Expected: Home retains its premium spatial composition, the focal object remains
 
 ## Test 5 - Watch stays Christian, varied, and increasingly personal
 Viewport: mobile (375x667)
-Covers: GET /api/watch/feed, trusted plus guarded discovered catalogue merge, Christian category expansion, local recommendation ranking, creator diversity, likes/saves/subscriptions/history, Shorts creator interleaving, safe fallback behavior
-Description: Verifies Watch can accept safely discovered Christian content without breaking the existing catalogue, while For You responds to member signals and avoids repetitive creator runs.
+Covers: GET /api/watch/feed, autonomous Watch agent bootstrap, trusted plus discovered catalogue merge, evidence-aware Christian classification, persistent creator-trust learning, automatic reject/quarantine/freeze guardrails, local recommendation ranking, creator diversity, Shorts creator interleaving, safe fallback behavior
+Description: Verifies Watch can autonomously discover and publish clearly Christian content without admin approval, while preserving the trusted catalogue, learning creator reliability over time and failing safely when discovery or AI is unavailable.
 
 Steps:
 1. Open Watch and confirm the hero, For You rail, creator names, Christian categories, and Shorts all load even if external discovery is temporarily unavailable
 2. Open a message, Like it, Save it, Follow its creator, return to Watch, then open another message from a related category and return again
 3. Inspect For You and swipe through several Shorts
 
-Expected: Existing trusted content remains available as a fallback, For You increasingly favors followed creators and relevant categories without filling the rail with one creator when alternatives exist, Shorts rotate across creators instead of running long same-creator blocks, and no candidate needs autonomous code deployment to enter the catalogue.
+Expected: Existing trusted content remains available as a fallback, safely accepted discoveries can enter Watch without admin approval or production-code deployment, uncertain or unsafe candidates do not appear, learned creator trust never removes periodic auditing, For You increasingly favors relevant content without filling the rail with one creator, and Shorts rotate across creators instead of running long same-creator blocks.
