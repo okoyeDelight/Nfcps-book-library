@@ -1,0 +1,36 @@
+name: NFCPS Watch Agent
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/watch-agent.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nfcps-watch-agent
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Advance autonomous Watch agent
+        env:
+          AGENT_TICK_URL: https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/api/watch/agent/tick
+          AGENT_STATUS_URL: https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/api/watch/agent/status
+        run: |
+          set -euo pipefail
+          echo 'Running the NFCPS Watch autonomous learning cycle...'
+          curl --fail --silent --show-error --retry 2 --retry-delay 2 -X POST "$AGENT_TICK_URL" -o tick.json
+          cat tick.json
+          echo
+          echo 'Agent health after tick:'
+          curl --fail --silent --show-error --retry 2 --retry-delay 2 "$AGENT_STATUS_URL" -o status.json
+          cat status.json
+          echo
