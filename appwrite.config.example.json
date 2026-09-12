@@ -1,0 +1,57 @@
+{
+  "projectId": "<APPWRITE_PROJECT_ID>",
+  "endpoint": "https://<REGION>.cloud.appwrite.io/v1",
+  "functions": [
+    {
+      "$id": "nfcps-api",
+      "name": "NFCPS One API",
+      "runtime": "node-22",
+      "path": "appwrite/functions/nfcps-api",
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "execute": ["any"],
+      "events": [],
+      "schedule": "",
+      "timeout": 30,
+      "enabled": true,
+      "logging": true,
+      "ignore": ["node_modules", ".git"],
+      "scopes": [],
+      "vars": []
+    },
+    {
+      "$id": "nfcps-jobs",
+      "name": "NFCPS One Jobs",
+      "runtime": "node-22",
+      "path": "appwrite/functions/nfcps-jobs",
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "execute": [],
+      "events": [],
+      "schedule": "*/5 * * * *",
+      "timeout": 30,
+      "enabled": true,
+      "logging": true,
+      "ignore": ["node_modules", ".git"],
+      "scopes": [],
+      "vars": []
+    }
+  ],
+  "sites": [
+    {
+      "$id": "nfcps-watch",
+      "name": "NFCPS One Watch",
+      "enabled": true,
+      "logging": true,
+      "framework": "nextjs",
+      "timeout": 30,
+      "installCommand": "npm install --no-audit --no-fund",
+      "buildCommand": "npm run build",
+      "outputDirectory": "./out",
+      "buildRuntime": "node-22",
+      "adapter": "static",
+      "fallbackFile": "",
+      "path": "watch-netlify"
+    }
+  ]
+}

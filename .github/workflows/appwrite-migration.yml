@@ -1,0 +1,79 @@
+# Staged Appwrite migration validation for NFCPS One
+name: Validate Appwrite migration
+
+on:
+  push:
+    branches: [appwrite-migration]
+    paths:
+      - 'watch-netlify/**'
+      - 'appwrite/**'
+      - 'appwrite.config.example.json'
+      - '.github/workflows/appwrite-migration.yml'
+  workflow_dispatch:
+
+jobs:
+  watch-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: watch-netlify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Watch dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build Appwrite-targeted Watch site
+        env:
+          NEXT_PUBLIC_NFCPS_API_BASE: https://nfcps-api.example.appwrite.run
+          NEXT_PUBLIC_NFCPS_API_FALLBACK: https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y
+        run: npm run build
+      - name: Verify exported Watch assets
+        run: |
+          test -f out/watch/index.html
+          test -d out/_next
+
+  api-function:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: appwrite/functions/nfcps-api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: npm run check
+      - name: Unit tests
+        run: npm test
+
+  jobs-function:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: appwrite/functions/nfcps-jobs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: npm run check
+      - name: Unit tests
+        run: npm test
+
+  config-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate Appwrite config template JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('appwrite.config.example.json','utf8')); console.log('Appwrite config template JSON is valid')"
