@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
-import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
@@ -117,6 +116,7 @@ final class NativeScriptureLensController {
     }
 
     private void checkSelectedScreen() {
+        hideLegacyWebLens();
         webView.evaluateJavascript("Boolean(document.querySelector('.wv3-selected'))", value -> {
             boolean selected = "true".equalsIgnoreCase(value);
             if (selected) ensurePill();
@@ -127,6 +127,13 @@ final class NativeScriptureLensController {
                 hideCard();
             }
         });
+    }
+
+    private void hideLegacyWebLens() {
+        String js = "(()=>{let s=document.getElementById('nfcps-native-scripture-lens-style');"
+                + "if(!s){s=document.createElement('style');s.id='nfcps-native-scripture-lens-style';document.head.appendChild(s);}"
+                + "s.textContent='.sermon-auto-lens,.sermon-lens-pill{display:none!important}';})()";
+        webView.evaluateJavascript(js, null);
     }
 
     private void ensurePill() {
@@ -200,7 +207,7 @@ final class NativeScriptureLensController {
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("User-Agent", "NFCPS-One-Scripture-Lens/1.6");
+            connection.setRequestProperty("User-Agent", "NFCPS-One-Scripture-Lens/1.6.1");
             connection.setDoOutput(true);
             JSONObject body = new JSONObject();
             body.put("text", text);
