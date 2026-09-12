@@ -122,6 +122,65 @@ public class MainActivity extends Activity {
         }
     }
 
+    private Uri routeInternalNavigation(Uri requested) {
+        BootstrapConfig.Config config = bootstrapConfig;
+        if (config == null || requested == null || requested.getHost() == null) return requested;
+
+        String host = requested.getHost().toLowerCase();
+        String path = requested.getPath() == null || requested.getPath().isBlank() ? "/" : requested.getPath();
+        String mainHost;
+        try {
+            mainHost = Uri.parse(config.appUrl).getHost();
+        } catch (Exception ignored) {
+            return requested;
+        }
+        if (mainHost == null) return requested;
+
+        BootstrapConfig.RouteOverride route = BootstrapConfig.routeForPath(config, path);
+        if (route != null) {
+            try {
+                String targetHost = Uri.parse(route.targetOrigin).getHost();
+                if (targetHost != null && host.equalsIgnoreCase(targetHost)) return requested;
+                if (host.equalsIgnoreCase(mainHost) || BootstrapConfig.isRouteHost(config, host)) {
+                    return replaceOrigin(requested, route.targetOrigin, false);
+                }
+            } catch (Exception ignored) {
+                return requested;
+            }
+        }
+
+        if (BootstrapConfig.isRouteHost(config, host)) {
+            return replaceOrigin(requested, config.appUrl, true);
+        }
+        return requested;
+    }
+
+    private Uri replaceOrigin(Uri requested, String baseUrl, boolean ensureNativeSource) {
+        try {
+            Uri base = Uri.parse(baseUrl);
+            String authority = base.getEncodedAuthority();
+            if (!"https".equalsIgnoreCase(base.getScheme()) || authority == null || authority.isBlank()) return requested;
+
+            Uri.Builder builder = new Uri.Builder()
+                    .scheme("https")
+                    .encodedAuthority(authority)
+                    .encodedPath(requested.getEncodedPath() == null || requested.getEncodedPath().isBlank() ? "/" : requested.getEncodedPath());
+
+            boolean sourcePresent = false;
+            for (String name : requested.getQueryParameterNames()) {
+                if ("source".equals(name)) sourcePresent = true;
+                for (String value : requested.getQueryParameters(name)) {
+                    builder.appendQueryParameter(name, value);
+                }
+            }
+            if (ensureNativeSource && !sourcePresent) builder.appendQueryParameter("source", "native");
+            if (requested.getEncodedFragment() != null) builder.encodedFragment(requested.getEncodedFragment());
+            return builder.build();
+        } catch (Exception ignored) {
+            return requested;
+        }
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     private void configureWebView(WebView target, boolean popup) {
         WebSettings settings = target.getSettings();
@@ -135,7 +194,7 @@ public class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setSupportMultipleWindows(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.5");
+        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.5.2");
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
@@ -154,6 +213,11 @@ public class MainActivity extends Activity {
                     return false;
                 }
                 if (webUrl && isInternalHost(uri.getHost())) {
+                    Uri routed = routeInternalNavigation(uri);
+                    if (routed != null && !sameTarget(uri.toString(), routed.toString())) {
+                        view.loadUrl(routed.toString());
+                        return true;
+                    }
                     return false;
                 }
 
@@ -167,7 +231,7 @@ public class MainActivity extends Activity {
                 if (!popup) {
                     String token = nativeSpeechBridge != null ? nativeSpeechBridge.getSessionToken() : "";
                     view.evaluateJavascript(
-                            "window.__NFCPS_NATIVE__=true;window.__NFCPS_SPEECH_TOKEN__="
+                            "window.__NFCPS_NATIVE__=true;window.__NFCPS_DIRECT_AUDIO__=true;window.__NFCPS_SPEECH_TOKEN__="
                                     + JSONObject.quote(token)
                                     + ";document.documentElement.classList.add('nfcps-native-app');",
                             null
