@@ -12,8 +12,10 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public final class BootstrapConfig {
@@ -24,6 +26,7 @@ public final class BootstrapConfig {
     private static final String PREFS = "nfcps_remote_bootstrap";
     private static final String KEY_APP_URL = "app_url";
     private static final String KEY_INTERNAL_HOSTS = "internal_hosts";
+    private static final String KEY_ROUTES = "routes";
 
     public static final String DEFAULT_APP_URL = "https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/";
     public static final String DEFAULT_APP_HOST = "nfcps-book-library-c2ma7y.v2.appdeploy.ai";
@@ -33,13 +36,25 @@ public final class BootstrapConfig {
         void onResolved(Config config);
     }
 
+    public static final class RouteOverride {
+        public final String pathPrefix;
+        public final String targetOrigin;
+
+        RouteOverride(String pathPrefix, String targetOrigin) {
+            this.pathPrefix = pathPrefix;
+            this.targetOrigin = targetOrigin;
+        }
+    }
+
     public static final class Config {
         public final String appUrl;
         public final Set<String> internalHosts;
+        public final List<RouteOverride> routes;
 
-        Config(String appUrl, Set<String> internalHosts) {
+        Config(String appUrl, Set<String> internalHosts, List<RouteOverride> routes) {
             this.appUrl = appUrl;
             this.internalHosts = Collections.unmodifiableSet(new HashSet<>(internalHosts));
+            this.routes = Collections.unmodifiableList(new ArrayList<>(routes));
         }
     }
 
@@ -57,8 +72,9 @@ public final class BootstrapConfig {
                 if (clean != null) hosts.add(clean);
             }
         }
-        addDefaults(hosts, appUrl);
-        return new Config(appUrl, hosts);
+        List<RouteOverride> routes = parseRoutesString(prefs.getString(KEY_ROUTES, "[]"));
+        addDefaults(hosts, appUrl, routes);
+        return new Config(appUrl, hosts, routes);
     }
 
     public static void refreshAsync(Context context, Callback callback) {
@@ -110,15 +126,17 @@ public final class BootstrapConfig {
                     if (host != null) hosts.add(host);
                 }
             }
-            addDefaults(hosts, appUrl);
+            List<RouteOverride> routes = parseRoutes(json.optJSONArray("routes"));
+            addDefaults(hosts, appUrl, routes);
 
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                     .edit()
                     .putString(KEY_APP_URL, appUrl)
                     .putString(KEY_INTERNAL_HOSTS, String.join(",", hosts))
+                    .putString(KEY_ROUTES, serializeRoutes(routes))
                     .apply();
 
-            return new Config(appUrl, hosts);
+            return new Config(appUrl, hosts, routes);
         } catch (Exception ignored) {
             return null;
         } finally {
@@ -126,11 +144,109 @@ public final class BootstrapConfig {
         }
     }
 
+    public static RouteOverride routeForPath(Config config, String path) {
+        if (config == null || config.routes.isEmpty()) return null;
+        String cleanPath = path == null || path.isBlank() ? "/" : path;
+        RouteOverride best = null;
+        for (RouteOverride route : config.routes) {
+            if (!pathMatches(cleanPath, route.pathPrefix)) continue;
+            if (best == null || route.pathPrefix.length() > best.pathPrefix.length()) best = route;
+        }
+        return best;
+    }
+
+    public static boolean isRouteHost(Config config, String host) {
+        String cleanHost = sanitizeHost(host);
+        if (config == null || cleanHost == null) return false;
+        for (RouteOverride route : config.routes) {
+            try {
+                String targetHost = sanitizeHost(Uri.parse(route.targetOrigin).getHost());
+                if (cleanHost.equals(targetHost)) return true;
+            } catch (Exception ignored) {
+            }
+        }
+        return false;
+    }
+
     public static String nativeUrl(String baseUrl) {
         String clean = sanitizeUrl(baseUrl);
         Uri uri = Uri.parse(clean);
         if (uri.getQueryParameter("source") != null) return clean;
         return uri.buildUpon().appendQueryParameter("source", "native").build().toString();
+    }
+
+    private static List<RouteOverride> parseRoutesString(String value) {
+        try {
+            return parseRoutes(new JSONArray(value == null || value.isBlank() ? "[]" : value));
+        } catch (Exception ignored) {
+            return new ArrayList<>();
+        }
+    }
+
+    private static List<RouteOverride> parseRoutes(JSONArray list) {
+        List<RouteOverride> routes = new ArrayList<>();
+        if (list == null) return routes;
+        for (int i = 0; i < Math.min(list.length(), 16); i++) {
+            JSONObject item = list.optJSONObject(i);
+            if (item == null) continue;
+            String pathPrefix = sanitizePathPrefix(item.optString("path_prefix", ""));
+            String targetOrigin = sanitizeOrigin(item.optString("origin", item.optString("url", "")));
+            if (pathPrefix == null || targetOrigin == null) continue;
+            boolean duplicate = false;
+            for (RouteOverride existing : routes) {
+                if (existing.pathPrefix.equals(pathPrefix)) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) routes.add(new RouteOverride(pathPrefix, targetOrigin));
+        }
+        return routes;
+    }
+
+    private static String serializeRoutes(List<RouteOverride> routes) {
+        JSONArray output = new JSONArray();
+        for (RouteOverride route : routes) {
+            JSONObject item = new JSONObject();
+            try {
+                item.put("path_prefix", route.pathPrefix);
+                item.put("origin", route.targetOrigin);
+                output.put(item);
+            } catch (Exception ignored) {
+            }
+        }
+        return output.toString();
+    }
+
+    private static boolean pathMatches(String path, String prefix) {
+        if (path.equals(prefix)) return true;
+        String boundary = prefix.endsWith("/") ? prefix : prefix + "/";
+        return path.startsWith(boundary);
+    }
+
+    private static String sanitizePathPrefix(String candidate) {
+        if (candidate == null) return null;
+        String path = candidate.trim();
+        if (path.isEmpty() || path.length() > 256 || !path.startsWith("/")) return null;
+        if (path.contains("?") || path.contains("#") || path.contains("\\")) return null;
+        while (path.length() > 1 && path.endsWith("/")) path = path.substring(0, path.length() - 1);
+        if ("/".equals(path)) return null;
+        return path;
+    }
+
+    private static String sanitizeOrigin(String candidate) {
+        try {
+            if (candidate == null || candidate.length() > 2048) return null;
+            Uri uri = Uri.parse(candidate.trim());
+            if (!"https".equalsIgnoreCase(uri.getScheme())) return null;
+            if (uri.getHost() == null || uri.getHost().isBlank()) return null;
+            if (uri.getUserInfo() != null) return null;
+            String authority = uri.getEncodedAuthority();
+            if (authority == null || authority.isBlank()) return null;
+            return "https://" + authority;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private static String sanitizeUrl(String candidate) {
@@ -154,13 +270,20 @@ public final class BootstrapConfig {
         return host;
     }
 
-    private static void addDefaults(Set<String> hosts, String appUrl) {
+    private static void addDefaults(Set<String> hosts, String appUrl, List<RouteOverride> routes) {
         hosts.add(DEFAULT_APP_HOST);
         hosts.add(DEFAULT_AUTH_HOST);
         try {
             String appHost = sanitizeHost(Uri.parse(appUrl).getHost());
             if (appHost != null) hosts.add(appHost);
         } catch (Exception ignored) {
+        }
+        for (RouteOverride route : routes) {
+            try {
+                String routeHost = sanitizeHost(Uri.parse(route.targetOrigin).getHost());
+                if (routeHost != null) hosts.add(routeHost);
+            } catch (Exception ignored) {
+            }
         }
     }
 }
