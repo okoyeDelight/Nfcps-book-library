@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import WatchExperience from '../../appdeploy-live/src/WatchExperienceV3';
+import WatchFrontDoor from '../src/WatchFrontDoor';
 import { LiveChurchLens } from '../../appdeploy-live/src/ScriptureLens';
 
 export default function WatchPage() {
@@ -10,7 +10,7 @@ export default function WatchPage() {
       <meta name='viewport' content='width=device-width, initial-scale=1, viewport-fit=cover' />
       <meta name='theme-color' content='#030605' />
     </Head>
-    <WatchExperience />
+    <WatchFrontDoor />
     <LiveChurchLens />
   </>;
 }
