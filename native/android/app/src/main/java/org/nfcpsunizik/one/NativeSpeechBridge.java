@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
-import android.util.Base64;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
@@ -25,15 +24,43 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
     private final Activity activity;
     private final WebView webView;
     private final String sessionToken = UUID.randomUUID().toString();
+    private final LocalVoskTranscriber localTranscriber;
+    private final NativeScriptureLensController lensController;
     private SpeechRecognizer recognizer;
     private boolean active;
     private boolean pendingStart;
+    private boolean microphoneFallback;
     private int restartGeneration;
+    private long lensStartedAt;
 
     public NativeSpeechBridge(Activity activity, WebView webView) {
         this.activity = activity;
         this.webView = webView;
         DirectAudioCaptureService.setListener(this);
+        localTranscriber = new LocalVoskTranscriber(activity, new LocalVoskTranscriber.Listener() {
+            @Override
+            public void onRecognizerState(String state, String message) {
+                dispatchLocalAsrState(state, message);
+                if ("preparing".equals(state) && lensController != null && lensController.isActive()) {
+                    lensController.setStatus("Preparing Lens…");
+                }
+                if ("ready".equals(state) && lensController != null && lensController.isActive()) {
+                    lensController.setStatus(microphoneFallback ? "Lens · mic" : "Lens listening");
+                }
+            }
+
+            @Override
+            public void onTranscript(String text, boolean isFinal, long startMs, long endMs) {
+                dispatchSpeech(text, isFinal, startMs, endMs, "direct-audio-local");
+                if (lensController != null && lensController.isActive()) {
+                    lensController.analyze(text, startMs, endMs);
+                }
+            }
+        });
+        lensController = new NativeScriptureLensController(activity, webView, new NativeScriptureLensController.Controls() {
+            @Override public void startLens() { startLensInternal(); }
+            @Override public void stopLens() { stopLensInternal(); }
+        });
     }
 
     String getSessionToken() {
@@ -69,31 +96,64 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
     @JavascriptInterface
     public void startDirectAudio(String token) {
         if (!validToken(token)) return;
-        activity.runOnUiThread(() -> {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-                dispatchDirectState("unsupported", "Direct Audio requires Android 10 or newer.", -120, 0, 0);
-                return;
-            }
-            DirectAudioCaptureService.setListener(this);
-            dispatchDirectState(
-                    "requesting",
-                    "Android will ask for playback-capture consent. NFCPS captures only its own media playback, not microphone input.",
-                    -120,
-                    0,
-                    0
-            );
-            activity.startActivity(new Intent(activity, DirectAudioPermissionActivity.class));
-        });
+        activity.runOnUiThread(() -> beginDirectAudio(true));
     }
 
     @JavascriptInterface
     public void stopDirectAudio(String token) {
         if (!validToken(token)) return;
+        activity.runOnUiThread(this::stopDirectAudioInternal);
+    }
+
+    private void startLensInternal() {
         activity.runOnUiThread(() -> {
-            Intent intent = new Intent(activity, DirectAudioCaptureService.class);
-            intent.setAction(DirectAudioCaptureService.ACTION_STOP);
-            try { activity.startService(intent); } catch (Exception ignored) {}
+            lensStartedAt = System.currentTimeMillis();
+            microphoneFallback = false;
+            localTranscriber.resetSession();
+            lensController.setActive(true);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) beginDirectAudio(false);
+            else {
+                microphoneFallback = true;
+                lensController.setStatus("Lens · mic");
+                requestStart();
+            }
         });
+    }
+
+    private void stopLensInternal() {
+        activity.runOnUiThread(() -> {
+            lensController.setActive(false);
+            microphoneFallback = false;
+            stopDirectAudioInternal();
+            stopInternal(true);
+        });
+    }
+
+    private void beginDirectAudio(boolean externalRequest) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            dispatchDirectState("unsupported", "Direct Audio requires Android 10 or newer.", -120, 0, 0);
+            if (!externalRequest && lensController.isActive()) {
+                microphoneFallback = true;
+                requestStart();
+            }
+            return;
+        }
+        localTranscriber.resetSession();
+        DirectAudioCaptureService.setListener(this);
+        dispatchDirectState(
+                "requesting",
+                "Android will ask for playback-capture consent for Scripture Lens.",
+                -120,
+                0,
+                0
+        );
+        activity.startActivity(new Intent(activity, DirectAudioPermissionActivity.class));
+    }
+
+    private void stopDirectAudioInternal() {
+        Intent intent = new Intent(activity, DirectAudioCaptureService.class);
+        intent.setAction(DirectAudioCaptureService.ACTION_STOP);
+        try { activity.startService(intent); } catch (Exception ignored) {}
     }
 
     public void onPermissionResult(boolean granted) {
@@ -112,14 +172,14 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
 
     public void destroy() {
         activity.runOnUiThread(() -> {
+            if (lensController != null) lensController.destroy();
+            if (localTranscriber != null) localTranscriber.close();
             stopInternal(true);
             if (recognizer != null) {
                 recognizer.destroy();
                 recognizer = null;
             }
-            Intent intent = new Intent(activity, DirectAudioCaptureService.class);
-            intent.setAction(DirectAudioCaptureService.ACTION_STOP);
-            try { activity.startService(intent); } catch (Exception ignored) {}
+            stopDirectAudioInternal();
             DirectAudioCaptureService.setListener(null);
         });
     }
@@ -128,6 +188,7 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
         if (!SpeechRecognizer.isRecognitionAvailable(activity)) {
             active = false;
             dispatchState("unsupported", "Android speech recognition is unavailable on this device.");
+            if (lensController.isActive()) lensController.setStatus("Lens speech unavailable");
             return;
         }
         if (activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -192,16 +253,31 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
     }
 
     private void dispatchSpeech(String text, boolean isFinal) {
+        dispatchSpeech(text, isFinal, -1, -1, "microphone");
+    }
+
+    private void dispatchSpeech(String text, boolean isFinal, long startMs, long endMs, String source) {
         if (text == null || text.trim().isEmpty()) return;
         String script = "window.dispatchEvent(new CustomEvent('nfcps-native-speech',{detail:{text:"
                 + JSONObject.quote(text.trim())
-                + ",final:" + (isFinal ? "true" : "false") + "}}));";
+                + ",final:" + (isFinal ? "true" : "false")
+                + ",startMs:" + startMs
+                + ",endMs:" + endMs
+                + ",source:" + JSONObject.quote(source == null ? "" : source)
+                + "}}));";
         webView.post(() -> webView.evaluateJavascript(script, null));
     }
 
     private void dispatchState(String state, String message) {
         String script = "window.dispatchEvent(new CustomEvent('nfcps-native-speech-state',{detail:{state:"
                 + JSONObject.quote(state)
+                + ",message:" + JSONObject.quote(message == null ? "" : message) + "}}));";
+        webView.post(() -> webView.evaluateJavascript(script, null));
+    }
+
+    private void dispatchLocalAsrState(String state, String message) {
+        String script = "window.dispatchEvent(new CustomEvent('nfcps-local-asr-state',{detail:{state:"
+                + JSONObject.quote(state == null ? "" : state)
                 + ",message:" + JSONObject.quote(message == null ? "" : message) + "}}));";
         webView.post(() -> webView.evaluateJavascript(script, null));
     }
@@ -220,41 +296,33 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
     @Override
     public void onState(String state, String message, double rmsDb, int peak, long frames) {
         dispatchDirectState(state, message, rmsDb, peak, frames);
+        if (lensController.isActive()) {
+            if ("requesting".equals(state) || "starting".equals(state)) lensController.setStatus("Starting Lens…");
+            if ("capturing".equals(state)) lensController.setStatus("Lens listening");
+            if (("blocked".equals(state) || "unsupported".equals(state) || "error".equals(state)) && !microphoneFallback) {
+                microphoneFallback = true;
+                lensController.setStatus("Lens · mic");
+                activity.runOnUiThread(this::requestStart);
+            }
+        }
     }
 
     @Override
     public void onChunk(byte[] wavBytes, long captureStartMs, long durationMs, double rmsDb) {
         if (wavBytes == null || wavBytes.length == 0) return;
-        String base64 = Base64.encodeToString(wavBytes, Base64.NO_WRAP);
-        String script = "window.dispatchEvent(new CustomEvent('nfcps-direct-audio-chunk',{detail:{audioBase64:"
-                + JSONObject.quote(base64)
-                + ",captureStartMs:" + captureStartMs
-                + ",durationMs:" + durationMs
-                + ",rmsDb:" + String.format(Locale.US, "%.2f", rmsDb)
-                + "}}));";
-        webView.post(() -> webView.evaluateJavascript(script, null));
+        localTranscriber.acceptWav(wavBytes, captureStartMs, durationMs);
     }
 
     @Override
     public void onReadyForSpeech(Bundle params) {
         dispatchState("listening", "");
+        if (lensController.isActive() && microphoneFallback) lensController.setStatus("Lens · mic");
     }
 
-    @Override
-    public void onBeginningOfSpeech() {
-    }
-
-    @Override
-    public void onRmsChanged(float rmsdB) {
-    }
-
-    @Override
-    public void onBufferReceived(byte[] buffer) {
-    }
-
-    @Override
-    public void onEndOfSpeech() {
-    }
+    @Override public void onBeginningOfSpeech() {}
+    @Override public void onRmsChanged(float rmsdB) {}
+    @Override public void onBufferReceived(byte[] buffer) {}
+    @Override public void onEndOfSpeech() {}
 
     @Override
     public void onError(int error) {
@@ -274,20 +342,36 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
         scheduleRestart(900);
     }
 
+    private long micElapsedMs() {
+        return lensStartedAt > 0 ? Math.max(0, System.currentTimeMillis() - lensStartedAt) : 0;
+    }
+
     @Override
     public void onResults(Bundle results) {
         ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        if (matches != null && !matches.isEmpty()) dispatchSpeech(matches.get(0), true);
+        if (matches != null && !matches.isEmpty()) {
+            String text = matches.get(0);
+            dispatchSpeech(text, true);
+            if (lensController.isActive() && microphoneFallback) {
+                long end = micElapsedMs();
+                lensController.analyze(text, Math.max(0, end - 8000), end);
+            }
+        }
         scheduleRestart(250);
     }
 
     @Override
     public void onPartialResults(Bundle partialResults) {
         ArrayList<String> matches = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        if (matches != null && !matches.isEmpty()) dispatchSpeech(matches.get(0), false);
+        if (matches != null && !matches.isEmpty()) {
+            String text = matches.get(0);
+            dispatchSpeech(text, false);
+            if (lensController.isActive() && microphoneFallback && text.trim().length() >= 28) {
+                long end = micElapsedMs();
+                lensController.analyze(text, Math.max(0, end - 6000), end);
+            }
+        }
     }
 
-    @Override
-    public void onEvent(int eventType, Bundle params) {
-    }
+    @Override public void onEvent(int eventType, Bundle params) {}
 }
