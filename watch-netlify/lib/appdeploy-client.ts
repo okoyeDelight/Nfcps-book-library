@@ -32,7 +32,7 @@ async function request<T = any>(url: string, options: RequestOptions = {}): Prom
 }
 
 export const api = {
-  get: <T = any>(url: string) => request<T>(url),
+  get: <T = any>(url: string, _data?: unknown) => request<T>(url),
   post: <T = any>(url: string, body?: unknown) => request<T>(url, { method: 'POST', body }),
   put: <T = any>(url: string, body?: unknown) => request<T>(url, { method: 'PUT', body }),
   patch: <T = any>(url: string, body?: unknown) => request<T>(url, { method: 'PATCH', body }),
@@ -54,20 +54,23 @@ function inertRealtimeConnection() {
   };
   return connection;
 }
-export const ws = { connect: inertRealtimeConnection };
+
+export const ws = {
+  connect: (..._args: unknown[]) => inertRealtimeConnection(),
+};
 
 export const auth = {
   isSignedIn: () => false,
-  signIn: async () => { throw new Error('Push-notification sign-in is temporarily unavailable during the hosting migration.'); },
-  signOut: async () => undefined,
+  signIn: async (_options?: unknown) => { throw new Error('Push-notification sign-in is temporarily unavailable during the hosting migration.'); },
+  signOut: async (_options?: unknown) => undefined,
 };
 
 export const notifications = {
-  getEnableGuidance: async () => ({
+  getEnableGuidance: async (_options?: unknown) => ({
     kind: 'unsupported',
     title: 'Push reminders are temporarily paused',
     message: 'Borrowing, waitlists and calendar reminders still work. Lock-screen push reminders will return after the notification layer is migrated.',
-    steps: [],
+    steps: [] as string[],
   }),
-  subscribe: async () => ({ ok: false }),
+  subscribe: async (_options?: unknown) => ({ ok: false }),
 };
