@@ -17,7 +17,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 public final class BootstrapConfig {
-    private static final String CONFIG_URL = "https://raw.githubusercontent.com/okoyeDelight/Nfcps-book-library/main/nfcps-bootstrap.json";
+    private static final String[] CONFIG_URLS = new String[] {
+            "https://raw.githubusercontent.com/okoyeDelight/Nfcps-book-library/main/nfcps-bootstrap.json",
+            "https://cdn.jsdelivr.net/gh/okoyeDelight/Nfcps-book-library@main/nfcps-bootstrap.json"
+    };
     private static final String PREFS = "nfcps_remote_bootstrap";
     private static final String KEY_APP_URL = "app_url";
     private static final String KEY_INTERNAL_HOSTS = "internal_hosts";
@@ -68,9 +71,18 @@ public final class BootstrapConfig {
     }
 
     private static Config fetchRemote(Context context) {
+        for (String endpoint : CONFIG_URLS) {
+            Config resolved = fetchEndpoint(context, endpoint);
+            if (resolved != null) return resolved;
+        }
+        return null;
+    }
+
+    private static Config fetchEndpoint(Context context, String endpoint) {
         HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection) new URL(CONFIG_URL + "?t=" + System.currentTimeMillis()).openConnection();
+            String separator = endpoint.contains("?") ? "&" : "?";
+            connection = (HttpURLConnection) new URL(endpoint + separator + "t=" + System.currentTimeMillis()).openConnection();
             connection.setConnectTimeout(3500);
             connection.setReadTimeout(3500);
             connection.setUseCaches(false);
