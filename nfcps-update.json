@@ -1,11 +1,11 @@
 {
-  "revision": 5,
+  "revision": 6,
   "enabled": true,
-  "latest_version_code": 12,
-  "latest_version_name": "1.6.1",
+  "latest_version_code": 13,
+  "latest_version_name": "1.6.2",
   "minimum_supported_version_code": 8,
   "apk_url": "https://github.com/okoyeDelight/Nfcps-book-library/releases/download/nfcps-one-latest/NFCPS-One.apk",
-  "sha256": "9ce9c3ede1977a5f1b4da02279fbacbdbcb18f022c98dbb6cc162c007f817ffa",
-  "title": "NFCPS One Scripture Lens update",
-  "notes": "Keeps the original cinematic NFCPS Watch experience and adds the new native Scripture Lens underneath it. Lens no longer depends on YouTube captions: on supported Android devices it listens to capturable sermon playback, transcribes speech locally on the phone, and sends only recognized text to the existing NFCPS sermon-intelligence service to surface matching KJV passages and progressively learn the sermon. If direct playback capture is blocked, Lens can fall back to speech recognition."
+  "sha256": "633da222dea1040479713b29c6e31721bfb3bb8ca0e621064da6a3184b3f53a7",
+  "title": "NFCPS One Read + Scripture Lens update",
+  "notes": "Adds the Growth & Business discovery shelves to Read, including the bookstore-inspired titles and legal public-domain growth classics that open in the full NFCPS reader. Scripture Lens now listens to the preacher's rolling thought rather than waiting for a spoken verse reference: it semantically looks for strongly relevant Bible passages, opens the best match automatically, and cross-checks the passage in KJV, WEB and ASV. Reading progress, notes, highlights, accounts, Library and Watch remain intact."
 }
