@@ -34,10 +34,6 @@ import android.widget.TextView;
 import org.json.JSONObject;
 
 public class MainActivity extends Activity {
-    private static final String APP_HOST = "nfcps-book-library-c2ma7y.v2.appdeploy.ai";
-    private static final String AUTH_HOST = "api-v2.appdeploy.ai";
-    private static final String APP_URL = "https://" + APP_HOST + "/?source=native";
-
     private FrameLayout root;
     private WebView webView;
     private ProgressBar progress;
@@ -46,6 +42,8 @@ public class MainActivity extends Activity {
     private Dialog authDialog;
     private WebView authWebView;
     private NativeSpeechBridge nativeSpeechBridge;
+    private volatile BootstrapConfig.Config bootstrapConfig;
+    private volatile String currentAppUrl = BootstrapConfig.nativeUrl(BootstrapConfig.DEFAULT_APP_URL);
 
     @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     @Override
@@ -53,6 +51,9 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         getWindow().setStatusBarColor(Color.rgb(7, 16, 31));
         getWindow().setNavigationBarColor(Color.rgb(7, 16, 31));
+
+        bootstrapConfig = BootstrapConfig.cached(this);
+        currentAppUrl = BootstrapConfig.nativeUrl(bootstrapConfig.appUrl);
 
         root = new FrameLayout(this);
         webView = new WebView(this);
@@ -82,7 +83,40 @@ public class MainActivity extends Activity {
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState);
         } else {
-            webView.loadUrl(APP_URL);
+            webView.loadUrl(currentAppUrl);
+        }
+
+        BootstrapConfig.refreshAsync(this, config -> runOnUiThread(() -> applyBootstrap(config)));
+    }
+
+    private void applyBootstrap(BootstrapConfig.Config config) {
+        if (config == null) return;
+        String nextUrl = BootstrapConfig.nativeUrl(config.appUrl);
+        String previousUrl = currentAppUrl;
+        bootstrapConfig = config;
+        currentAppUrl = nextUrl;
+        if (webView != null && !sameTarget(previousUrl, nextUrl)) {
+            webView.stopLoading();
+            webView.loadUrl(nextUrl);
+        }
+    }
+
+    private boolean sameTarget(String first, String second) {
+        try {
+            Uri a = Uri.parse(first);
+            Uri b = Uri.parse(second);
+            String aHost = a.getHost();
+            String bHost = b.getHost();
+            String aPath = a.getPath() == null ? "/" : a.getPath();
+            String bPath = b.getPath() == null ? "/" : b.getPath();
+            return "https".equalsIgnoreCase(a.getScheme())
+                    && "https".equalsIgnoreCase(b.getScheme())
+                    && aHost != null
+                    && bHost != null
+                    && aHost.equalsIgnoreCase(bHost)
+                    && aPath.equals(bPath);
+        } catch (Exception ignored) {
+            return first != null && first.equals(second);
         }
     }
 
@@ -99,7 +133,7 @@ public class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setSupportMultipleWindows(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.2");
+        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.4");
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
@@ -198,7 +232,9 @@ public class MainActivity extends Activity {
     }
 
     private boolean isInternalHost(String host) {
-        return host != null && (APP_HOST.equalsIgnoreCase(host) || AUTH_HOST.equalsIgnoreCase(host));
+        if (host == null) return false;
+        BootstrapConfig.Config config = bootstrapConfig;
+        return config != null && config.internalHosts.contains(host.toLowerCase());
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -290,13 +326,14 @@ public class MainActivity extends Activity {
     }
 
     private void showOfflineFallback(WebView view) {
+        String retryUrl = currentAppUrl;
         String html = "<html><meta name='viewport' content='width=device-width,initial-scale=1'>"
                 + "<body style='margin:0;background:#07101f;color:#fff;font-family:sans-serif;display:grid;place-items:center;min-height:100vh'>"
                 + "<div style='max-width:340px;padding:32px;text-align:center'><div style='font-size:48px'>📖</div>"
                 + "<h1>NFCPS One</h1><p style='opacity:.75;line-height:1.6'>You appear to be offline. Reading copies already cached by NFCPS can still work when available.</p>"
                 + "<a style='display:inline-block;margin-top:12px;padding:14px 20px;border-radius:999px;background:#d8b868;color:#07101f;text-decoration:none;font-weight:700' href='"
-                + APP_URL + "'>Try again</a></div></body></html>";
-        view.loadDataWithBaseURL(APP_URL, html, "text/html", "UTF-8", null);
+                + retryUrl + "'>Try again</a></div></body></html>";
+        view.loadDataWithBaseURL(retryUrl, html, "text/html", "UTF-8", null);
     }
 
     private void openExternal(Uri uri) {
