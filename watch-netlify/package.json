@@ -1,8 +1,9 @@
 {
-  "name": "nfcps-watch-frontdoor",
+  "name": "nfcps-one-standalone",
   "private": true,
   "version": "1.0.0",
   "scripts": {
+    "prebuild": "rm -rf styles/appdeploy && mkdir -p styles/appdeploy && cp -R ../appdeploy-live/styles/. styles/appdeploy/",
     "build": "next build"
   },
   "dependencies": {
