@@ -4,19 +4,22 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.util.Base64;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.UUID;
 
-public final class NativeSpeechBridge implements RecognitionListener {
+public final class NativeSpeechBridge implements RecognitionListener, DirectAudioCaptureService.Listener {
     public static final int REQUEST_RECORD_AUDIO = 7201;
 
     private final Activity activity;
@@ -30,6 +33,7 @@ public final class NativeSpeechBridge implements RecognitionListener {
     public NativeSpeechBridge(Activity activity, WebView webView) {
         this.activity = activity;
         this.webView = webView;
+        DirectAudioCaptureService.setListener(this);
     }
 
     String getSessionToken() {
@@ -57,13 +61,48 @@ public final class NativeSpeechBridge implements RecognitionListener {
         activity.runOnUiThread(() -> stopInternal(false));
     }
 
+    @JavascriptInterface
+    public boolean isDirectAudioSupported(String token) {
+        return validToken(token) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
+    }
+
+    @JavascriptInterface
+    public void startDirectAudio(String token) {
+        if (!validToken(token)) return;
+        activity.runOnUiThread(() -> {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                dispatchDirectState("unsupported", "Direct Audio requires Android 10 or newer.", -120, 0, 0);
+                return;
+            }
+            DirectAudioCaptureService.setListener(this);
+            dispatchDirectState(
+                    "requesting",
+                    "Android will ask for playback-capture consent. NFCPS captures only its own media playback, not microphone input.",
+                    -120,
+                    0,
+                    0
+            );
+            activity.startActivity(new Intent(activity, DirectAudioPermissionActivity.class));
+        });
+    }
+
+    @JavascriptInterface
+    public void stopDirectAudio(String token) {
+        if (!validToken(token)) return;
+        activity.runOnUiThread(() -> {
+            Intent intent = new Intent(activity, DirectAudioCaptureService.class);
+            intent.setAction(DirectAudioCaptureService.ACTION_STOP);
+            try { activity.startService(intent); } catch (Exception ignored) {}
+        });
+    }
+
     public void onPermissionResult(boolean granted) {
         activity.runOnUiThread(() -> {
             if (!pendingStart) return;
             pendingStart = false;
             if (!granted) {
                 active = false;
-                dispatchState("permission-required", "Microphone permission is needed so Scripture Lens can hear the sermon.");
+                dispatchState("permission-required", "Microphone permission is needed for Live Church Lens.");
                 return;
             }
             active = true;
@@ -78,6 +117,10 @@ public final class NativeSpeechBridge implements RecognitionListener {
                 recognizer.destroy();
                 recognizer = null;
             }
+            Intent intent = new Intent(activity, DirectAudioCaptureService.class);
+            intent.setAction(DirectAudioCaptureService.ACTION_STOP);
+            try { activity.startService(intent); } catch (Exception ignored) {}
+            DirectAudioCaptureService.setListener(null);
         });
     }
 
@@ -90,7 +133,7 @@ public final class NativeSpeechBridge implements RecognitionListener {
         if (activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             pendingStart = true;
             active = false;
-            dispatchState("permission-required", "Allow microphone access once so Scripture Lens can hear the sermon.");
+            dispatchState("permission-required", "Allow microphone access for Live Church Lens.");
             activity.requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_RECORD_AUDIO);
             return;
         }
@@ -122,7 +165,7 @@ public final class NativeSpeechBridge implements RecognitionListener {
             recognizer.startListening(recognizerIntent());
         } catch (Exception exception) {
             active = false;
-            dispatchState("paused", "Scripture Lens could not start Android speech recognition. Tap Resume to try again.");
+            dispatchState("paused", "Live Church Lens could not start Android speech recognition. Tap Resume to try again.");
         }
     }
 
@@ -137,7 +180,7 @@ public final class NativeSpeechBridge implements RecognitionListener {
             } catch (Exception ignored) {
             }
         }
-        if (!destroying) dispatchState("paused", "Scripture Lens paused.");
+        if (!destroying) dispatchState("paused", "Live Church Lens paused.");
     }
 
     private void scheduleRestart(long delayMs) {
@@ -160,6 +203,35 @@ public final class NativeSpeechBridge implements RecognitionListener {
         String script = "window.dispatchEvent(new CustomEvent('nfcps-native-speech-state',{detail:{state:"
                 + JSONObject.quote(state)
                 + ",message:" + JSONObject.quote(message == null ? "" : message) + "}}));";
+        webView.post(() -> webView.evaluateJavascript(script, null));
+    }
+
+    private void dispatchDirectState(String state, String message, double rmsDb, int peak, long frames) {
+        String script = "window.dispatchEvent(new CustomEvent('nfcps-direct-audio-state',{detail:{state:"
+                + JSONObject.quote(state == null ? "" : state)
+                + ",message:" + JSONObject.quote(message == null ? "" : message)
+                + ",rmsDb:" + String.format(Locale.US, "%.2f", rmsDb)
+                + ",peak:" + peak
+                + ",frames:" + frames
+                + "}}));";
+        webView.post(() -> webView.evaluateJavascript(script, null));
+    }
+
+    @Override
+    public void onState(String state, String message, double rmsDb, int peak, long frames) {
+        dispatchDirectState(state, message, rmsDb, peak, frames);
+    }
+
+    @Override
+    public void onChunk(byte[] wavBytes, long captureStartMs, long durationMs, double rmsDb) {
+        if (wavBytes == null || wavBytes.length == 0) return;
+        String base64 = Base64.encodeToString(wavBytes, Base64.NO_WRAP);
+        String script = "window.dispatchEvent(new CustomEvent('nfcps-direct-audio-chunk',{detail:{audioBase64:"
+                + JSONObject.quote(base64)
+                + ",captureStartMs:" + captureStartMs
+                + ",durationMs:" + durationMs
+                + ",rmsDb:" + String.format(Locale.US, "%.2f", rmsDb)
+                + "}}));";
         webView.post(() -> webView.evaluateJavascript(script, null));
     }
 
@@ -189,7 +261,7 @@ public final class NativeSpeechBridge implements RecognitionListener {
         if (!active) return;
         if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
             active = false;
-            dispatchState("permission-required", "Microphone permission is needed so Scripture Lens can hear the sermon.");
+            dispatchState("permission-required", "Microphone permission is needed for Live Church Lens.");
             return;
         }
         if (error == SpeechRecognizer.ERROR_NO_MATCH
