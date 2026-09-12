@@ -1,16 +1,11 @@
-name: Validate NFCPS Watch front door
+name: Validate standalone NFCPS One frontend
 
 on:
   push:
     branches: [main]
     paths:
       - 'watch-netlify/**'
-      - 'appdeploy-live/src/WatchExperienceV3.tsx'
-      - 'appdeploy-live/src/WatchDeepFeatures.tsx'
-      - 'appdeploy-live/src/ShortsEngine.tsx'
-      - 'appdeploy-live/src/SpokenSermonLens.tsx'
-      - 'appdeploy-live/src/ScriptureLens.tsx'
-      - 'appdeploy-live/src/AccountSync.tsx'
+      - 'appdeploy-live/src/**'
       - 'appdeploy-live/styles/**'
       - 'netlify.toml'
       - '.github/workflows/watch-netlify.yml'
@@ -31,9 +26,10 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Build static Watch route
+      - name: Build static NFCPS One frontend
         run: npm run build
-      - name: Verify exported Watch page
+      - name: Verify exported NFCPS One pages
         run: |
+          test -f out/index.html
           test -f out/watch/index.html
           test -d out/_next
