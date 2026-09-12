@@ -60,6 +60,25 @@ jobs:
           curl --fail --location --retry 3 'https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/resources/nfcps-logo.png' --output native/android/app/src/main/res/drawable/nfcps_logo.png
           test -s native/android/app/src/main/res/drawable/nfcps_logo.png
 
+      - name: Bundle offline Scripture Lens speech model
+        shell: bash
+        run: |
+          set -euo pipefail
+          ASSETS='native/android/app/src/main/assets'
+          MODEL_DIR="$ASSETS/model-en-us"
+          TEMP_DIR="$RUNNER_TEMP/nfcps-vosk-model"
+          rm -rf "$MODEL_DIR" "$TEMP_DIR"
+          mkdir -p "$ASSETS" "$TEMP_DIR"
+          curl --fail --location --retry 3 \
+            'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip' \
+            --output "$TEMP_DIR/model.zip"
+          unzip -q "$TEMP_DIR/model.zip" -d "$TEMP_DIR"
+          mv "$TEMP_DIR/vosk-model-small-en-us-0.15" "$MODEL_DIR"
+          printf '%s\n' 'nfcps-scripture-lens-model-v1' > "$MODEL_DIR/uuid"
+          test -s "$MODEL_DIR/am/final.mdl"
+          test -s "$MODEL_DIR/conf/mfcc.conf"
+          du -sh "$MODEL_DIR"
+
       - name: Confirm Android release version
         run: grep -E "versionCode|versionName" native/android/app/build.gradle
 
@@ -81,6 +100,8 @@ jobs:
             --out NFCPS-One.apk \
             NFCPS-One-aligned.apk
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs NFCPS-One.apk
+          sha256sum NFCPS-One.apk | tee NFCPS-One.sha256
+          ls -lh NFCPS-One.apk
 
       - name: Publish rolling Android release
         env:
@@ -97,4 +118,6 @@ jobs:
         with:
           name: NFCPS-One-Signed-Android
           retention-days: 30
-          path: NFCPS-One.apk
+          path: |
+            NFCPS-One.apk
+            NFCPS-One.sha256
