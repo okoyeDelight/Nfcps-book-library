@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "service": "nfcps-watch-frontdoor",
+  "mode": "staged-watch-migration",
+  "watch_route": "/watch/",
+  "fallback_origin": "https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/",
+  "revision": 4
+}
