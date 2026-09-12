@@ -31,7 +31,7 @@ final class LocalVoskTranscriber {
 
     LocalVoskTranscriber(Activity activity, Listener listener) {
         this.listener = listener;
-        LibVosk.setLogLevel(LogLevel.WARNINGS);
+        LibVosk.setLogLevel(LogLevel.INFO);
         listener.onRecognizerState("preparing", "Preparing offline Scripture Lens…");
         StorageService.unpack(activity, "model-en-us", "nfcps-scripture-lens-model-v1",
                 unpacked -> executor.execute(() -> initialize(unpacked)),
