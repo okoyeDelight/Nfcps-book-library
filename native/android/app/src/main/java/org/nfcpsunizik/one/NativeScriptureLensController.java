@@ -15,11 +15,16 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import java.io.BufferedReader;
-import java.io.OutputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -30,12 +35,15 @@ final class NativeScriptureLensController {
     }
 
     private static final String API = "https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y";
+    private static final long MATCH_REPEAT_WINDOW_MS = 18_000L;
     private final Activity activity;
     private final WebView webView;
     private final FrameLayout root;
     private final Controls controls;
     private final ExecutorService network = Executors.newSingleThreadExecutor();
     private final Runnable monitor;
+    private final Deque<String> recentSpeech = new ArrayDeque<>();
+    private final Map<String, TranslationSet> translationCache = new HashMap<>();
 
     private TextView pill;
     private LinearLayout card;
@@ -43,7 +51,9 @@ final class NativeScriptureLensController {
     private boolean destroyed;
     private boolean requestBusy;
     private String lastText = "";
+    private String lastShownReference = "";
     private long lastRequestAt;
+    private long lastShownAt;
     private Pending pending;
 
     NativeScriptureLensController(Activity activity, WebView webView, Controls controls) {
@@ -66,6 +76,10 @@ final class NativeScriptureLensController {
 
     void setActive(boolean value) {
         active = value;
+        if (!value) {
+            recentSpeech.clear();
+            lastText = "";
+        }
         activity.runOnUiThread(() -> {
             if (pill != null) {
                 pill.setText(value ? "✦  Lens listening" : "✦  Scripture Lens");
@@ -83,23 +97,53 @@ final class NativeScriptureLensController {
     void analyze(String text, long startMs, long endMs) {
         if (!active || text == null) return;
         String clean = text.replaceAll("\\s+", " ").trim();
-        if (clean.length() < 12 || clean.equalsIgnoreCase(lastText)) return;
+        if (clean.length() < 12) return;
+        rememberSpeech(clean);
+        String context = recentContext();
+        if (context.length() < 20 || context.equalsIgnoreCase(lastText)) return;
         long now = System.currentTimeMillis();
         if (requestBusy || now - lastRequestAt < 3500) {
-            pending = new Pending(clean, startMs, endMs);
+            pending = new Pending(context, startMs, endMs);
             return;
         }
-        lastText = clean;
+        lastText = context;
         lastRequestAt = now;
         requestBusy = true;
-        setStatus("Finding Scripture…");
+        setStatus("Understanding this thought…");
         queryCurrentVideo(meta -> {
             if (meta == null) {
                 finishRequest();
                 return;
             }
-            network.execute(() -> postSpeech(meta, clean, startMs, endMs));
+            network.execute(() -> postSpeech(meta, context, startMs, endMs));
         });
+    }
+
+    private void rememberSpeech(String clean) {
+        String last = recentSpeech.peekLast();
+        if (last != null) {
+            if (clean.equalsIgnoreCase(last) || last.toLowerCase().contains(clean.toLowerCase())) return;
+            if (clean.toLowerCase().startsWith(last.toLowerCase()) || last.toLowerCase().startsWith(clean.toLowerCase())) {
+                recentSpeech.removeLast();
+            }
+        }
+        recentSpeech.addLast(clean);
+        while (recentSpeech.size() > 7 || recentContextLength() > 1900) recentSpeech.removeFirst();
+    }
+
+    private int recentContextLength() {
+        int total = 0;
+        for (String item : recentSpeech) total += item.length() + 2;
+        return total;
+    }
+
+    private String recentContext() {
+        StringBuilder context = new StringBuilder();
+        for (String item : recentSpeech) {
+            if (context.length() > 0) context.append(". ");
+            context.append(item);
+        }
+        return context.toString();
     }
 
     void destroy() {
@@ -123,6 +167,7 @@ final class NativeScriptureLensController {
             else {
                 if (active) controls.stopLens();
                 active = false;
+                recentSpeech.clear();
                 removePill();
                 hideCard();
             }
@@ -207,7 +252,7 @@ final class NativeScriptureLensController {
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("User-Agent", "NFCPS-One-Scripture-Lens/1.6.1");
+            connection.setRequestProperty("User-Agent", "NFCPS-One-Scripture-Lens/1.6.2");
             connection.setDoOutput(true);
             JSONObject body = new JSONObject();
             body.put("text", text);
@@ -231,7 +276,15 @@ final class NativeScriptureLensController {
                 if (result.optBoolean("available") && passages != null && passages.length() > 0) {
                     JSONObject passage = passages.optJSONObject(0);
                     if (passage != null) {
-                        showPassage(passage.optString("reference"), passage.optString("text"), result.optString("theme"), result.optString("note"));
+                        String reference = passage.optString("reference");
+                        String kjv = passage.optString("text");
+                        long now = System.currentTimeMillis();
+                        if (!reference.isBlank() && (!reference.equalsIgnoreCase(lastShownReference) || now - lastShownAt >= MATCH_REPEAT_WINDOW_MS)) {
+                            TranslationSet translations = translationsFor(reference, kjv);
+                            lastShownReference = reference;
+                            lastShownAt = now;
+                            showPassage(reference, translations, result.optString("theme"), result.optString("note"), Math.max(0, passages.length() - 1));
+                        }
                     }
                 }
                 webView.post(() -> webView.evaluateJavascript(
@@ -245,6 +298,40 @@ final class NativeScriptureLensController {
         }
     }
 
+    private TranslationSet translationsFor(String reference, String kjv) {
+        TranslationSet cached = translationCache.get(reference.toLowerCase());
+        if (cached != null) return cached;
+        String web = fetchTranslation(reference, "web");
+        String asv = fetchTranslation(reference, "asv");
+        TranslationSet set = new TranslationSet(kjv, web, asv);
+        translationCache.put(reference.toLowerCase(), set);
+        return set;
+    }
+
+    private String fetchTranslation(String reference, String translation) {
+        HttpURLConnection connection = null;
+        try {
+            String encoded = URLEncoder.encode(reference, StandardCharsets.UTF_8);
+            URL url = new URL("https://bible-api.com/" + encoded + "?translation=" + translation);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(3500);
+            connection.setReadTimeout(4500);
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("User-Agent", "NFCPS-One-Scripture-Lens/1.6.2");
+            if (connection.getResponseCode() < 200 || connection.getResponseCode() >= 300) return "";
+            StringBuilder json = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) json.append(line);
+            }
+            return new JSONObject(json.toString()).optString("text", "").replaceAll("\\s+", " ").trim();
+        } catch (Exception ignored) {
+            return "";
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }
+
     private void finishRequest() {
         requestBusy = false;
         setStatus("Lens listening");
@@ -253,8 +340,8 @@ final class NativeScriptureLensController {
         if (next != null && active) webView.postDelayed(() -> analyze(next.text, next.startMs, next.endMs), 150);
     }
 
-    private void showPassage(String reference, String text, String theme, String note) {
-        if (reference == null || reference.isBlank() || text == null || text.isBlank() || root == null) return;
+    private void showPassage(String reference, TranslationSet translations, String theme, String note, int moreCount) {
+        if (reference == null || reference.isBlank() || translations.kjv.isBlank() || root == null) return;
         activity.runOnUiThread(() -> {
             hideCard();
             LinearLayout box = new LinearLayout(activity);
@@ -267,17 +354,50 @@ final class NativeScriptureLensController {
             box.setBackground(bg);
             box.setElevation(dp(18));
 
-            TextView label = textView("SCRIPTURE LENS" + (theme == null || theme.isBlank() ? "" : " · " + theme.toUpperCase()), 9, Color.rgb(216, 184, 104));
+            String labelText = "SCRIPTURE LENS · SEMANTIC MATCH" + (theme == null || theme.isBlank() ? "" : " · " + theme.toUpperCase());
+            TextView label = textView(labelText, 9, Color.rgb(216, 184, 104));
             TextView ref = textView(reference, 18, Color.WHITE);
-            ref.setPadding(0, dp(5), 0, dp(5));
-            TextView verse = textView(text, 13, Color.rgb(220, 228, 223));
+            ref.setPadding(0, dp(5), 0, dp(4));
+
+            TextView kjvLabel = textView("KJV", 9, Color.rgb(199, 171, 104));
+            TextView kjvVerse = textView(translations.kjv, 13, Color.rgb(226, 232, 228));
+            kjvVerse.setMaxLines(5);
+            box.addView(label);
+            box.addView(ref);
+            box.addView(kjvLabel);
+            box.addView(kjvVerse);
+
+            if (!translations.web.isBlank()) {
+                TextView webLabel = textView("WEB · modern public-domain English", 9, Color.rgb(130, 191, 163));
+                webLabel.setPadding(0, dp(8), 0, dp(2));
+                TextView webVerse = textView(translations.web, 11, Color.rgb(205, 217, 210));
+                webVerse.setMaxLines(4);
+                box.addView(webLabel);
+                box.addView(webVerse);
+            }
+            if (!translations.asv.isBlank()) {
+                TextView asvLabel = textView("ASV · 1901", 9, Color.rgb(130, 191, 163));
+                asvLabel.setPadding(0, dp(8), 0, dp(2));
+                TextView asvVerse = textView(translations.asv, 11, Color.rgb(197, 209, 202));
+                asvVerse.setMaxLines(4);
+                box.addView(asvLabel);
+                box.addView(asvVerse);
+            }
             if (note != null && !note.isBlank()) {
                 TextView hint = textView(note, 10, Color.rgb(146, 163, 154));
-                hint.setPadding(0, dp(7), 0, 0);
-                box.addView(label); box.addView(ref); box.addView(verse); box.addView(hint);
-            } else {
-                box.addView(label); box.addView(ref); box.addView(verse);
+                hint.setPadding(0, dp(8), 0, 0);
+                hint.setMaxLines(3);
+                box.addView(hint);
             }
+            if (moreCount > 0) {
+                TextView more = textView("+ " + moreCount + " related passage" + (moreCount == 1 ? "" : "s") + " found", 9, Color.rgb(216, 184, 104));
+                more.setPadding(0, dp(7), 0, 0);
+                box.addView(more);
+            }
+            TextView action = textView("Tap to open the Scripture Lens study view", 9, Color.rgb(178, 193, 185));
+            action.setPadding(0, dp(8), 0, 0);
+            box.addView(action);
+
             box.setOnClickListener(v -> webView.evaluateJavascript("window.dispatchEvent(new Event('nfcps-scripture-lens-open'));", null));
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -285,7 +405,7 @@ final class NativeScriptureLensController {
             params.setMargins(dp(14), dp(14), dp(14), dp(72));
             root.addView(box, params);
             card = box;
-            webView.postDelayed(this::hideCard, 10500);
+            webView.postDelayed(this::hideCard, 14_000);
         });
     }
 
@@ -319,5 +439,13 @@ final class NativeScriptureLensController {
     private static final class Pending {
         final String text; final long startMs, endMs;
         Pending(String text, long startMs, long endMs) { this.text = text; this.startMs = startMs; this.endMs = endMs; }
+    }
+    private static final class TranslationSet {
+        final String kjv, web, asv;
+        TranslationSet(String kjv, String web, String asv) {
+            this.kjv = kjv == null ? "" : kjv;
+            this.web = web == null ? "" : web;
+            this.asv = asv == null ? "" : asv;
+        }
     }
 }
