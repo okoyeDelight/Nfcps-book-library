@@ -42,6 +42,7 @@ public class MainActivity extends Activity {
     private Dialog authDialog;
     private WebView authWebView;
     private NativeSpeechBridge nativeSpeechBridge;
+    private UpdateManager updateManager;
     private volatile BootstrapConfig.Config bootstrapConfig;
     private volatile String currentAppUrl = BootstrapConfig.nativeUrl(BootstrapConfig.DEFAULT_APP_URL);
 
@@ -76,6 +77,7 @@ public class MainActivity extends Activity {
 
         nativeSpeechBridge = new NativeSpeechBridge(this, webView);
         webView.addJavascriptInterface(nativeSpeechBridge, "NFCPSNativeSpeech");
+        updateManager = new UpdateManager(this);
         configureWebView(webView, false);
 
         webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> openExternal(Uri.parse(url)));
@@ -133,7 +135,7 @@ public class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setSupportMultipleWindows(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.4");
+        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.5");
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
@@ -170,6 +172,7 @@ public class MainActivity extends Activity {
                                     + ";document.documentElement.classList.add('nfcps-native-app');",
                             null
                     );
+                    if (updateManager != null) updateManager.checkForUpdatesOnce();
                 }
             }
 
@@ -351,6 +354,12 @@ public class MainActivity extends Activity {
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (customViewCallback != null) customViewCallback.onCustomViewHidden();
         customViewCallback = null;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (updateManager != null) updateManager.onResume();
     }
 
     @Override
