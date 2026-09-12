@@ -9,6 +9,7 @@ import { invalidateSermonPackage } from './ScriptureLens';
 type Passage = { reference: string; text: string; translation: 'KJV' };
 type Cue = { reference: string; start: number; end: number; relation: string; reason: string };
 type DeepPackage = { available: boolean; scriptures?: Cue[]; passages?: Passage[] };
+type TranscriptMeta = { available: boolean; source?: string; language?: string; segments?: number; durationSeconds?: number; reason?: string | null }; 
 type SpeechReply = {
     available: boolean;
     cached?: boolean;
@@ -28,6 +29,7 @@ type Recognition = {
     start: () => void;
     stop: () => void;
     abort?: () => void;
+    onstart: (() => void) | null;
     onresult: ((event: RecognitionEvent) => void) | null;
     onerror: ((event: RecognitionError) => void) | null;
     onend: (() => void) | null;
@@ -65,6 +67,27 @@ function packageUrl(video: SharedWatchVideo) {
     return `/api/watch/sermon/${video.id}/intelligence?${query}`;
 }
 
+const SPOKEN_LENS_PREF = 'nfcps-watch-spoken-lens-enabled';
+
+function spokenLensPreferred() {
+    if (typeof window === 'undefined') return false;
+    try {
+        return window.localStorage.getItem(SPOKEN_LENS_PREF) === '1';
+    } catch {
+        return false;
+    }
+}
+
+function rememberSpokenLens(enabled: boolean) {
+    if (typeof window === 'undefined') return;
+    try {
+        if (enabled) window.localStorage.setItem(SPOKEN_LENS_PREF, '1');
+        else window.localStorage.removeItem(SPOKEN_LENS_PREF);
+    } catch {
+        // Private browsing or storage restrictions should not block the Lens.
+    }
+}
+
 export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVideo; currentTime: number }) {
     const [listening, setListening] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -75,6 +98,9 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
     const [latest, setLatest] = useState<SpeechReply | null>(null);
     const [latestAt, setLatestAt] = useState(0);
     const [deep, setDeep] = useState<DeepPackage | null>(null);
+    const [transcriptMeta, setTranscriptMeta] = useState<TranscriptMeta | null>(null);
+    const [sourceState, setSourceState] = useState<'checking' | 'prepared' | 'unprepared'>('checking');
+    const [preparingSource, setPreparingSource] = useState(false);
     const [timelineTime, setTimelineTime] = useState(currentTime);
     const recognitionRef = useRef<Recognition | null>(null);
     const activeRef = useRef(false);
@@ -92,6 +118,7 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
     const lastKnownTimeRef = useRef(currentTime);
     const lastKnownAtRef = useRef(Date.now());
     const nativeTokenRetryRef = useRef(0);
+    const preparedBucketRef = useRef(-1);
 
     function effectiveTime() {
         const reported = currentTimeRef.current;
@@ -123,6 +150,7 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
         lastCompiledSegmentsRef.current = 0;
         nativeListeningRef.current = false;
         nativeTokenRetryRef.current = 0;
+        preparedBucketRef.current = -1;
         mountedAtRef.current = Date.now();
         lastKnownTimeRef.current = 0;
         lastKnownAtRef.current = Date.now();
@@ -131,14 +159,67 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
         setTimelineTime(0);
         setLatest(null);
         setDeep(null);
+        setTranscriptMeta(null);
+        setSourceState('checking');
         setDismissed(false);
         setPermissionNeeded(false);
         setUnsupported(false);
         setNotice('');
         let live = true;
-        api.get(packageUrl(video)).then(response => {
-            if (live && response.data?.available) setDeep(response.data as DeepPackage);
-        }).catch(() => {});
+        const query = new URLSearchParams({ title: video.title, creator: video.creator });
+        const load = async () => {
+            try {
+                const response = await api.get(`/api/watch/sermon/${video.id}/transcript?${query}`);
+                if (!live) return;
+                let meta = response.data as TranscriptMeta;
+                setTranscriptMeta(meta);
+                if (!meta.available) {
+                    setPreparingSource(true);
+                    setNotice('Preparing this message from a trusted sermon source…');
+                    try {
+                        const prepared = await api.post(`/api/watch/sermon/${video.id}/prepare-source`, {
+                            title: video.title,
+                            creator: video.creator,
+                            category: video.category,
+                            at: 0,
+                        });
+                        if (!live) return;
+                        if (prepared.data?.available) {
+                            preparedBucketRef.current = 0;
+                            const refreshed = await api.get(`/api/watch/sermon/${video.id}/transcript?${query}`);
+                            meta = refreshed.data as TranscriptMeta;
+                            setTranscriptMeta(meta);
+                        } else if (prepared.data?.reason) {
+                            setNotice(String(prepared.data.reason));
+                        }
+                    } catch {
+                        if (live) setNotice('This sermon is waiting for source preparation. You can keep watching normally.');
+                    } finally {
+                        if (live) setPreparingSource(false);
+                    }
+                }
+                if (!live) return;
+                if (meta.available) {
+                    setSourceState('prepared');
+                    setNotice('');
+                    try {
+                        const packageResponse = await api.get(packageUrl(video));
+                        if (live && packageResponse.data?.available) setDeep(packageResponse.data as DeepPackage);
+                    } catch {
+                        if (live) setNotice('Transcript ready. Deeper Scripture mapping is still preparing.');
+                    }
+                } else {
+                    setSourceState('unprepared');
+                    if (!notice) setNotice(meta.reason || 'This message is still being prepared.');
+                }
+            } catch {
+                if (!live) return;
+                setSourceState('unprepared');
+                setNotice('NFCPS could not prepare this sermon intelligence right now.');
+                setPreparingSource(false);
+            }
+        };
+        void load();
         return () => {
             live = false;
             stopListening(false);
@@ -146,11 +227,31 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
     }, [video.id]);
 
     useEffect(() => {
-        if (autoAttemptedRef.current || activeRef.current) return;
+        if (sourceState !== 'unprepared' || listening || autoAttemptedRef.current) return;
+        if (!spokenLensPreferred()) return;
         autoAttemptedRef.current = true;
-        const timer = window.setTimeout(() => startListening(false), 650);
+        const timer = window.setTimeout(() => startListening(false), 250);
         return () => window.clearTimeout(timer);
-    }, [video.id]);
+    }, [sourceState, video.id, listening]);
+
+    useEffect(() => {
+        if (sourceState !== 'prepared' || transcriptMeta?.source !== 'trusted-podcast-audio' || preparingSource) return;
+        const bucket = Math.max(0, Math.floor(timelineTime / 60));
+        if (bucket === preparedBucketRef.current) return;
+        preparedBucketRef.current = bucket;
+        setPreparingSource(true);
+        api.post(`/api/watch/sermon/${video.id}/prepare-source`, {
+            title: video.title,
+            creator: video.creator,
+            category: video.category,
+            at: timelineTime,
+        }).then(async response => {
+            if (!response.data?.available) return;
+            invalidateSermonPackage(video.id);
+            const packageResponse = await api.get(packageUrl(video));
+            if (packageResponse.data?.available) setDeep(packageResponse.data as DeepPackage);
+        }).catch(() => {}).finally(() => setPreparingSource(false));
+    }, [Math.floor(timelineTime / 60), sourceState, transcriptMeta?.source, video.id]);
 
     useEffect(() => {
         const speech = (event: Event) => {
@@ -163,6 +264,7 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
             if (detail.state === 'listening') {
                 activeRef.current = true;
                 nativeListeningRef.current = true;
+                rememberSpokenLens(true);
                 setListening(true);
                 setPermissionNeeded(false);
                 setUnsupported(false);
@@ -170,6 +272,7 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
             } else if (detail.state === 'permission-required') {
                 activeRef.current = false;
                 nativeListeningRef.current = false;
+                rememberSpokenLens(false);
                 setListening(false);
                 setPermissionNeeded(true);
                 setNotice(detail.message || 'Allow microphone access once so Scripture Lens can hear the sermon.');
@@ -233,6 +336,15 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
                     window.dispatchEvent(new CustomEvent('nfcps-scripture-lens-live', { detail: { videoId: video.id, value } }));
                     const progress = value.progress;
                     if (progress?.ready) {
+                        setTranscriptMeta({
+                            available: true,
+                            source: 'nfcps-spoken',
+                            language: 'spoken-word',
+                            segments: progress.segments,
+                            durationSeconds: Math.max(Math.ceil(progress.coverageSeconds), Math.ceil(effectiveTime())),
+                            reason: null,
+                        });
+                        setSourceState('prepared');
                         if (!readyAnnouncedRef.current) {
                             readyAnnouncedRef.current = true;
                             window.dispatchEvent(new CustomEvent('nfcps-sermon-speech-ready', { detail: { videoId: video.id } }));
@@ -351,6 +463,7 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
             const fatal = event.error === 'not-allowed' || event.error === 'service-not-allowed';
             if (fatal) {
                 activeRef.current = false;
+                rememberSpokenLens(false);
                 setListening(false);
                 setPermissionNeeded(true);
                 setNotice(userInitiated
@@ -370,6 +483,11 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
                 setNotice('Lens paused. Tap Resume to continue listening.');
             }
         };
+        recognition.onstart = () => {
+            rememberSpokenLens(true);
+            setPermissionNeeded(false);
+            setUnsupported(false);
+        };
         recognitionRef.current = recognition;
         activeRef.current = true;
         bufferStartRef.current = effectiveTime();
@@ -386,6 +504,18 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
         }
     }
 
+    function toggleSpeakerFallback() {
+        if (listening) {
+            rememberSpokenLens(false);
+            stopListening(true);
+            setNotice('Spoken Lens paused. Reusable sermon intelligence will still be kept.');
+            return;
+        }
+        setPermissionNeeded(false);
+        setUnsupported(false);
+        startListening(true);
+    }
+
     const activeCue = useMemo(() => {
         return (deep?.scriptures || [])
             .filter(cue => timelineTime >= cue.start - 1.5 && timelineTime <= cue.end + 3)
@@ -398,6 +528,19 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
     const passage = freshLatest?.passages?.[0] || timedPassage;
     const theme = freshLatest?.theme || activeCue?.reason || '';
     const progress = latest?.progress;
+    const preparedLabel = listening
+        ? 'Spoken Lens live · recognized words only'
+        : transcriptMeta?.source === 'trusted-podcast-audio'
+        ? 'Trusted source audio · sermon prepared'
+        : transcriptMeta?.source === 'youtube-auto-cc'
+            ? 'YouTube Auto CC · reusable transcript'
+            : transcriptMeta?.source === 'youtube-caption'
+                ? 'YouTube caption · reusable transcript'
+                : transcriptMeta?.source === 'nfcps-spoken'
+                    ? 'NFCPS learned transcript'
+                    : sourceState === 'prepared'
+                        ? 'Reusable transcript ready'
+                        : '';
 
     if (dismissed) {
         return (
@@ -414,13 +557,10 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
             <header>
                 <div className='sermon-auto-lens-title'>
                     <Sparkles />
-                    <span><small>SCRIPTURE LENS</small><strong>{listening ? 'Listening with the message' : permissionNeeded ? 'Ready to listen' : 'Following the message'}</strong></span>
+                    <span><small>SCRIPTURE LENS</small><strong>{preparingSource ? 'Preparing the message' : sourceState === 'checking' ? 'Preparing this message' : sourceState === 'prepared' ? 'Following the message' : 'Message intelligence preparing'}</strong></span>
                 </div>
                 <div className='sermon-auto-lens-tools'>
-                    {busy && <LoaderCircle className='spin' />}
-                    {listening
-                        ? <button aria-label='Pause Scripture Lens' onClick={() => stopListening(true)}><MicOff /></button>
-                        : !permissionNeeded && !unsupported && <button aria-label='Resume Scripture Lens' onClick={() => startListening(true)}><Mic /></button>}
+                    {(busy || preparingSource) && <LoaderCircle className='spin' />}
                     <button aria-label='Collapse Scripture Lens' onClick={() => setDismissed(true)}><X /></button>
                 </div>
             </header>
@@ -433,14 +573,19 @@ export function SpokenSermonLens({ video, currentTime }: { video: SharedWatchVid
                 </button>
             ) : (
                 <div className='sermon-auto-lens-waiting'>
-                    <strong>{permissionNeeded ? 'Let NFCPS hear the sermon once.' : unsupported ? 'Listening is unavailable on this browser.' : 'Listening for the preacher’s next thought…'}</strong>
-                    <p>{permissionNeeded ? 'This replaces caption dependence: NFCPS learns the actual spoken words as the video plays.' : unsupported ? 'The deeper study tools still work for messages NFCPS has already learned.' : 'Related Scripture will appear here automatically when there is a strong connection.'}</p>
-                    {permissionNeeded && <button onClick={() => startListening(true)}><Mic />Enable listening</button>}
+                    <strong>{preparingSource ? 'NFCPS is preparing this sermon automatically…' : sourceState === 'checking' ? 'Finding the best reusable sermon source…' : sourceState === 'prepared' ? 'Mapping this part of the sermon…' : listening ? 'Listening to the speaker…' : 'No reusable source for this sermon yet.'}</strong>
+                    <p>{preparingSource ? 'NFCPS is processing a trusted source for this message, so no microphone is needed.' : sourceState === 'checking' ? 'NFCPS checks learned intelligence, reusable captions and trusted sermon audio first.' : sourceState === 'prepared' ? 'Related Scripture will appear automatically as playback reaches a strongly connected section.' : listening ? 'NFCPS is learning from recognized spoken words. Raw sermon audio is not stored or uploaded.' : 'Enable Spoken Lens once so NFCPS can learn directly from the speaker when no reusable source exists. Only recognized text is sent; raw audio is not stored or uploaded.'}</p>
+                    {sourceState === 'unprepared' && (
+                        <button type='button' onClick={toggleSpeakerFallback} disabled={busy}>
+                            {listening ? <MicOff /> : <Mic />}
+                            {listening ? 'Pause Spoken Lens' : permissionNeeded ? 'Allow microphone' : unsupported ? 'Try Spoken Lens' : 'Enable Spoken Lens'}
+                        </button>
+                    )}
                 </div>
             )}
 
             <footer>
-                <span>{progress?.coverageSeconds ? `${Math.round(progress.coverageSeconds)}s learned${progress.ready ? ' · map growing' : ''}` : listening ? 'Speech-first · captions not required' : notice || 'Scripture Lens'}</span>
+                <span>{preparedLabel || (preparingSource ? 'Preparing trusted sermon intelligence…' : notice || 'Scripture Lens')}</span>
                 <button onClick={() => window.dispatchEvent(new Event('nfcps-scripture-lens-open'))}>Open study <ChevronRight /></button>
             </footer>
         </aside>
