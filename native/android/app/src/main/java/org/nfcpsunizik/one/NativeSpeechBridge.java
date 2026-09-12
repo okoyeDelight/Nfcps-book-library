@@ -26,6 +26,7 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
     private final String sessionToken = UUID.randomUUID().toString();
     private final LocalVoskTranscriber localTranscriber;
     private final NativeScriptureLensController lensController;
+    private final Runnable readDiscoveryMonitor;
     private SpeechRecognizer recognizer;
     private boolean active;
     private boolean pendingStart;
@@ -61,6 +62,13 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
             @Override public void startLens() { startLensInternal(); }
             @Override public void stopLens() { stopLensInternal(); }
         });
+        readDiscoveryMonitor = new Runnable() {
+            @Override public void run() {
+                NativeReadDiscoveryController.inject(webView);
+                webView.postDelayed(this, 900);
+            }
+        };
+        webView.postDelayed(readDiscoveryMonitor, 1200);
     }
 
     String getSessionToken() {
@@ -172,6 +180,7 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
 
     public void destroy() {
         activity.runOnUiThread(() -> {
+            webView.removeCallbacks(readDiscoveryMonitor);
             if (lensController != null) lensController.destroy();
             if (localTranscriber != null) localTranscriber.close();
             stopInternal(true);
