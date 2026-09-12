@@ -17,7 +17,6 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.os.Process;
 import android.os.SystemClock;
 
 import java.io.ByteArrayOutputStream;
@@ -110,7 +109,7 @@ public final class DirectAudioCaptureService extends Service {
         Notification notification = builder
                 .setSmallIcon(R.drawable.nfcps_logo)
                 .setContentTitle("NFCPS Scripture Lens")
-                .setContentText("Direct Audio is reading NFCPS media playback for Scripture Lens.")
+                .setContentText("Scripture Lens is listening to the sermon playback.")
                 .setOngoing(true)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build();
@@ -129,14 +128,13 @@ public final class DirectAudioCaptureService extends Service {
                 "Scripture Lens Direct Audio",
                 NotificationManager.IMPORTANCE_LOW
         );
-        channel.setDescription("Shown while NFCPS processes its own media playback for Scripture Lens.");
+        channel.setDescription("Shown while NFCPS processes sermon playback for Scripture Lens.");
         manager.createNotificationChannel(channel);
     }
 
     private AudioRecord buildRecorder(int sampleRate) {
         AudioPlaybackCaptureConfiguration captureConfig = new AudioPlaybackCaptureConfiguration.Builder(projection)
                 .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
-                .addMatchingUid(Process.myUid())
                 .build();
         AudioFormat format = new AudioFormat.Builder()
                 .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
@@ -233,7 +231,7 @@ public final class DirectAudioCaptureService extends Service {
             if (now - lastMetricAt >= 1000) {
                 boolean nonSilent = chunkPeak >= NON_SILENT_PEAK;
                 emitState(nonSilent ? "capturing" : "starting",
-                        nonSilent ? "Direct digital playback audio detected." : "Waiting for capturable NFCPS media audio…",
+                        nonSilent ? "Direct digital playback audio detected." : "Waiting for capturable sermon audio…",
                         rmsDb,
                         chunkPeak);
                 lastMetricAt = now;
@@ -249,7 +247,7 @@ public final class DirectAudioCaptureService extends Service {
                     if (current != null) current.onChunk(wav, chunkStartMs, durationMs, rmsDb);
                 } else if (!blockedReported && now - captureStartedAt >= 5000) {
                     blockedReported = true;
-                    emitState("blocked", "No digital playback samples were detected. This player may block Android playback capture.", rmsDb, chunkPeak);
+                    emitState("blocked", "No digital playback samples were detected. Switching Scripture Lens to its speech fallback may be required.", rmsDb, chunkPeak);
                 }
                 chunk.reset();
                 chunkSamples = 0;
