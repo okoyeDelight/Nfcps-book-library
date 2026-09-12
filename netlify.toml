@@ -1,5 +1,25 @@
 [build]
+  base = "watch-netlify"
   command = "npm run build"
+  publish = "out"
 
 [build.environment]
   NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/resources/*"
+  to = "https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/resources/:splat"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*"
+  to = "https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/:splat"
+  status = 200
+  force = false
