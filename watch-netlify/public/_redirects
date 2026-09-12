@@ -1,0 +1,3 @@
+/api/*  https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y/api/:splat  200!
+/resources/*  https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/resources/:splat  200
+/*  https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/:splat  200
