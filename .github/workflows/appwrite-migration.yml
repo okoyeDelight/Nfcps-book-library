@@ -1,3 +1,4 @@
+# Staged Appwrite migration validation for NFCPS One
 name: Validate Appwrite migration
 
 on:
