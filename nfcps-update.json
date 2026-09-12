@@ -1,11 +1,11 @@
 {
-  "revision": 3,
+  "revision": 4,
   "enabled": true,
-  "latest_version_code": 10,
-  "latest_version_name": "1.5.2",
+  "latest_version_code": 11,
+  "latest_version_name": "1.6.0",
   "minimum_supported_version_code": 8,
   "apk_url": "https://github.com/okoyeDelight/Nfcps-book-library/releases/download/nfcps-one-latest/NFCPS-One.apk",
-  "sha256": "26cda050455e21b9d11cf86761b7c368e02500a0261b0d8ce79186fa2baa04aa",
-  "title": "NFCPS One infrastructure update",
-  "notes": "A small native infrastructure update lets NFCPS route individual sections such as Watch to independent hosts without moving Home, Read, Library or your account session. Normal NFCPS content and interface changes will still update remotely without APK releases."
+  "sha256": "357f39ef8a77deb52927085c5d2514b4a89d93d2489266ef9b734dfef8ccc553",
+  "title": "NFCPS One Scripture Lens update",
+  "notes": "Restores the original cinematic Watch experience and adds a native Scripture Lens engine that no longer depends on YouTube captions. Scripture Lens first listens to sermon playback directly on supported Android devices, transcribes locally on the phone, and uses the existing NFCPS sermon intelligence service to surface matching KJV passages and teach the sermon for future viewers. If playback capture is blocked, the app can fall back to speech recognition."
 }
