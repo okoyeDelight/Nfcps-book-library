@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { BookOpen, ExternalLink } from 'lucide-react';
 import { openReader, type ReaderBook } from './ReaderExperience';
 import ConceptBookCover from './ConceptBookCover';
@@ -63,7 +65,7 @@ const matches = (book: ModernBook | FreeBook, needle: string) => {
     return `${book.title} ${book.author} ${book.note}`.toLowerCase().includes(needle);
 };
 
-export default function GrowthDiscovery({ query = '' }: { query?: string }) {
+function CuratedShelf({ query }: { query: string }) {
     const needle = query.trim().toLowerCase();
     const modern = MODERN.filter(book => matches(book, needle));
     const free = FREE.filter(book => matches(book, needle));
@@ -121,4 +123,50 @@ export default function GrowthDiscovery({ query = '' }: { query?: string }) {
             )}
         </div>
     );
+}
+
+export default function GrowthDiscovery() {
+    const [target, setTarget] = useState<HTMLElement | null>(null);
+    const [query, setQuery] = useState('');
+
+    useEffect(() => {
+        let ownedAnchor: HTMLElement | null = null;
+
+        const attach = () => {
+            let anchor = document.querySelector<HTMLElement>('.nfcps-growth-discovery-anchor');
+            const filters = document.querySelector<HTMLElement>('.books-page .books-filters');
+            if (!filters?.parentElement) return;
+            if (!anchor) {
+                anchor = document.createElement('div');
+                anchor.className = 'nfcps-growth-discovery-anchor';
+                anchor.dataset.nfcpsOwner = 'growth-discovery';
+                filters.insertAdjacentElement('afterend', anchor);
+                ownedAnchor = anchor;
+            }
+            setTarget(anchor);
+            const input = document.querySelector<HTMLInputElement>('.books-page .books-search input');
+            if (input) setQuery(input.value);
+        };
+
+        const syncSearch = (event: Event) => {
+            const input = event.target;
+            if (input instanceof HTMLInputElement && input.matches('.books-page .books-search input')) {
+                setQuery(input.value);
+            }
+        };
+
+        attach();
+        const observer = new MutationObserver(attach);
+        observer.observe(document.body, { childList: true, subtree: true });
+        document.addEventListener('input', syncSearch, true);
+
+        return () => {
+            observer.disconnect();
+            document.removeEventListener('input', syncSearch, true);
+            setTarget(null);
+            if (ownedAnchor?.dataset.nfcpsOwner === 'growth-discovery') ownedAnchor.remove();
+        };
+    }, []);
+
+    return target ? createPortal(<CuratedShelf query={query} />, target) : null;
 }
