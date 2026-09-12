@@ -66,6 +66,7 @@ export const auth = {
 };
 
 export const notifications = {
+  configure: async (_options?: unknown) => undefined,
   getEnableGuidance: async (_options?: unknown) => ({
     kind: 'unsupported',
     title: 'Push reminders are temporarily paused',
