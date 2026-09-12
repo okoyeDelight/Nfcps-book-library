@@ -1,11 +1,11 @@
 {
-  "revision": 1,
+  "revision": 3,
   "enabled": true,
-  "latest_version_code": 8,
-  "latest_version_name": "1.5.0",
+  "latest_version_code": 10,
+  "latest_version_name": "1.5.2",
   "minimum_supported_version_code": 8,
   "apk_url": "https://github.com/okoyeDelight/Nfcps-book-library/releases/download/nfcps-one-latest/NFCPS-One.apk",
-  "sha256": "5a67a43ce6b0725de431482c7cd0bb1f782a7907611f2c76d658bf46dc178ab6",
-  "title": "NFCPS One update",
-  "notes": "Native NFCPS updates are reserved for Android-level changes that cannot be delivered through the normal remote app experience."
+  "sha256": "26cda050455e21b9d11cf86761b7c368e02500a0261b0d8ce79186fa2baa04aa",
+  "title": "NFCPS One infrastructure update",
+  "notes": "A small native infrastructure update lets NFCPS route individual sections such as Watch to independent hosts without moving Home, Read, Library or your account session. Normal NFCPS content and interface changes will still update remotely without APK releases."
 }
