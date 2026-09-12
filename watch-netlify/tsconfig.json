@@ -13,6 +13,15 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@appdeploy/client": ["./lib/appdeploy-client.ts"],
+      "react": ["./node_modules/react"],
+      "react/*": ["./node_modules/react/*"],
+      "react-dom": ["./node_modules/react-dom"],
+      "react-dom/*": ["./node_modules/react-dom/*"],
+      "lucide-react": ["./node_modules/lucide-react"]
+    },
     "plugins": [{ "name": "next" }]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "../appdeploy-live/src/**/*.ts", "../appdeploy-live/src/**/*.tsx"],
