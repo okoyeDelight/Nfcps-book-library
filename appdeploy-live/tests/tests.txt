@@ -12,17 +12,17 @@ Steps:
 
 Expected: Validation remains inside NFCPS One, no invalid account is created, all controls stay reachable on mobile, and closing the screen returns to the app without clearing local state.
 
-## Test 2 - Swipe pages like a physical book and keep reader preferences
+## Test 2 - Discover bookstore-inspired growth titles and read a free related classic
 Viewport: mobile (375x667)
-Covers: swipe-driven page navigation, 3D page-flip presentation, page-turn sound preference, reader safe-area exit control, reader typography isolation
-Description: Verifies page mode behaves like a book while reader preferences and exit controls remain stable.
+Covers: Modern Growth & Business shelf, Read Free Growth Classics shelf, Read search integration for curated titles, legitimate official/publisher links for copyrighted books, public-domain in-app reading, swipe-driven page navigation, reader preferences
+Description: Verifies the Read section includes the requested bookstore-style growth titles without offering unauthorized copies, while related public-domain books open in the full NFCPS reader.
 
 Steps:
-1. Open The Pursuit of God in Pages mode, confirm the back button is inside the safe area, swipe left to turn a page, then swipe right
-2. Reveal controls, open Themes & Settings, turn Page turn sound off and back on, and switch between Serif and Sans
-3. Close the book and reopen it
+1. Open Read and confirm Modern Growth & Business includes Atomic Habits, Ikigai, Rework and other curated titles, then search for “Atomic Habits” and confirm the matching curated card remains visible with an official-source action
+2. Clear the search, open Meditations from Read Free · Growth Classics, confirm it opens inside NFCPS One, and swipe left to turn a page
+3. Reveal controls, open Themes & Settings, change the reading font, close the book, then reopen it
 
-Expected: Swipes turn pages reliably, the exit control remains reachable, and the reader sound and font preferences remain available without changing the app UI font.
+Expected: Curated modern titles remain discoverable and open only legitimate official/publisher sources, Meditations reads inside NFCPS One from its public-domain edition, page navigation works, and reader preferences remain available after reopening.
 
 ## Test 3 - Account creation, sign-in, and cloud merge retain reading and discipleship memory
 Viewport: mobile (375x667)
