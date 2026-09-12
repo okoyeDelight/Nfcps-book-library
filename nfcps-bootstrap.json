@@ -1,0 +1,8 @@
+{
+  "revision": 1,
+  "app_url": "https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/",
+  "internal_hosts": [
+    "nfcps-book-library-c2ma7y.v2.appdeploy.ai",
+    "api-v2.appdeploy.ai"
+  ]
+}
