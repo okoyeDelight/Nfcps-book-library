@@ -7,14 +7,11 @@ import {
   Bookmark,
   BookOpen,
   ChevronRight,
-  Flame,
   Home,
   LibraryBig,
-  MessageCircle,
   Play,
   Search,
   Share2,
-  Target,
   ThumbsUp,
   UserRound,
   Users,
@@ -41,6 +38,7 @@ const fallback: Video[] = [
 ];
 
 const image = (id: string) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+
 const read = <T,>(key: string, fallbackValue: T): T => {
   if (typeof window === 'undefined') return fallbackValue;
   try {
@@ -49,10 +47,12 @@ const read = <T,>(key: string, fallbackValue: T): T => {
     return fallbackValue;
   }
 };
+
 const write = (key: string, value: unknown) => {
   localStorage.setItem(key, JSON.stringify(value));
   window.dispatchEvent(new Event('nfcps-member-state-changed'));
 };
+
 const unique = (items: Video[]) => Array.from(new Map(items.map(item => [item.id, item])).values());
 
 function diversify(items: Video[]) {
@@ -62,9 +62,11 @@ function diversify(items: Video[]) {
     group.push(item);
     groups.set(item.creatorKey, group);
   }
+
   const keys = [...groups.keys()];
   const output: Video[] = [];
   let moved = true;
+
   while (moved) {
     moved = false;
     for (const key of keys) {
@@ -75,38 +77,45 @@ function diversify(items: Video[]) {
       }
     }
   }
+
   return output;
 }
 
 function Card({ video, onOpen }: { video: Video; onOpen: (video: Video) => void }) {
-  return <button className='wv3-card' onClick={() => onOpen(video)}>
-    <div className='wv3-card-image'>
-      <img src={image(video.id)} alt='' loading='lazy'/>
-      <span><Play/></span>
-    </div>
-    <strong>{video.title}</strong>
-    <small>{video.creator}</small>
-  </button>;
+  return (
+    <button className='wv3-card' onClick={() => onOpen(video)}>
+      <div className='wv3-card-image'>
+        <img src={image(video.id)} alt='' loading='lazy' />
+        <span><Play /></span>
+      </div>
+      <strong>{video.title}</strong>
+      <small>{video.creator}</small>
+    </button>
+  );
 }
 
 function Rail({ title, items, onOpen }: { title: string; items: Video[]; onOpen: (video: Video) => void }) {
   if (!items.length) return null;
-  return <section className='wv3-rail'>
-    <div className='wv3-rail-title'><h2>{title}</h2></div>
-    <div className='wv3-rail-scroll'>
-      {items.map(video => <Card key={`${title}-${video.id}`} video={video} onOpen={onOpen}/>)}
-    </div>
-  </section>;
+  return (
+    <section className='wv3-rail'>
+      <div className='wv3-rail-title'><h2>{title}</h2></div>
+      <div className='wv3-rail-scroll'>
+        {items.map(video => <Card key={`${title}-${video.id}`} video={video} onOpen={onOpen} />)}
+      </div>
+    </section>
+  );
 }
 
 function Dock() {
-  return <nav className='cx-dock cx-watch-dock'>
-    <a href='../'><Home/><span>Home</span></a>
-    <a href='../#read'><BookOpen/><span>Read</span></a>
-    <a className='active' href='./'><Play/><span>Watch</span></a>
-    <a href='../#library'><LibraryBig/><span>Library</span></a>
-    <a href='../#you'><UserRound/><span>You</span></a>
-  </nav>;
+  return (
+    <nav className='cx-dock cx-watch-dock'>
+      <a href='../'><Home /><span>Home</span></a>
+      <a href='../#read'><BookOpen /><span>Read</span></a>
+      <a className='active' href='./'><Play /><span>Watch</span></a>
+      <a href='../#library'><LibraryBig /><span>Library</span></a>
+      <a href='../#you'><UserRound /><span>You</span></a>
+    </nav>
+  );
 }
 
 function GrowthView({ onBack }: { onBack: () => void }) {
@@ -123,40 +132,48 @@ function GrowthView({ onBack }: { onBack: () => void }) {
     window.dispatchEvent(new Event('nfcps-watch-intelligence-learned'));
   };
 
-  return <main className='wv3-app'>
-    <section className='wv3-secondary'>
-      <div className='wv3-secondary-bar'>
-        <button onClick={onBack}><ArrowLeft/></button>
-        <div><h1>Growth</h1><p>Carry what you watch into your week.</p></div>
-      </div>
-      <div className='watch-growth-clean'>
-        <section>
-          <small>YOUR FOCUS</small>
-          <h2>What are you growing in?</h2>
-          <p>Choose a few areas. Watch uses them to broaden your feed instead of repeating one kind of message.</p>
-          <div className='watch-growth-goals'>
-            {goalList.map(goal => <button key={goal} className={goals.includes(goal) ? 'active' : ''} onClick={() => toggleGoal(goal)}>{goal}</button>)}
-          </div>
-        </section>
-        {scriptures.length > 0 && <section>
-          <small>YOUR SCRIPTURES</small>
-          <h2>Scriptures you're carrying</h2>
-          <div className='watch-growth-scriptures'>
-            {scriptures.slice(0, 6).map((item, index) => <article key={`${item.reference}-${index}`}>
-              <strong>{item.reference}</strong>
-              <p>{item.text.length > 180 ? `${item.text.slice(0, 177)}…` : item.text}</p>
-            </article>)}
-          </div>
-        </section>}
-        <button className='watch-live-lens-secondary' onClick={() => window.dispatchEvent(new Event('nfcps-live-lens-open'))}>
-          <BookOpen/>
-          <span><strong>Live Scripture Lens</strong><small>Use this during a live church message</small></span>
-          <ChevronRight/>
-        </button>
-      </div>
-      <Dock/>
-    </section>
-  </main>;
+  return (
+    <main className='wv3-app'>
+      <section className='wv3-secondary'>
+        <div className='wv3-secondary-bar'>
+          <button onClick={onBack}><ArrowLeft /></button>
+          <div><h1>Growth</h1><p>Your saved discipleship journey.</p></div>
+        </div>
+        <div className='watch-growth-clean'>
+          <section>
+            <small>YOUR FOCUS</small>
+            <h2>What are you growing in?</h2>
+            <p>Choose a few areas. Watch uses them to broaden your feed instead of repeating one kind of message.</p>
+            <div className='watch-growth-goals'>
+              {goalList.map(goal => (
+                <button key={goal} className={goals.includes(goal) ? 'active' : ''} onClick={() => toggleGoal(goal)}>{goal}</button>
+              ))}
+            </div>
+          </section>
+          {scriptures.length > 0 && (
+            <section>
+              <small>YOUR SCRIPTURES</small>
+              <h2>Scriptures you're carrying</h2>
+              <div className='watch-growth-scriptures'>
+                {scriptures.slice(0, 6).map((item, index) => (
+                  <article key={`${item.reference}-${index}`}>
+                    <strong>{item.reference}</strong>
+                    <p>{item.text.length > 180 ? `${item.text.slice(0, 177)}…` : item.text}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+          <button className='watch-live-lens-secondary' onClick={() => window.dispatchEvent(new Event('nfcps-live-lens-open'))}>
+            <BookOpen />
+            <span><strong>Live Scripture Lens</strong><small>Use this during a live church message</small></span>
+            <ChevronRight />
+          </button>
+        </div>
+        <Dock />
+      </section>
+    </main>
+  );
 }
 
 export default function WatchFrontDoor() {
@@ -179,46 +196,58 @@ export default function WatchFrontDoor() {
     setSaved(read('nfcps-watch-later', []));
     setHistory(read('nfcps-watch-history', []));
     setLiked(read('nfcps-watch-liked', []));
+
     const params = new URLSearchParams(location.search);
     if (params.get('saved') === '1') setScreen('saved');
-    if (params.get('history') === '1') setScreen('history');
-    if (params.get('panel') === 'growth') setScreen('growth');
+    else if (params.get('history') === '1') setScreen('history');
+    else if (params.get('panel') === 'growth') setScreen('growth');
+
     let live = true;
-    api.get('/api/watch/feed').then(response => {
-      if (!live) return;
-      const feed = response.data as Feed;
-      setVideos(unique([...(Array.isArray(feed.videos) ? feed.videos : []), ...fallback]));
-      setClips(Array.isArray(feed.clips) ? feed.clips : []);
-      setLives(Array.isArray(feed.lives) ? feed.lives : []);
-    }).catch(() => {});
-    return () => { live = false; };
+    api.get('/api/watch/feed')
+      .then(response => {
+        if (!live) return;
+        const feed = response.data as Feed;
+        setVideos(unique([...(Array.isArray(feed.videos) ? feed.videos : []), ...fallback]));
+        setClips(Array.isArray(feed.clips) ? feed.clips : []);
+        setLives(Array.isArray(feed.lives) ? feed.lives : []);
+      })
+      .catch(() => {});
+
+    return () => {
+      live = false;
+    };
   }, []);
 
   const long = useMemo(
     () => unique([...lives, ...videos.filter(video => video.source !== 'clip')]),
     [lives, videos],
   );
+
   const filtered = useMemo(() => {
     let next = [...long];
     if (filter === 'Prayer') next = next.filter(video => /prayer|intercession/i.test(`${video.category} ${video.title}`));
     if (filter === 'Worship') next = next.filter(video => /worship|praise|revival/i.test(`${video.category} ${video.title}`));
     if (filter === 'Bible') next = next.filter(video => /bible|scripture|discipleship|teaching/i.test(`${video.category} ${video.title}`));
     if (filter === 'Live') next = [...lives];
-    const q = query.trim().toLowerCase();
-    return q ? next.filter(video => `${video.title} ${video.creator} ${video.category}`.toLowerCase().includes(q)) : next;
+
+    const normalizedQuery = query.trim().toLowerCase();
+    return normalizedQuery
+      ? next.filter(video => `${video.title} ${video.creator} ${video.category}`.toLowerCase().includes(normalizedQuery))
+      : next;
   }, [long, lives, filter, query]);
 
   const savedIds = useMemo(() => new Set(saved.map(video => video.id)), [saved]);
   const likedIds = useMemo(() => new Set(liked), [liked]);
-  const homeFeed = useMemo(() => diversify(filtered), [filtered]);
-  const featured = homeFeed[0] || long[0] || fallback[0];
+  const homeFeed = useMemo(() => diversify(long), [long]);
+  const resultFeed = useMemo(() => diversify(filtered), [filtered]);
+  const featured = homeFeed[0] || fallback[0];
   const shortsItems = useMemo(() => diversify(clips.length ? clips : long), [clips, long]);
   const explore = useMemo(() => {
     const used = new Set(homeFeed.slice(0, 8).map(video => video.id));
     const fresh = long.filter(video => !used.has(video.id));
     return diversify(fresh.length ? fresh : long.slice(5)).slice(0, 10);
   }, [homeFeed, long]);
-  const searching = query.trim().length > 0;
+  const browsing = query.trim().length > 0 || filter !== 'All';
 
   const open = (video: Video) => {
     setSelected(video);
@@ -270,149 +299,164 @@ export default function WatchFrontDoor() {
     }
   };
 
+  const shortToLong = (video: Video) => (
+    long.find(item => item.creatorKey === video.creatorKey && item.category === video.category)
+    || long.find(item => item.creatorKey === video.creatorKey)
+    || video
+  );
+
+  const toggleSearch = () => {
+    if (searchOpen) setQuery('');
+    setSearchOpen(value => !value);
+  };
+
   if (shortsOpen) {
-    return <ShortsEngine
-      items={shortsItems}
-      liked={likedIds}
-      saved={savedIds}
-      onLike={toggleLike}
-      onSave={toggleSave}
-      onOpen={open}
-      onClose={() => setShortsOpen(false)}
-      onShare={video => void share(video)}
-      onNeedMore={getMoreShorts}
-    />;
+    return (
+      <ShortsEngine
+        items={shortsItems}
+        liked={likedIds}
+        saved={savedIds}
+        onLike={toggleLike}
+        onSave={toggleSave}
+        onOpen={video => open(shortToLong(video))}
+        onClose={() => setShortsOpen(false)}
+        onShare={video => void share(video)}
+        onNeedMore={getMoreShorts}
+      />
+    );
   }
 
   if (selected) {
-    return <main className='wv3-app wv3-selected'>
-      <div className='wv3-selected-bar'>
-        <button onClick={() => setSelected(null)}><ArrowLeft/></button>
-        <span>Watch</span>
-        <a href='../#you' className='cx-avatar'><UserRound/></a>
-      </div>
-      <div className='wv3-player'>
-        <WatchRoomExperience video={selected} startAt={playerStart} onRoomVideo={setSelected}/>
-      </div>
-      <section className='wv3-info'>
-        <h1>{selected.title}</h1>
-        <div className='wv3-creator'>
-          <span>{selected.creator.split(/\s+/).slice(-2).map(part => part[0]).join('').toUpperCase()}</span>
-          <div><strong>{selected.creator}</strong><small>{selected.category}</small></div>
+    return (
+      <main className='wv3-app wv3-selected'>
+        <div className='wv3-selected-bar'>
+          <button onClick={() => setSelected(null)} aria-label='Back to Watch'><ArrowLeft /></button>
+          <span>Watch</span>
+          <a href='../#you' className='cx-avatar'><UserRound /></a>
         </div>
-        <div className='wv3-actions'>
-          <button className={likedIds.has(selected.id) ? 'active' : ''} onClick={() => toggleLike(selected)}><ThumbsUp/><span>Like</span></button>
-          <button onClick={() => void share(selected)}><Share2/><span>Share</span></button>
-          <button className={savedIds.has(selected.id) ? 'active' : ''} onClick={() => toggleSave(selected)}><Bookmark/><span>Save</span></button>
-          <button onClick={() => window.dispatchEvent(new Event('nfcps-watch-together-open'))}><Users/><span>Together</span></button>
+        <div className='wv3-player'>
+          <WatchRoomExperience video={selected} startAt={playerStart} onRoomVideo={setSelected} />
         </div>
-        <div className='wv3-study-tools'>
-          <small>GO DEEPER</small>
-          <div>
-            <button onClick={() => window.dispatchEvent(new Event('nfcps-ask-sermon-open'))}>
-              <MessageCircle/>
-              <span><strong>Ask</strong><em>Ask this message</em></span>
-            </button>
-            <button onClick={() => window.dispatchEvent(new Event('nfcps-scripture-lens-open'))}>
-              <BookOpen/>
-              <span><strong>Scripture</strong><em>Read it with the Word</em></span>
-            </button>
-            <button onClick={() => { setSelected(null); setScreen('growth'); }}>
-              <Target/>
-              <span><strong>Growth</strong><em>Carry it into your week</em></span>
-            </button>
+        <section className='wv3-info'>
+          <h1>{selected.title}</h1>
+          <div className='wv3-creator'>
+            <span>{selected.creator.split(/\s+/).slice(-2).map(part => part[0]).join('').toUpperCase()}</span>
+            <div><strong>{selected.creator}</strong><small>{selected.category}</small></div>
           </div>
-        </div>
-        <Rail title='Up Next' items={diversify(long.filter(video => video.id !== selected.id)).slice(0, 10)} onOpen={open}/>
-      </section>
-      <SermonIntelligenceV2 video={selected} onJump={setPlayerStart}/>
-      {toast && <div className='wv3-toast'>{toast}</div>}
-    </main>;
+          <div className='wv3-actions'>
+            <button className={likedIds.has(selected.id) ? 'active' : ''} onClick={() => toggleLike(selected)}><ThumbsUp /><span>Like</span></button>
+            <button onClick={() => void share(selected)}><Share2 /><span>Share</span></button>
+            <button className={savedIds.has(selected.id) ? 'active' : ''} onClick={() => toggleSave(selected)}><Bookmark /><span>Save</span></button>
+            <button onClick={() => window.dispatchEvent(new Event('nfcps-watch-together-open'))}><Users /><span>Together</span></button>
+          </div>
+          <button className='wv3-study' onClick={() => window.dispatchEvent(new Event('nfcps-scripture-lens-open'))}>
+            <BookOpen />
+            <span>
+              <strong>Study this message</strong>
+              <small>Scripture, sermon map, claims and questions</small>
+            </span>
+            <ChevronRight />
+          </button>
+          <Rail title='Up Next' items={diversify(long.filter(video => video.id !== selected.id)).slice(0, 10)} onOpen={open} />
+        </section>
+        <SermonIntelligenceV2 video={selected} onJump={setPlayerStart} />
+        {toast && <div className='wv3-toast'>{toast}</div>}
+      </main>
+    );
   }
 
   if (screen === 'growth') {
-    return <GrowthView onBack={() => setScreen('home')}/>;
+    return <GrowthView onBack={() => setScreen('home')} />;
   }
 
   if (screen !== 'home') {
     const list = screen === 'saved' ? saved : history;
-    return <main className='wv3-app'>
-      <section className='wv3-secondary'>
-        <div className='wv3-secondary-bar'>
-          <button onClick={() => setScreen('home')}><ArrowLeft/></button>
-          <div>
-            <h1>{screen === 'saved' ? 'Watch Later' : 'Watch History'}</h1>
-            <p>{list.length ? `${list.length} messages` : 'Nothing here yet.'}</p>
+    return (
+      <main className='wv3-app'>
+        <section className='wv3-secondary'>
+          <div className='wv3-secondary-bar'>
+            <button onClick={() => setScreen('home')}><ArrowLeft /></button>
+            <div>
+              <h1>{screen === 'saved' ? 'Watch Later' : 'Watch History'}</h1>
+              <p>{list.length ? `${list.length} messages` : 'Nothing here yet.'}</p>
+            </div>
           </div>
-        </div>
-        <div className='wv3-grid'>{list.map(video => <Card key={video.id} video={video} onOpen={open}/>)}</div>
-        <Dock/>
-      </section>
-    </main>;
+          <div className='wv3-grid'>{list.map(video => <Card key={video.id} video={video} onOpen={open} />)}</div>
+          <Dock />
+        </section>
+      </main>
+    );
   }
 
-  return <main className='wv3-app'>
-    <div className='wv3-pagebar'>
-      <div><h1>Watch</h1><p>Watch what builds your faith.</p></div>
-      <div>
-        <button onClick={() => setSearchOpen(value => !value)}><Search/></button>
-        <a href='../#you' className='cx-avatar'><UserRound/></a>
-      </div>
-    </div>
-
-    {searchOpen && <label className='wv3-search'>
-      <Search/>
-      <input autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder='Search messages or creators'/>
-      {query && <button onClick={() => setQuery('')}><X/></button>}
-    </label>}
-
-    <div className='wv3-filters'>
-      {['All', 'Prayer', 'Worship', 'Bible', 'Live'].map(item => <button key={item} className={filter === item ? 'active' : ''} onClick={() => setFilter(item)}>{item}</button>)}
-    </div>
-
-    {searching ? <>
-      {homeFeed.length > 0
-        ? <Rail title='Results' items={homeFeed.slice(0, 16)} onOpen={open}/>
-        : <section className='wv3-empty'><Search/><h2>No matching messages</h2><p>Try another creator, topic or category.</p></section>}
-    </> : <>
-      <section className='wv3-hero'>
-        <img src={image(featured.id)} alt=''/>
-        <i/>
-        <div className='wv3-hero-copy'>
-          <small>FEATURED FOR YOU</small>
-          <h2>{featured.title}</h2>
-          <p>{featured.creator}</p>
-          <div>
-            <button onClick={() => open(featured)}><Play/>Play</button>
-            <button onClick={() => toggleSave(featured)}><Bookmark/>Save</button>
-          </div>
-        </div>
-      </section>
-
-      {history.length > 0 && <Rail title='Continue Watching' items={history.slice(0, 8)} onOpen={open}/>} 
-
-      <section className='wv3-shorts-preview'>
-        <div className='wv3-rail-title'>
-          <h2>Shorts</h2>
-          <button onClick={() => setShortsOpen(true)}>Open <ChevronRight/></button>
-        </div>
+  return (
+    <main className='wv3-app'>
+      <div className='wv3-pagebar'>
+        <div><h1>Watch</h1><p>Watch what builds your faith.</p></div>
         <div>
-          {shortsItems.slice(0, 5).map(video => <button key={video.id} onClick={() => setShortsOpen(true)}>
-            <img src={image(video.id)} alt=''/><i/><span>{video.title}</span>
-          </button>)}
+          <button onClick={toggleSearch} aria-label='Search Watch'><Search /></button>
+          <a href='../#you' className='cx-avatar'><UserRound /></a>
         </div>
-      </section>
+      </div>
 
-      <Rail title='For You' items={homeFeed.slice(1, 11)} onOpen={open}/>
-      <Rail title='Explore' items={explore} onOpen={open}/>
+      {searchOpen && (
+        <label className='wv3-search'>
+          <Search />
+          <input autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder='Search messages or creators' />
+          {query && <button onClick={() => setQuery('')} aria-label='Clear search'><X /></button>}
+        </label>
+      )}
 
-      <section className='wv3-quick-links'>
-        <button onClick={() => setScreen('saved')}><Bookmark/><span>Watch Later</span><ChevronRight/></button>
-        <button onClick={() => setScreen('history')}><Flame/><span>History</span><ChevronRight/></button>
-      </section>
-    </>}
+      <div className='wv3-filters'>
+        {['All', 'Prayer', 'Worship', 'Bible', 'Live'].map(item => (
+          <button key={item} className={filter === item ? 'active' : ''} onClick={() => setFilter(item)}>{item}</button>
+        ))}
+      </div>
 
-    <Dock/>
-    {toast && <div className='wv3-toast'>{toast}</div>}
-  </main>;
+      {browsing ? (
+        resultFeed.length > 0
+          ? <Rail title='Results' items={resultFeed.slice(0, 16)} onOpen={open} />
+          : <section className='wv3-empty'><Search /><h2>No matching messages</h2><p>Try another creator, topic or category.</p></section>
+      ) : (
+        <>
+          <section className='wv3-hero'>
+            <img src={image(featured.id)} alt='' />
+            <i />
+            <div className='wv3-hero-copy'>
+              <small>FEATURED FOR YOU</small>
+              <h2>{featured.title}</h2>
+              <p>{featured.creator}</p>
+              <div>
+                <button onClick={() => open(featured)}><Play />Play</button>
+                <button onClick={() => toggleSave(featured)}><Bookmark />{savedIds.has(featured.id) ? 'Saved' : 'Save'}</button>
+              </div>
+            </div>
+          </section>
+
+          {history.length > 0 && <Rail title='Continue Watching' items={history.slice(0, 8)} onOpen={open} />}
+
+          <section className='wv3-shorts-preview'>
+            <div className='wv3-rail-title'>
+              <h2>Shorts</h2>
+              <button onClick={() => setShortsOpen(true)}>Open <ChevronRight /></button>
+            </div>
+            <div>
+              {shortsItems.slice(0, 5).map(video => (
+                <button key={video.id} onClick={() => setShortsOpen(true)}>
+                  <img src={image(video.id)} alt='' />
+                  <i />
+                  <span>{video.title}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <Rail title='For You' items={homeFeed.slice(1, 11)} onOpen={open} />
+          <Rail title='Explore' items={explore} onOpen={open} />
+        </>
+      )}
+
+      <Dock />
+      {toast && <div className='wv3-toast'>{toast}</div>}
+    </main>
+  );
 }
