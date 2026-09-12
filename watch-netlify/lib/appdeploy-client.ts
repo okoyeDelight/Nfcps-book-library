@@ -1,6 +1,13 @@
-type RequestOptions = { method?: string; body?: unknown; headers?: Record<string, string> };
+const API_BASE = 'https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y';
 
+type RequestOptions = { method?: string; body?: unknown; headers?: Record<string, string> };
 type ApiResponse<T = any> = { data: T; status: number; headers: Headers };
+
+function resolveUrl(url: string) {
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith('/api/')) return `${API_BASE}${url}`;
+  return url;
+}
 
 async function request<T = any>(url: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
   const method = options.method || 'GET';
@@ -10,7 +17,7 @@ async function request<T = any>(url: string, options: RequestOptions = {}): Prom
     headers['Content-Type'] = 'application/json';
     init.body = JSON.stringify(options.body);
   }
-  const response = await fetch(url, init);
+  const response = await fetch(resolveUrl(url), init);
   const text = await response.text();
   let data: any = null;
   if (text) {
@@ -33,35 +40,34 @@ export const api = {
 };
 
 type Handler = (...args: any[]) => void;
-
 function inertRealtimeConnection() {
-  let openHandler: Handler | null = null;
   let closeHandler: Handler | null = null;
-  let errorHandler: Handler | null = null;
-  let messageHandler: Handler | null = null;
   let stopped = false;
   const connection = {
     connectionId: '',
     ready: Promise.resolve(),
-    onOpen(handler: Handler) { openHandler = handler; window.setTimeout(() => { if (!stopped) closeHandler?.(); }, 0); return connection; },
+    onOpen(_handler: Handler) { window.setTimeout(() => { if (!stopped) closeHandler?.(); }, 0); return connection; },
     onClose(handler: Handler) { closeHandler = handler; return connection; },
-    onError(handler: Handler) { errorHandler = handler; return connection; },
-    onMessage(handler: Handler) { messageHandler = handler; return connection; },
+    onError(_handler: Handler) { return connection; },
+    onMessage(_handler: Handler) { return connection; },
     disconnect() { stopped = true; closeHandler?.(); },
   };
-  void openHandler; void errorHandler; void messageHandler;
   return connection;
 }
-
 export const ws = { connect: inertRealtimeConnection };
 
 export const auth = {
   isSignedIn: () => false,
-  signIn: async () => { throw new Error('Platform sign-in stays on the current NFCPS host during staged migration.'); },
+  signIn: async () => { throw new Error('Push-notification sign-in is temporarily unavailable during the hosting migration.'); },
   signOut: async () => undefined,
 };
 
 export const notifications = {
-  getEnableGuidance: async () => ({ kind: 'unsupported', title: 'Notifications remain on the current NFCPS host', message: 'This Watch-only migration does not move notification delivery.', steps: [] }),
+  getEnableGuidance: async () => ({
+    kind: 'unsupported',
+    title: 'Push reminders are temporarily paused',
+    message: 'Borrowing, waitlists and calendar reminders still work. Lock-screen push reminders will return after the notification layer is migrated.',
+    steps: [],
+  }),
   subscribe: async () => ({ ok: false }),
 };
