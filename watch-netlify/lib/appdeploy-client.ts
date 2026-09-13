@@ -10,6 +10,8 @@ function directHatchablePath(url: string) {
   if (url.startsWith('/api/circulation/')) return `${HATCHABLE_ORIGIN}${url}`;
   if (url.startsWith('/api/nfcps-account/')) return `${HATCHABLE_ORIGIN}${url}`;
   if (url.startsWith('/api/member-sync/')) return `${HATCHABLE_ORIGIN}${url}`;
+  if (url === '/api/watch/feed' || url.startsWith('/api/watch/feed?')) return `${HATCHABLE_ORIGIN}${url}`;
+  if (url === '/api/watch/shorts/feed' || url.startsWith('/api/watch/shorts/feed?')) return `${HATCHABLE_ORIGIN}${url}`;
   if (url === '/api/watch/live') return `${HATCHABLE_ORIGIN}/api/watch/live`;
   return '';
 }
