@@ -1,0 +1,42 @@
+{
+  "name": "NFCPS One",
+  "short_name": "NFCPS One",
+  "description": "Christ the Therapy for All - NFCPS UNIZIK fellowship app for Library, Watch, Moments and community",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#07101f",
+  "theme_color": "#07101f",
+  "categories": ["education", "books", "lifestyle"],
+  "icons": [
+    {
+      "src": "/resources/nfcps-logo.png",
+      "sizes": "501x498",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/nfcps-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "NFCPS Library",
+      "short_name": "Library",
+      "url": "/#ebooks",
+      "icons": [{"src": "/resources/nfcps-logo.png", "sizes": "501x498", "type": "image/png"}]
+    },
+    {
+      "name": "NFCPS Watch",
+      "short_name": "Watch",
+      "url": "/watch/",
+      "icons": [{"src": "/resources/nfcps-logo.png", "sizes": "501x498", "type": "image/png"}]
+    }
+  ]
+}
