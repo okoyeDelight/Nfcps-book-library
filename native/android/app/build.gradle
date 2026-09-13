@@ -10,8 +10,8 @@ android {
         applicationId 'org.nfcpsunizik.one'
         minSdk 24
         targetSdk 35
-        versionCode 18
-        versionName '1.6.7'
+        versionCode 19
+        versionName '1.6.8'
     }
 
     buildTypes {
@@ -33,4 +33,5 @@ dependencies {
     implementation 'net.java.dev.jna:jna:5.18.1@aar'
     implementation 'com.alphacephei:vosk-android:0.3.75@aar'
     implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.work:work-runtime:2.9.1'
 }
