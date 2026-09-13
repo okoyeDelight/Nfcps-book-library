@@ -1,0 +1,53 @@
+name: Build exact NFCPS Floot bundle
+
+on:
+  push:
+    paths:
+      - 'floot-exact/**'
+      - 'appdeploy-live/src/**'
+      - 'appdeploy-live/styles/**'
+      - 'appdeploy-live/public/**'
+      - '.github/workflows/build-floot-exact.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install bundle dependencies
+        run: npm install --prefix floot-exact --no-audit --no-fund
+      - name: Build exact NFCPS One bundle
+        run: npm run build --prefix floot-exact
+      - name: Verify required bundle files
+        run: |
+          test -f floot-exact-dist/index.html
+          test -f floot-exact-dist/nfcps-one.js
+          test -f floot-exact-dist/nfcps-one.css
+          grep -q "NFCPS One" floot-exact-dist/index.html
+          echo "Bundle bytes:"
+          wc -c floot-exact-dist/nfcps-one.js floot-exact-dist/nfcps-one.css
+      - name: Commit portable build output
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f floot-exact-dist
+          if git diff --cached --quiet; then
+            echo 'No bundle changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Build exact NFCPS One Floot bundle'
+          for attempt in 1 2 3; do
+            git pull --rebase origin main || true
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt * 4))
+          done
+          exit 1
