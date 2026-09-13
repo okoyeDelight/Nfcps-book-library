@@ -1,11 +1,11 @@
 {
-  "revision": 8,
+  "revision": 9,
   "enabled": true,
-  "latest_version_code": 15,
-  "latest_version_name": "1.6.4",
+  "latest_version_code": 16,
+  "latest_version_name": "1.6.5",
   "minimum_supported_version_code": 8,
   "apk_url": "https://github.com/okoyeDelight/Nfcps-book-library/releases/download/nfcps-one-latest/NFCPS-One.apk",
-  "sha256": "58b3decef4399ad00737368c5705897573e8b678c3cd1b7a59273710b5b58109",
-  "title": "NFCPS One 1.6.4",
-  "notes": "Read shelf reliability update."
+  "sha256": "be3e1f40516c39e881500a6aea42e44b0ae5cf4440689f45d64261c00bf19236",
+  "title": "NFCPS One 1.6.5",
+  "notes": "Remote Read catalog foundation. Future book list and cover changes can refresh without another APK update."
 }
