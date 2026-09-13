@@ -43,9 +43,13 @@ function WatchPage() {
   return <><AppInstall/><WatchExperience/><LiveChurchLens/></>;
 }
 
+function isWatchPath(pathname: string) {
+  const path = pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  return path === '/watch' || path.endsWith('/watch') || path.includes('/watch/');
+}
+
 function RootApp() {
-  const path = window.location.pathname.toLowerCase();
-  const watch = path === '/watch' || path.startsWith('/watch/');
+  const watch = isWatchPath(window.location.pathname);
   React.useEffect(() => {
     if (!watch) {
       document.title = 'NFCPS One · NFCPS UNIZIK';
