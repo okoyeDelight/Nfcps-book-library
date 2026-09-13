@@ -1,12 +1,23 @@
-const API_BASE = 'https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y';
+const HATCHABLE_ORIGIN = 'https://nfcps-one.hatchable.site';
+const COMPAT_BASE = `${HATCHABLE_ORIGIN}/api/compat`;
 
 type RequestOptions = { method?: string; body?: unknown; headers?: Record<string, string> };
 type ApiResponse<T = any> = { data: T; status: number; headers: Headers };
 
+function directHatchablePath(url: string) {
+  if (url === '/api/ebooks/catalog') return `${HATCHABLE_ORIGIN}/api/ebooks/catalog`;
+  if (url.startsWith('/api/reader/book/')) return `${HATCHABLE_ORIGIN}${url}`;
+  if (url.startsWith('/api/circulation/')) return `${HATCHABLE_ORIGIN}${url}`;
+  if (url === '/api/watch/live') return `${HATCHABLE_ORIGIN}/api/watch/live`;
+  return '';
+}
+
 function resolveUrl(url: string) {
   if (/^https?:\/\//i.test(url)) return url;
-  if (url.startsWith('/api/')) return `${API_BASE}${url}`;
-  return url;
+  if (!url.startsWith('/api/')) return url;
+  const direct = directHatchablePath(url);
+  if (direct) return direct;
+  return `${COMPAT_BASE}/${url.slice('/api/'.length)}`;
 }
 
 async function request<T = any>(url: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
@@ -46,11 +57,11 @@ function inertRealtimeConnection() {
   const connection = {
     connectionId: '',
     ready: Promise.resolve(),
-    onOpen(_handler: Handler) { window.setTimeout(() => { if (!stopped) closeHandler?.(); }, 0); return connection; },
+    onOpen(_handler: Handler) { return connection; },
     onClose(handler: Handler) { closeHandler = handler; return connection; },
     onError(_handler: Handler) { return connection; },
     onMessage(_handler: Handler) { return connection; },
-    disconnect() { stopped = true; closeHandler?.(); },
+    disconnect() { stopped = true; if (!stopped) closeHandler?.(); },
   };
   return connection;
 }
@@ -59,19 +70,20 @@ export const ws = {
   connect: (..._args: unknown[]) => inertRealtimeConnection(),
 };
 
+function hasNativeNotifications() {
+  return typeof window !== 'undefined' && Boolean((window as any).__NFCPS_NATIVE__);
+}
+
 export const auth = {
-  isSignedIn: () => false,
-  signIn: async (_options?: unknown) => { throw new Error('Push-notification sign-in is temporarily unavailable during the hosting migration.'); },
+  isSignedIn: () => hasNativeNotifications(),
+  signIn: async (_options?: unknown) => undefined,
   signOut: async (_options?: unknown) => undefined,
 };
 
 export const notifications = {
   configure: async (_options?: unknown) => undefined,
-  getEnableGuidance: async (_options?: unknown) => ({
-    kind: 'unsupported',
-    title: 'Push reminders are temporarily paused',
-    message: 'Borrowing, waitlists and calendar reminders still work. Lock-screen push reminders will return after the notification layer is migrated.',
-    steps: [] as string[],
-  }),
-  subscribe: async (_options?: unknown) => ({ ok: false }),
+  getEnableGuidance: async (_options?: unknown) => hasNativeNotifications()
+    ? ({ kind: 'ready', title: 'Phone reminders ready', message: 'NFCPS One will use Android notifications for this reminder.', steps: [] as string[] })
+    : ({ kind: 'unsupported', title: 'Open NFCPS One on Android', message: 'Lock-screen reminders are available inside the installed NFCPS One app.', steps: [] as string[] }),
+  subscribe: async (_options?: unknown) => ({ ok: hasNativeNotifications() }),
 };
