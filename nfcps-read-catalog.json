@@ -1,0 +1,298 @@
+{
+  "revision": 1,
+  "updated_at": "2026-09-13T04:10:00Z",
+  "shelves": [
+    {
+      "id": "modern-growth",
+      "title": "Modern Growth & Business",
+      "subtitle": "Strong books on habits, purpose, business, focus, resilience and money. Preview or explore them without leaving NFCPS One.",
+      "books": [
+        {
+          "id": "atomic-habits",
+          "title": "Atomic Habits",
+          "author": "James Clear",
+          "description": "Practical systems for building good habits and making small improvements compound over time.",
+          "isbn": "9780735211292",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9780735211292-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9780735211292&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "ikigai",
+          "title": "Ikigai",
+          "author": "Héctor García & Francesc Miralles",
+          "description": "A popular exploration of purpose, meaningful work and a life worth waking up for.",
+          "isbn": "9780143130727",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9780143130727-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9780143130727&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "rework",
+          "title": "Rework",
+          "author": "Jason Fried & David Heinemeier Hansson",
+          "description": "A practical challenge to conventional ideas about building and running a business.",
+          "isbn": "9780307463746",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9780307463746-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9780307463746&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "shoe-dog",
+          "title": "Shoe Dog",
+          "author": "Phil Knight",
+          "description": "The candid story of Nike's uncertain, risky and persistent path from idea to global company.",
+          "isbn": "9781501135910",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9781501135910-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9781501135910&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "think-like-a-monk",
+          "title": "Think Like a Monk",
+          "author": "Jay Shetty",
+          "description": "Attention, purpose, discipline, reflection and practical exercises for a calmer inner life.",
+          "isbn": "9781982134488",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9781982134488-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9781982134488&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "limitless",
+          "title": "Limitless",
+          "author": "Jim Kwik",
+          "description": "Learning, memory, focus and methods for improving how you learn.",
+          "isbn": "9781401958237",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9781401958237-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9781401958237&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "hooked",
+          "title": "Hooked",
+          "author": "Nir Eyal",
+          "description": "A framework for understanding how habit-forming products shape repeated user behaviour.",
+          "isbn": "9781591847786",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9781591847786-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9781591847786&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "mountain-is-you",
+          "title": "The Mountain Is You",
+          "author": "Brianna Wiest",
+          "description": "Self-sabotage, resilience and becoming more capable of handling the challenges in front of you.",
+          "isbn": "9781949759228",
+          "mode": "preview",
+          "google_book_id": "3WFfEQAAQBAJ",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9781949759228-L.jpg?default=false",
+            "https://books.google.com/books/content?id=3WFfEQAAQBAJ&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "alchemist",
+          "title": "The Alchemist",
+          "author": "Paulo Coelho",
+          "description": "A story about calling, courage, desire and pursuing a personal journey.",
+          "isbn": "9780062315007",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9780062315007-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9780062315007&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "naval-almanack",
+          "title": "The Almanack of Naval Ravikant",
+          "author": "Eric Jorgenson",
+          "description": "A curated guide to wealth, judgment and happiness, published with a free official online edition.",
+          "isbn": "9781544514215",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9781544514215-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9781544514215&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "art-of-thinking-clearly",
+          "title": "The Art of Thinking Clearly",
+          "author": "Rolf Dobelli",
+          "description": "Short chapters on common thinking errors and how they distort judgment.",
+          "isbn": "9780062219695",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9780062219695-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9780062219695&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "poor-charlies-almanack",
+          "title": "Poor Charlie's Almanack",
+          "author": "Charles T. Munger / Peter D. Kaufman",
+          "description": "Speeches and mental models on judgment, business, investing and worldly wisdom.",
+          "isbn": "9781578643033",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9781578643033-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9781578643033&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "win-friends",
+          "title": "How to Win Friends and Influence People",
+          "author": "Dale Carnegie",
+          "description": "A classic guide to relationships, communication and constructive influence.",
+          "isbn": "9781439167342",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9781439167342-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9781439167342&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "cant-hurt-me",
+          "title": "Can't Hurt Me",
+          "author": "David Goggins",
+          "description": "A memoir focused on resilience, discipline and pushing beyond self-imposed limits.",
+          "isbn": "9781544512280",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9781544512280-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9781544512280&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "focus-on-what-matters",
+          "title": "Focus on What Matters",
+          "author": "Darius Foroux",
+          "description": "Short reflections on attention, priorities, resilience and living deliberately.",
+          "isbn": "9789083301808",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9789083301808-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9789083301808&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "think-and-grow-rich",
+          "title": "Think and Grow Rich",
+          "author": "Napoleon Hill",
+          "description": "A historically influential personal-success book about goals, persistence and organised effort.",
+          "isbn": "9781582703282",
+          "mode": "preview",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9781582703282-L.jpg?default=false",
+            "https://books.google.com/books/content?vid=ISBN9781582703282&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        },
+        {
+          "id": "psychology-of-money",
+          "title": "The Psychology of Money",
+          "author": "Morgan Housel",
+          "description": "Stories about the behavioural side of saving, investing, risk and wealth.",
+          "isbn": "9780857197689",
+          "mode": "preview",
+          "google_book_id": "5HrrDwAAQBAJ",
+          "cover_candidates": [
+            "https://covers.openlibrary.org/b/isbn/9780857197689-L.jpg?default=false",
+            "https://books.google.com/books/content?id=5HrrDwAAQBAJ&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "free-growth-classics",
+      "title": "Read Free · Growth Classics",
+      "subtitle": "Public-domain classics that open directly in the full NFCPS One reader.",
+      "books": [
+        {
+          "id": "as-a-man-thinketh",
+          "title": "As a Man Thinketh",
+          "author": "James Allen",
+          "description": "A short classic about thought, character and the direction of a life.",
+          "mode": "read",
+          "gutenberg_id": 4507,
+          "cover_candidates": ["https://www.gutenberg.org/cache/epub/4507/pg4507.cover.medium.jpg"]
+        },
+        {
+          "id": "art-of-money-getting",
+          "title": "The Art of Money Getting",
+          "author": "P. T. Barnum",
+          "description": "Old-school lessons on work, money, debt, integrity and opportunity.",
+          "mode": "read",
+          "gutenberg_id": 8581,
+          "cover_candidates": ["https://www.gutenberg.org/cache/epub/8581/pg8581.cover.medium.jpg"]
+        },
+        {
+          "id": "acres-of-diamonds",
+          "title": "Acres of Diamonds",
+          "author": "Russell H. Conwell",
+          "description": "A reminder to recognise opportunities already close to you.",
+          "mode": "read",
+          "gutenberg_id": 368,
+          "cover_candidates": ["https://www.gutenberg.org/cache/epub/368/pg368.cover.medium.jpg"]
+        },
+        {
+          "id": "self-help",
+          "title": "Self-Help",
+          "author": "Samuel Smiles",
+          "description": "Industry, perseverance, character and self-education.",
+          "mode": "read",
+          "gutenberg_id": 935,
+          "cover_candidates": ["https://www.gutenberg.org/cache/epub/935/pg935.cover.medium.jpg"]
+        },
+        {
+          "id": "enchiridion",
+          "title": "The Enchiridion",
+          "author": "Epictetus",
+          "description": "A compact Stoic handbook on control, judgment and inner freedom.",
+          "mode": "read",
+          "gutenberg_id": 45109,
+          "cover_candidates": ["https://www.gutenberg.org/cache/epub/45109/pg45109.cover.medium.jpg"]
+        },
+        {
+          "id": "meditations",
+          "title": "Meditations",
+          "author": "Marcus Aurelius",
+          "description": "Private reflections on discipline, duty, character and calm.",
+          "mode": "read",
+          "gutenberg_id": 2680,
+          "cover_candidates": ["https://www.gutenberg.org/cache/epub/2680/pg2680.cover.medium.jpg"]
+        },
+        {
+          "id": "science-of-getting-rich",
+          "title": "The Science of Getting Rich",
+          "author": "W. D. Wattles",
+          "description": "A historically influential prosperity text to read critically alongside Scripture and sound financial wisdom.",
+          "mode": "read",
+          "gutenberg_id": 59844,
+          "cover_candidates": ["https://www.gutenberg.org/cache/epub/59844/pg59844.cover.medium.jpg"]
+        },
+        {
+          "id": "the-prophet",
+          "title": "The Prophet",
+          "author": "Kahlil Gibran",
+          "description": "Poetic reflections on work, love, giving, freedom, friendship and life.",
+          "mode": "read",
+          "gutenberg_id": 58585,
+          "cover_candidates": ["https://www.gutenberg.org/cache/epub/58585/pg58585.cover.medium.jpg"]
+        }
+      ]
+    }
+  ]
+}
