@@ -1,0 +1,75 @@
+name: Wire NFCPS frontend origin handoff
+
+on:
+  push:
+    paths:
+      - '.github/workflows/wire-origin-handoff.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Wire handoff into MainActivity
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('native/android/app/src/main/java/org/nfcpsunizik/one/MainActivity.java')
+          s=p.read_text()
+          if 'OriginStateHandoff.captureThenNavigate' not in s:
+              old="""        if (webView != null && !sameTarget(visibleUrl, nextUrl)) {
+            webView.stopLoading();
+            webView.loadUrl(nextUrl);
+        }
+"""
+              new="""        if (webView != null && !sameTarget(visibleUrl, nextUrl)) {
+            final String targetUrl = nextUrl;
+            OriginStateHandoff.captureThenNavigate(this, webView, visibleUrl, targetUrl, () -> {
+                webView.stopLoading();
+                webView.loadUrl(targetUrl);
+            });
+        }
+"""
+              if old not in s: raise SystemExit('applyBootstrap target not found')
+              s=s.replace(old,new,1)
+          if 'OriginStateHandoff.restoreIfPending(this, view, url);' not in s:
+              old="""                    view.evaluateJavascript(NativeServiceRouter.libraryPostBridgeScript(), null);
+                    if (nativeLiveWatchController != null) nativeLiveWatchController.onPageFinished(url);
+"""
+              new="""                    view.evaluateJavascript(NativeServiceRouter.libraryPostBridgeScript(), null);
+                    OriginStateHandoff.restoreIfPending(this, view, url);
+                    if (nativeLiveWatchController != null) nativeLiveWatchController.onPageFinished(url);
+"""
+              if old not in s: raise SystemExit('onPageFinished target not found')
+              s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+      - name: Compile Android migration layer
+        working-directory: native/android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon
+      - name: Commit validated wiring
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add native/android/app/src/main/java/org/nfcpsunizik/one/MainActivity.java
+          git commit -m 'Preserve NFCPS local state across frontend migration'
+          for attempt in 1 2 3; do
+            git pull --rebase origin main || true
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt * 4))
+          done
+          exit 1
