@@ -1,0 +1,3 @@
+NFCPS One 1.6.7 native maintenance build trigger.
+
+Scope: preserve the original AppDeploy UI while routing only Read and Library service traffic through the compatibility service layer; repair restored-WebView bootstrap recovery; fix native Read cover fallback overlay.
