@@ -8,6 +8,8 @@ function directHatchablePath(url: string) {
   if (url === '/api/ebooks/catalog') return `${HATCHABLE_ORIGIN}/api/ebooks/catalog`;
   if (url.startsWith('/api/reader/book/')) return `${HATCHABLE_ORIGIN}${url}`;
   if (url.startsWith('/api/circulation/')) return `${HATCHABLE_ORIGIN}${url}`;
+  if (url.startsWith('/api/nfcps-account/')) return `${HATCHABLE_ORIGIN}${url}`;
+  if (url.startsWith('/api/member-sync/')) return `${HATCHABLE_ORIGIN}${url}`;
   if (url === '/api/watch/live') return `${HATCHABLE_ORIGIN}/api/watch/live`;
   return '';
 }
@@ -53,7 +55,6 @@ export const api = {
 type Handler = (...args: any[]) => void;
 function inertRealtimeConnection() {
   let closeHandler: Handler | null = null;
-  let stopped = false;
   const connection = {
     connectionId: '',
     ready: Promise.resolve(),
@@ -61,7 +62,7 @@ function inertRealtimeConnection() {
     onClose(handler: Handler) { closeHandler = handler; return connection; },
     onError(_handler: Handler) { return connection; },
     onMessage(_handler: Handler) { return connection; },
-    disconnect() { stopped = true; if (!stopped) closeHandler?.(); },
+    disconnect() { closeHandler?.(); },
   };
   return connection;
 }
