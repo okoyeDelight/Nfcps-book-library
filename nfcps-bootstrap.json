@@ -1,7 +1,8 @@
 {
-  "revision": 7,
-  "app_url": "https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/",
+  "revision": 8,
+  "app_url": "https://nfcps-one-watch.floot.app/",
   "internal_hosts": [
+    "nfcps-one-watch.floot.app",
     "nfcps-book-library-c2ma7y.v2.appdeploy.ai",
     "api-v2.appdeploy.ai"
   ],
