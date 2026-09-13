@@ -1,11 +1,11 @@
 {
-  "revision": 6,
+  "revision": 7,
   "enabled": true,
-  "latest_version_code": 13,
-  "latest_version_name": "1.6.2",
+  "latest_version_code": 14,
+  "latest_version_name": "1.6.3",
   "minimum_supported_version_code": 8,
   "apk_url": "https://github.com/okoyeDelight/Nfcps-book-library/releases/download/nfcps-one-latest/NFCPS-One.apk",
-  "sha256": "633da222dea1040479713b29c6e31721bfb3bb8ca0e621064da6a3184b3f53a7",
-  "title": "NFCPS One Read + Scripture Lens update",
-  "notes": "Adds the Growth & Business discovery shelves to Read, including the bookstore-inspired titles and legal public-domain growth classics that open in the full NFCPS reader. Scripture Lens now listens to the preacher's rolling thought rather than waiting for a spoken verse reference: it semantically looks for strongly relevant Bible passages, opens the best match automatically, and cross-checks the passage in KJV, WEB and ASV. Reading progress, notes, highlights, accounts, Library and Watch remain intact."
+  "sha256": "48047b4632cf2c46ae09d0b61d7024b11dc3dbdb2bb5f35f83ef4121c0f80bd0",
+  "title": "NFCPS One faster Scripture Lens + Read books",
+  "notes": "Scripture Lens now samples sermon playback every 2 seconds, surfaces common biblical themes locally for near-instant matches, keeps a rolling thought window for deeper semantic matching, shows the first KJV result immediately, and fills WEB/ASV comparisons afterward. It no longer automatically falls back to microphone speech recognition when playback capture is blocked, so Watch should not be interrupted by an unsolicited mic takeover. Read now uses a self-healing native shelf mount and includes Atomic Habits, Ikigai, Rework, Shoe Dog, Think Like a Monk, Limitless, Hooked, The Mountain Is You, The Alchemist, Poor Charlie's Almanack, The Art of Thinking Clearly, Can't Hurt Me, Think and Grow Rich and more, plus legal public-domain classics that open in the NFCPS reader."
 }
