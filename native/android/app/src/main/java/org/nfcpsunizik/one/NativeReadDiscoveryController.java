@@ -82,7 +82,7 @@ final class NativeReadDiscoveryController {
                   if (candidates.length) {
                     var img = document.createElement('img'); var idx = 0;
                     img.alt = book.title+' cover';
-                    img.onload = function(){ fallback.style.display='none'; };
+                    img.onload = function(){ fallback.style.setProperty('display','none','important'); };
                     img.onerror = function(){ idx++; if (idx<candidates.length) img.src=candidates[idx]; else img.remove(); };
                     img.src = candidates[0]; wrap.appendChild(img);
                   }

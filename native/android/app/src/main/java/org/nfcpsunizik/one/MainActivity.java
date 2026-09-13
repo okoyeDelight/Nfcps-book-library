@@ -23,6 +23,7 @@ import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -94,10 +95,10 @@ public class MainActivity extends Activity {
     private void applyBootstrap(BootstrapConfig.Config config) {
         if (config == null) return;
         String nextUrl = BootstrapConfig.nativeUrl(config.appUrl);
-        String previousUrl = currentAppUrl;
+        String visibleUrl = webView != null ? webView.getUrl() : null;
         bootstrapConfig = config;
         currentAppUrl = nextUrl;
-        if (webView != null && !sameTarget(previousUrl, nextUrl)) {
+        if (webView != null && !sameTarget(visibleUrl, nextUrl)) {
             webView.stopLoading();
             webView.loadUrl(nextUrl);
         }
@@ -194,7 +195,7 @@ public class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setSupportMultipleWindows(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.5.2");
+        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.6.7");
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
@@ -203,6 +204,15 @@ public class MainActivity extends Activity {
         }
 
         target.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (!popup) {
+                    WebResourceResponse routed = NativeServiceRouter.interceptGet(request);
+                    if (routed != null) return routed;
+                }
+                return super.shouldInterceptRequest(view, request);
+            }
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
@@ -236,6 +246,7 @@ public class MainActivity extends Activity {
                                     + ";document.documentElement.classList.add('nfcps-native-app');",
                             null
                     );
+                    view.evaluateJavascript(NativeServiceRouter.libraryPostBridgeScript(), null);
                     if (updateManager != null) updateManager.checkForUpdatesOnce();
                 }
             }

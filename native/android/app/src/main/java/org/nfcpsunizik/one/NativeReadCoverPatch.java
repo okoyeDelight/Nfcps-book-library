@@ -39,7 +39,7 @@ final class NativeReadCoverPatch {
                       if(detail.id!==id||done)return;
                       done=true;clearTimeout(timer);window.removeEventListener('nfcps-cover-ready',ready);
                       if(!detail.dataUrl){next();return;}
-                      img.onload=function(){if(fallback)fallback.style.display='none';img.style.display='block';};
+                      img.onload=function(){if(fallback)fallback.style.setProperty('display','none','important');img.style.display='block';};
                       img.onerror=function(){img.removeAttribute('src');next();};
                       img.src=detail.dataUrl;
                     }
