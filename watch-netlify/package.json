@@ -1,7 +1,7 @@
 {
   "name": "nfcps-one-standalone",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "prebuild": "rm -rf styles/appdeploy && mkdir -p styles/appdeploy && cp -R ../appdeploy-live/styles/. styles/appdeploy/",
     "build": "next build"
