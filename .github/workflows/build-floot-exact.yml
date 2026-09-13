@@ -27,14 +27,59 @@ jobs:
         run: npm install --prefix floot-exact --no-audit --no-fund
       - name: Build exact NFCPS One bundle
         run: npm run build --prefix floot-exact
+      - name: Mirror UI resources out of AppDeploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          ORIGIN='https://nfcps-book-library-c2ma7y.v2.appdeploy.ai'
+          mkdir -p floot-exact-dist/resources
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          roots=[Path('appdeploy-live/src'),Path('appdeploy-live/styles'),Path('appdeploy-live/public')]
+          found=set()
+          for root in roots:
+              if not root.exists():
+                  continue
+              for p in root.rglob('*'):
+                  if not p.is_file():
+                      continue
+                  try: text=p.read_text(errors='ignore')
+                  except Exception: continue
+                  found.update(re.findall(r'/resources/[A-Za-z0-9._/@%+\-]+(?:/[A-Za-z0-9._/@%+\-]+)*', text))
+          Path('/tmp/nfcps-resources.txt').write_text('\n'.join(sorted(found))+'\n')
+          print('\n'.join(sorted(found)))
+          PY
+          while IFS= read -r resource; do
+            [ -n "$resource" ] || continue
+            rel="${resource#/resources/}"
+            target="floot-exact-dist/resources/$rel"
+            mkdir -p "$(dirname "$target")"
+            echo "Mirroring $resource"
+            curl --fail --location --retry 3 --retry-delay 2 "$ORIGIN$resource" --output "$target"
+          done < /tmp/nfcps-resources.txt
       - name: Verify required bundle files
         run: |
           test -f floot-exact-dist/index.html
           test -f floot-exact-dist/nfcps-one.js
           test -f floot-exact-dist/nfcps-one.css
+          test -s floot-exact-dist/resources/nfcps-logo.png
           grep -q "NFCPS One" floot-exact-dist/index.html
           echo "Bundle bytes:"
           wc -c floot-exact-dist/nfcps-one.js floot-exact-dist/nfcps-one.css
+          find floot-exact-dist/resources -type f -maxdepth 8 -print
+      - name: Write upload manifest
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+          root=Path('floot-exact-dist')
+          rows=[]
+          for p in sorted(x for x in root.rglob('*') if x.is_file()):
+              data=p.read_bytes()
+              rows.append({'path':p.relative_to(root).as_posix(),'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()})
+          (root/'floot-upload-manifest.json').write_text(json.dumps({'format':1,'files':rows},indent=2)+'\n')
+          PY
       - name: Commit portable build output
         run: |
           git config user.name 'github-actions[bot]'
