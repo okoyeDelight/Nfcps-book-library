@@ -1,5 +1,6 @@
 package org.nfcpsunizik.one;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
@@ -43,7 +44,9 @@ public class MainActivity extends Activity {
     private Dialog authDialog;
     private WebView authWebView;
     private NativeSpeechBridge nativeSpeechBridge;
+    private NativeLiveWatchController nativeLiveWatchController;
     private UpdateManager updateManager;
+    private static final int REQUEST_LIVE_NOTIFICATIONS = 7202;
     private volatile BootstrapConfig.Config bootstrapConfig;
     private volatile String currentAppUrl = BootstrapConfig.nativeUrl(BootstrapConfig.DEFAULT_APP_URL);
 
@@ -78,15 +81,21 @@ public class MainActivity extends Activity {
 
         nativeSpeechBridge = new NativeSpeechBridge(this, webView);
         webView.addJavascriptInterface(nativeSpeechBridge, "NFCPSNativeSpeech");
+        nativeLiveWatchController = new NativeLiveWatchController(this, webView);
+        nativeLiveWatchController.handleIntent(getIntent());
+        webView.addJavascriptInterface(nativeLiveWatchController, "NFCPSNativeLive");
+        LiveWatchWorker.schedule(this);
+        requestLiveNotificationPermission();
         updateManager = new UpdateManager(this);
         configureWebView(webView, false);
 
         webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> openExternal(Uri.parse(url)));
 
-        if (savedInstanceState != null) {
+        boolean openingLive = getIntent() != null && getIntent().getBooleanExtra(LiveWatchWorker.EXTRA_OPEN_LIVE, false);
+        if (savedInstanceState != null && !openingLive) {
             webView.restoreState(savedInstanceState);
         } else {
-            webView.loadUrl(currentAppUrl);
+            webView.loadUrl(nativeLiveWatchController != null ? nativeLiveWatchController.initialUrl(currentAppUrl) : currentAppUrl);
         }
 
         BootstrapConfig.refreshAsync(this, config -> runOnUiThread(() -> applyBootstrap(config)));
@@ -195,7 +204,7 @@ public class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setSupportMultipleWindows(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.6.7");
+        settings.setUserAgentString(settings.getUserAgentString() + " NFCPSOne/1.6.8");
 
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
@@ -247,6 +256,7 @@ public class MainActivity extends Activity {
                             null
                     );
                     view.evaluateJavascript(NativeServiceRouter.libraryPostBridgeScript(), null);
+                    if (nativeLiveWatchController != null) nativeLiveWatchController.onPageFinished(url);
                     if (updateManager != null) updateManager.checkForUpdatesOnce();
                 }
             }
@@ -421,6 +431,23 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void requestLiveNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQUEST_LIVE_NOTIFICATIONS);
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (nativeLiveWatchController != null) {
+            nativeLiveWatchController.handleIntent(intent);
+            if (webView != null) webView.loadUrl(nativeLiveWatchController.initialUrl(currentAppUrl));
+        }
+    }
+
     private void hideCustomView() {
         if (customView == null) return;
         root.removeView(customView);
@@ -435,6 +462,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         if (updateManager != null) updateManager.onResume();
+        if (nativeLiveWatchController != null) nativeLiveWatchController.onResume();
     }
 
     @Override
@@ -471,6 +499,7 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
+        if (nativeLiveWatchController != null && nativeLiveWatchController.handleBack()) return;
         if (authWebView != null) {
             if (authWebView.canGoBack()) {
                 authWebView.goBack();
@@ -489,6 +518,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         dismissAuthWindow();
+        if (nativeLiveWatchController != null) {
+            nativeLiveWatchController.destroy();
+            nativeLiveWatchController = null;
+        }
         if (nativeSpeechBridge != null) {
             nativeSpeechBridge.destroy();
             nativeSpeechBridge = null;
