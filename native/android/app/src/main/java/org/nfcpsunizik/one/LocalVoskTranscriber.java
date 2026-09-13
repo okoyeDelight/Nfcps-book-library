@@ -73,7 +73,7 @@ final class LocalVoskTranscriber {
         byte[] copy = Arrays.copyOf(wav, wav.length);
         if (!ready) {
             synchronized (pending) {
-                while (pending.size() >= 4) pending.removeFirst();
+                while (pending.size() >= 6) pending.removeFirst();
                 pending.addLast(new Chunk(copy, startMs, durationMs));
             }
             return;
@@ -88,9 +88,9 @@ final class LocalVoskTranscriber {
             boolean complete = recognizer.acceptWaveForm(pcm, pcm.length);
             JSONObject json = new JSONObject(complete ? recognizer.getResult() : recognizer.getPartialResult());
             String text = json.optString(complete ? "text" : "partial", "").trim();
-            if (text.length() < 12 || text.equalsIgnoreCase(lastText)) return;
+            if (text.length() < 4 || text.equalsIgnoreCase(lastText)) return;
             lastText = text;
-            listener.onTranscript(text, complete, startMs, Math.max(startMs + 1000, startMs + durationMs));
+            listener.onTranscript(text, complete, startMs, Math.max(startMs + 700, startMs + durationMs));
         } catch (Exception ignored) {}
     }
 
