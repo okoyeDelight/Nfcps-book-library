@@ -1,0 +1,88 @@
+name: Embed Read Covers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/embed-read-covers.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  embed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install image tools
+        run: pip install pillow requests
+      - name: Download and embed real covers
+        run: |
+          python - <<'PY'
+          import base64, io, json, os, requests
+          from datetime import datetime, timezone
+          from PIL import Image
+
+          path='nfcps-read-catalog.json'
+          with open(path,'r',encoding='utf-8') as f:
+              data=json.load(f)
+
+          session=requests.Session()
+          session.headers.update({'User-Agent':'Mozilla/5.0 NFCPS-One-Cover-Cache/1.0','Accept':'image/avif,image/webp,image/apng,image/*,*/*;q=0.8'})
+          changed=0
+
+          def fetch_image(url):
+              try:
+                  r=session.get(url,timeout=20,allow_redirects=True)
+                  ct=(r.headers.get('content-type') or '').lower()
+                  if r.status_code!=200 or not r.content or ('image' not in ct and len(r.content)<5000):
+                      return None
+                  im=Image.open(io.BytesIO(r.content)).convert('RGB')
+                  im.thumbnail((360,540),Image.Resampling.LANCZOS)
+                  out=io.BytesIO()
+                  im.save(out,'JPEG',quality=82,optimize=True,progressive=True)
+                  raw=out.getvalue()
+                  if len(raw)<1500:
+                      return None
+                  return 'data:image/jpeg;base64,'+base64.b64encode(raw).decode('ascii')
+              except Exception as e:
+                  print('skip',url,str(e)[:120])
+                  return None
+
+          for shelf in data.get('shelves',[]):
+              for book in shelf.get('books',[]):
+                  candidates=[u for u in book.get('cover_candidates',[]) if isinstance(u,str) and not u.startswith('data:')]
+                  embedded=None
+                  for url in candidates:
+                      embedded=fetch_image(url)
+                      if embedded:
+                          print('embedded',book.get('title'),len(embedded))
+                          break
+                  if embedded:
+                      book['cover_candidates']=[embedded]+candidates
+                      changed+=1
+
+          if changed:
+              data['revision']=int(data.get('revision',0))+1
+              data['updated_at']=datetime.now(timezone.utc).isoformat().replace('+00:00','Z')
+              with open(path,'w',encoding='utf-8') as f:
+                  json.dump(data,f,ensure_ascii=False,separators=(',',':'))
+          print('covers embedded:',changed)
+          PY
+      - name: Commit embedded cover catalog
+        run: |
+          if git diff --quiet -- nfcps-read-catalog.json; then
+            echo 'No catalog changes'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add nfcps-read-catalog.json
+          git commit -m 'Embed real Read covers for remote delivery'
+          git push
