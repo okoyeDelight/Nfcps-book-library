@@ -1,23 +1,32 @@
-const API_BASE = 'https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y';
+const LEGACY_API_BASE = 'https://api-v2.appdeploy.ai/app/nfcps-book-library-c2ma7y';
+const configuredApiBase = (process.env.NEXT_PUBLIC_NFCPS_API_BASE || '').trim();
+const configuredFallbackBase = (process.env.NEXT_PUBLIC_NFCPS_API_FALLBACK || LEGACY_API_BASE).trim();
+const API_BASE = (configuredApiBase || LEGACY_API_BASE).replace(/\/+$/, '');
+const READ_FALLBACK_BASE = configuredFallbackBase.replace(/\/+$/, '');
 
 type RequestOptions = { method?: string; body?: unknown; headers?: Record<string, string> };
 type ApiResponse<T = any> = { data: T; status: number; headers: Headers };
 
-function resolveUrl(url: string) {
+function resolveUrl(url: string, base = API_BASE) {
   if (/^https?:\/\//i.test(url)) return url;
-  if (url.startsWith('/api/')) return `${API_BASE}${url}`;
+  if (url.startsWith('/api/')) return `${base}${url}`;
   return url;
 }
 
-async function request<T = any>(url: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
-  const method = options.method || 'GET';
-  const headers: Record<string, string> = { Accept: 'application/json', ...(options.headers || {}) };
+async function requestOnce<T = any>(url: string, options: RequestOptions, base: string): Promise<ApiResponse<T>> {
+  const method = (options.method || 'GET').toUpperCase();
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'X-NFCPS-Client': 'watch-route',
+    ...(options.headers || {}),
+  };
   const init: RequestInit = { method, headers, credentials: 'include' };
   if (options.body !== undefined) {
     headers['Content-Type'] = 'application/json';
     init.body = JSON.stringify(options.body);
   }
-  const response = await fetch(resolveUrl(url), init);
+
+  const response = await fetch(resolveUrl(url, base), init);
   const text = await response.text();
   let data: any = null;
   if (text) {
@@ -29,6 +38,21 @@ async function request<T = any>(url: string, options: RequestOptions = {}): Prom
     throw error;
   }
   return { data, status: response.status, headers: response.headers };
+}
+
+async function request<T = any>(url: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+  const method = (options.method || 'GET').toUpperCase();
+  const isRelativeApi = url.startsWith('/api/');
+  try {
+    return await requestOnce<T>(url, options, API_BASE);
+  } catch (error) {
+    const canReadFailOver = isRelativeApi
+      && (method === 'GET' || method === 'HEAD')
+      && READ_FALLBACK_BASE
+      && READ_FALLBACK_BASE !== API_BASE;
+    if (!canReadFailOver) throw error;
+    return requestOnce<T>(url, options, READ_FALLBACK_BASE);
+  }
 }
 
 export const api = {
