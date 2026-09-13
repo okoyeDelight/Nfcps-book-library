@@ -1,0 +1,56 @@
+name: Apply native live Watch integration
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-live-watch-native.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Patch MainActivity for live Watch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('native/android/app/src/main/java/org/nfcpsunizik/one/MainActivity.java')
+          s=p.read_text()
+          if 'private static final int REQUEST_LIVE_NOTIFICATIONS = 7202;' in s:
+              print('Live Watch integration already applied')
+              raise SystemExit(0)
+
+          s=s.replace('import android.annotation.SuppressLint;\n', 'import android.Manifest;\nimport android.annotation.SuppressLint;\n')
+          s=s.replace('    private NativeSpeechBridge nativeSpeechBridge;\n    private UpdateManager updateManager;\n',
+                      '    private NativeSpeechBridge nativeSpeechBridge;\n    private NativeLiveWatchController nativeLiveWatchController;\n    private UpdateManager updateManager;\n    private static final int REQUEST_LIVE_NOTIFICATIONS = 7202;\n')
+          s=s.replace('        nativeSpeechBridge = new NativeSpeechBridge(this, webView);\n        webView.addJavascriptInterface(nativeSpeechBridge, "NFCPSNativeSpeech");\n        updateManager = new UpdateManager(this);\n',
+                      '        nativeSpeechBridge = new NativeSpeechBridge(this, webView);\n        webView.addJavascriptInterface(nativeSpeechBridge, "NFCPSNativeSpeech");\n        nativeLiveWatchController = new NativeLiveWatchController(this, webView);\n        nativeLiveWatchController.handleIntent(getIntent());\n        webView.addJavascriptInterface(nativeLiveWatchController, "NFCPSNativeLive");\n        LiveWatchWorker.schedule(this);\n        requestLiveNotificationPermission();\n        updateManager = new UpdateManager(this);\n')
+          s=s.replace('        if (savedInstanceState != null) {\n            webView.restoreState(savedInstanceState);\n        } else {\n            webView.loadUrl(currentAppUrl);\n        }\n',
+                      '        boolean openingLive = getIntent() != null && getIntent().getBooleanExtra(LiveWatchWorker.EXTRA_OPEN_LIVE, false);\n        if (savedInstanceState != null && !openingLive) {\n            webView.restoreState(savedInstanceState);\n        } else {\n            webView.loadUrl(nativeLiveWatchController != null ? nativeLiveWatchController.initialUrl(currentAppUrl) : currentAppUrl);\n        }\n')
+          s=s.replace('NFCPSOne/1.6.7', 'NFCPSOne/1.6.8')
+          s=s.replace('                    view.evaluateJavascript(NativeServiceRouter.libraryPostBridgeScript(), null);\n                    if (updateManager != null) updateManager.checkForUpdatesOnce();\n',
+                      '                    view.evaluateJavascript(NativeServiceRouter.libraryPostBridgeScript(), null);\n                    if (nativeLiveWatchController != null) nativeLiveWatchController.onPageFinished(url);\n                    if (updateManager != null) updateManager.checkForUpdatesOnce();\n')
+          s=s.replace('    private void hideCustomView() {\n',
+                      '    private void requestLiveNotificationPermission() {\n        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU\n                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {\n            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQUEST_LIVE_NOTIFICATIONS);\n        }\n    }\n\n    @Override\n    protected void onNewIntent(Intent intent) {\n        super.onNewIntent(intent);\n        setIntent(intent);\n        if (nativeLiveWatchController != null) {\n            nativeLiveWatchController.handleIntent(intent);\n            if (webView != null) webView.loadUrl(nativeLiveWatchController.initialUrl(currentAppUrl));\n        }\n    }\n\n    private void hideCustomView() {\n')
+          s=s.replace('        if (updateManager != null) updateManager.onResume();\n',
+                      '        if (updateManager != null) updateManager.onResume();\n        if (nativeLiveWatchController != null) nativeLiveWatchController.onResume();\n')
+          s=s.replace('    public void onBackPressed() {\n        if (authWebView != null) {\n',
+                      '    public void onBackPressed() {\n        if (nativeLiveWatchController != null && nativeLiveWatchController.handleBack()) return;\n        if (authWebView != null) {\n')
+          s=s.replace('        if (nativeSpeechBridge != null) {\n            nativeSpeechBridge.destroy();\n            nativeSpeechBridge = null;\n        }\n',
+                      '        if (nativeLiveWatchController != null) {\n            nativeLiveWatchController.destroy();\n            nativeLiveWatchController = null;\n        }\n        if (nativeSpeechBridge != null) {\n            nativeSpeechBridge.destroy();\n            nativeSpeechBridge = null;\n        }\n')
+          p.write_text(s)
+          PY
+      - name: Commit integration
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add native/android/app/src/main/java/org/nfcpsunizik/one/MainActivity.java
+          git commit -m 'Integrate trusted live alerts into native Watch'
+          git push
