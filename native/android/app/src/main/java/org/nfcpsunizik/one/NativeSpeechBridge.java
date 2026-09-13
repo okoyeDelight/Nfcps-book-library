@@ -17,6 +17,8 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public final class NativeSpeechBridge implements RecognitionListener, DirectAudioCaptureService.Listener {
     public static final int REQUEST_RECORD_AUDIO = 7201;
@@ -26,6 +28,8 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
     private final String sessionToken = UUID.randomUUID().toString();
     private final LocalVoskTranscriber localTranscriber;
     private final NativeScriptureLensController lensController;
+    private final NativeCoverLoader coverLoader;
+    private final ExecutorService coverExecutor = Executors.newFixedThreadPool(3);
     private final Runnable readDiscoveryMonitor;
     private SpeechRecognizer recognizer;
     private boolean active;
@@ -35,6 +39,7 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
     public NativeSpeechBridge(Activity activity, WebView webView) {
         this.activity = activity;
         this.webView = webView;
+        this.coverLoader = new NativeCoverLoader(activity);
         DirectAudioCaptureService.setListener(this);
         localTranscriber = new LocalVoskTranscriber(activity, new LocalVoskTranscriber.Listener() {
             @Override
@@ -106,6 +111,26 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
         activity.runOnUiThread(this::stopDirectAudioInternal);
     }
 
+    @JavascriptInterface
+    public void requestCover(String token, String requestId, String url) {
+        if (!validToken(token) || requestId == null || requestId.isBlank() || url == null || url.isBlank()) return;
+        coverExecutor.execute(() -> {
+            String dataUrl = coverLoader.loadAsDataUrl(url);
+            String script = "window.dispatchEvent(new CustomEvent('nfcps-cover-ready',{detail:{id:"
+                    + JSONObject.quote(requestId)
+                    + ",dataUrl:"
+                    + (dataUrl == null ? "null" : JSONObject.quote(dataUrl))
+                    + "}}));";
+            webView.post(() -> webView.evaluateJavascript(script, null));
+        });
+    }
+
+    @JavascriptInterface
+    public void openBookPreview(String token, String title, String isbn, String googleBookId) {
+        if (!validToken(token)) return;
+        activity.runOnUiThread(() -> NativeBookPreviewDialog.open(activity, title, isbn, googleBookId));
+    }
+
     private void startLensInternal() {
         activity.runOnUiThread(() -> {
             localTranscriber.resetSession();
@@ -170,6 +195,7 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
             }
             stopDirectAudioInternal();
             DirectAudioCaptureService.setListener(null);
+            coverExecutor.shutdownNow();
         });
     }
 
