@@ -68,6 +68,7 @@ public final class NativeSpeechBridge implements RecognitionListener, DirectAudi
         readDiscoveryMonitor = new Runnable() {
             @Override public void run() {
                 NativeReadDiscoveryController.inject(webView);
+                NativeReadCoverPatch.inject(webView);
                 webView.postDelayed(this, 700);
             }
         };
