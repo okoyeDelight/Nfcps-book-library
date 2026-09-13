@@ -32,8 +32,8 @@ public final class DirectAudioCaptureService extends Service {
     private static final String CHANNEL_ID = "nfcps_direct_audio";
     private static final int NOTIFICATION_ID = 4107;
     private static final int OUTPUT_SAMPLE_RATE = 16_000;
-    private static final int CHUNK_SECONDS = 6;
-    private static final int NON_SILENT_PEAK = 180;
+    private static final int CHUNK_SECONDS = 2;
+    private static final int NON_SILENT_PEAK = 100;
 
     public interface Listener {
         void onState(String state, String message, double rmsDb, int peak, long frames);
@@ -228,26 +228,26 @@ public final class DirectAudioCaptureService extends Service {
 
             long now = SystemClock.elapsedRealtime();
             double rmsDb = rmsDb(chunkSquares, chunkInputSamples);
-            if (now - lastMetricAt >= 1000) {
+            if (now - lastMetricAt >= 700) {
                 boolean nonSilent = chunkPeak >= NON_SILENT_PEAK;
                 emitState(nonSilent ? "capturing" : "starting",
-                        nonSilent ? "Direct digital playback audio detected." : "Waiting for capturable sermon audio…",
+                        nonSilent ? "Sermon playback detected." : "Waiting for sermon playback…",
                         rmsDb,
                         chunkPeak);
                 lastMetricAt = now;
             }
 
             if (chunkSamples >= OUTPUT_SAMPLE_RATE * CHUNK_SECONDS) {
-                long durationMs = Math.max(1000, Math.round(chunkSamples * 1000.0 / OUTPUT_SAMPLE_RATE));
+                long durationMs = Math.max(700, Math.round(chunkSamples * 1000.0 / OUTPUT_SAMPLE_RATE));
                 long chunkStartMs = Math.max(0, now - captureStartedAt - durationMs);
                 if (chunkPeak >= NON_SILENT_PEAK) {
                     blockedReported = false;
                     byte[] wav = wav(chunk.toByteArray(), OUTPUT_SAMPLE_RATE);
                     Listener current = listener;
                     if (current != null) current.onChunk(wav, chunkStartMs, durationMs, rmsDb);
-                } else if (!blockedReported && now - captureStartedAt >= 5000) {
+                } else if (!blockedReported && now - captureStartedAt >= 4000) {
                     blockedReported = true;
-                    emitState("blocked", "No digital playback samples were detected. Switching Scripture Lens to its speech fallback may be required.", rmsDb, chunkPeak);
+                    emitState("blocked", "No capturable playback samples were detected. Scripture Lens will not interrupt the sermon with a microphone fallback.", rmsDb, chunkPeak);
                 }
                 chunk.reset();
                 chunkSamples = 0;
