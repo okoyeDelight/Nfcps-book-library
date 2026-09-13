@@ -1,0 +1,35 @@
+{
+  "format": 1,
+  "files": [
+    {
+      "path": "index.html",
+      "bytes": 796,
+      "sha256": "aa92eead6384fcb7f820e9af646a06688bbb1d088612a19d6f24b22696914786"
+    },
+    {
+      "path": "manifest.webmanifest",
+      "bytes": 1137,
+      "sha256": "691289a3e6064bea971ac75362e39b82e1c3541db90b041a4f24952e3d108967"
+    },
+    {
+      "path": "nfcps-one.css",
+      "bytes": 249070,
+      "sha256": "e4f254d69a042e9a7951ea76cf9eec873a3d778c3e04fe7bea9994c63906e74b"
+    },
+    {
+      "path": "nfcps-one.js",
+      "bytes": 456655,
+      "sha256": "816ab4b140129c0cbbdcb41e9459018505815588c75bf0d8807f6bafb4573971"
+    },
+    {
+      "path": "resources/nfcps-logo.png",
+      "bytes": 271364,
+      "sha256": "045f631f40b377a38e2cb82957d7eead10a8c8d327a3134ba04b10995aff448e"
+    },
+    {
+      "path": "sw.js",
+      "bytes": 1469,
+      "sha256": "4ecd37df40832f6b9a0603ee8cf9b89da40a718899ea40369d90f5506da53b99"
+    }
+  ]
+}
