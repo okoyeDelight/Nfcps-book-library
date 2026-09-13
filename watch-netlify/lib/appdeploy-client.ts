@@ -76,7 +76,7 @@ function hasNativeNotifications() {
 }
 
 export const auth = {
-  isSignedIn: () => hasNativeNotifications(),
+  isSignedIn: () => false,
   signIn: async (_options?: unknown) => undefined,
   signOut: async (_options?: unknown) => undefined,
 };
