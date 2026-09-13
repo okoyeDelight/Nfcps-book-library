@@ -1,0 +1,72 @@
+name: Repair exact Watch portable build
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-exact-watch-portable.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Rewrite only malformed GrowthView JSX
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('appdeploy-live/src/WatchExperienceV3.tsx')
+          s=p.read_text()
+          start=s.index('function GrowthView(')
+          end=s.index('\nexport default function WatchExperienceV3()',start)
+          replacement="""function GrowthView({videos,onBack,onOpen}:{videos:Video[];onBack:()=>void;onOpen:(v:Video)=>void}){
+            const[goals,setGoals]=useState<string[]>(()=>readJson('nfcps-watch-goals',[]));
+            const progress=readJson<Record<string,number>>('nfcps-watch-journeys',{});
+            const takeaways=readJson<{videoId:string;title:string;creator:string;note:string}[]>('nfcps-watch-takeaways',[]);
+            const memory=readJson<GrowthMemory>('nfcps-watch-growth-memory',{});
+            const savedScriptures=readJson<Array<{reference:string;text:string;title:string}>>('nfcps-watch-scripture-saves',[]);
+            const learnedThemes=Object.entries(memory.themes||{}).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,6).map(([name])=>name);
+            const goalList=['Prayer','Know the Word','Worship','Purpose','Relationships','Evangelism'];
+            const journeys=[['prayer-life','Build a Prayer Life',7,'Prayer'],['know-god','Knowing God',7,'Bible Study'],['purpose','Purpose & Calling',5,'Purpose'],['consecration','Consecration',7,'Revival']] as const;
+            const toggle=(g:string)=>{const n=goals.includes(g)?goals.filter(x=>x!==g):[...goals,g].slice(0,4);setGoals(n);writeJson('nfcps-watch-goals',n);window.dispatchEvent(new Event('nfcps-watch-intelligence-learned'))};
+            return <section className='wv3-secondary'>
+              <div className='wv3-secondary-bar'><button onClick={onBack}><ArrowLeft/></button><div><h1>Growth</h1><p>Turn messages into a way of life.</p></div></div>
+              <button className='wv3-live-lens-button' onClick={()=>window.dispatchEvent(new Event('nfcps-live-lens-open'))}><BookOpen/>Live Scripture Lens</button>
+              <div className='wv3-growth-block'><h2>What are you growing in?</h2><p className='wv3-growth-note'>Watch learns to broaden your spiritual diet, not just repeat what keeps you scrolling.</p><div className='wv3-goals'>{goalList.map(g=><button key={g} className={goals.includes(g)?'active':''} onClick={()=>toggle(g)}>{g}</button>)}</div></div>
+              {learnedThemes.length>0&&<div className='wv3-growth-block'><h2>Your discipleship memory</h2><p className='wv3-growth-note'>Themes Scripture Lens has seen you engage with.</p><div className='wv3-memory-chips'>{learnedThemes.map(theme=><span key={theme}>{theme}</span>)}</div></div>}
+              {savedScriptures.length>0&&<div className='wv3-growth-block'><h2>Scriptures you're carrying</h2><div className='wv3-scripture-memory'>{savedScriptures.slice(0,6).map((item,index)=><article key={`${item.reference}-${index}`}><strong>{item.reference}</strong><p>{item.text.length>180?`${item.text.slice(0,177)}…`:item.text}</p></article>)}</div></div>}
+              <div className='wv3-growth-block'><h2>Journeys</h2><div className='wv3-journeys'>{journeys.map(j=>{const done=progress[j[0]]||0;const next=videos.find(v=>v.category===j[3])||videos[0];return <article key={j[0]}><small>{done}/{j[2]} DAYS</small><strong>{j[1]}</strong><div><i style={{width:`${Math.min(100,done/j[2]*100)}%`}}/></div><button onClick={()=>next&&onOpen(next)}>Continue <ChevronRight/></button></article>})}</div></div>
+              {takeaways.length>0&&<div className='wv3-growth-block'><h2>Saved Takeaways</h2>{takeaways.slice(0,6).map(x=><article className='wv3-takeaway' key={x.videoId}><small>{x.creator}</small><strong>{x.title}</strong><p>{x.note}</p></article>)}</div>}
+              <WatchDock/>
+            </section>;
+          }
+          """
+          p.write_text(s[:start]+replacement+s[end:])
+          PY
+      - name: Prove exact portable frontend builds
+        working-directory: watch-netlify
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+      - name: Commit syntax-only repair
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add appdeploy-live/src/WatchExperienceV3.tsx
+          git commit -m 'Repair exact Watch JSX for portable frontend'
+          for attempt in 1 2 3; do
+            git pull --rebase origin main || true
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt * 4))
+          done
+          exit 1
