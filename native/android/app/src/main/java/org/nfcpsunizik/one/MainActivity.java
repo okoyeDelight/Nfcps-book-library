@@ -108,8 +108,11 @@ public class MainActivity extends Activity {
         bootstrapConfig = config;
         currentAppUrl = nextUrl;
         if (webView != null && !sameTarget(visibleUrl, nextUrl)) {
-            webView.stopLoading();
-            webView.loadUrl(nextUrl);
+            final String targetUrl = nextUrl;
+            OriginStateHandoff.captureThenNavigate(this, webView, visibleUrl, targetUrl, () -> {
+                webView.stopLoading();
+                webView.loadUrl(targetUrl);
+            });
         }
     }
 
@@ -256,6 +259,7 @@ public class MainActivity extends Activity {
                             null
                     );
                     view.evaluateJavascript(NativeServiceRouter.libraryPostBridgeScript(), null);
+                    OriginStateHandoff.restoreIfPending(this, view, url);
                     if (nativeLiveWatchController != null) nativeLiveWatchController.onPageFinished(url);
                     if (updateManager != null) updateManager.checkForUpdatesOnce();
                 }
