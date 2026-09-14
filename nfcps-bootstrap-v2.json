@@ -1,10 +1,9 @@
 {
-  "revision": 2,
+  "revision": 3,
   "app_url": "https://nfcps-one-watch.floot.app/",
   "internal_hosts": [
     "nfcps-one-watch.floot.app",
-    "nfcps-one.hatchable.site",
-    "nfcps-book-library-c2ma7y.v2.appdeploy.ai"
+    "nfcps-one.hatchable.site"
   ],
   "routes": []
 }
