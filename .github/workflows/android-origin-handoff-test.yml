@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   verify-origin-handoff:
-    runs-on: ubuntu-latest
+    runs-on: macos-13
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -117,8 +117,6 @@ jobs:
                       assertTrue("handoff capture callback timed out", navigated.await(15, TimeUnit.SECONDS));
                       waitForHost(webView, "nfcps-one-watch.floot.app", 45_000);
 
-                      // onPageFinished restores automatically. Calling again is deliberately idempotent
-                      // and also protects the assertion from a slow page callback on CI emulators.
                       instrumentation.runOnMainSync(() -> OriginStateHandoff.restoreIfPending(activity, webView, NEXT));
 
                       long deadline = SystemClock.elapsedRealtime() + 20_000;
