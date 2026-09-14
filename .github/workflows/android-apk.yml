@@ -57,7 +57,7 @@ jobs:
 
       - name: Use official NFCPS logo as Android icon
         run: |
-          curl --fail --location --retry 3 'https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/resources/nfcps-logo.png' --output native/android/app/src/main/res/drawable/nfcps_logo.png
+          curl --fail --location --retry 3 'https://nfcps-one.hatchable.site/exact/resources/nfcps-logo.png' --output native/android/app/src/main/res/drawable/nfcps_logo.png
           test -s native/android/app/src/main/res/drawable/nfcps_logo.png
 
       - name: Bundle offline Scripture Lens speech model
