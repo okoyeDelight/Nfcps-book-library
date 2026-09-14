@@ -1,0 +1,177 @@
+name: Verify NFCPS Android Origin Handoff
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'native/android/app/src/main/java/org/nfcpsunizik/one/OriginStateHandoff.java'
+      - 'native/android/app/src/main/java/org/nfcpsunizik/one/MainActivity.java'
+      - 'native/android/app/src/main/java/org/nfcpsunizik/one/BootstrapConfig.java'
+      - '.github/workflows/android-origin-handoff-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-origin-handoff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Inject migration-only instrumentation test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('native/android/app/build.gradle')
+          text = p.read_text()
+          text = text.replace("targetSdk 35\n", "targetSdk 35\n        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'\n", 1)
+          text = text.replace("dependencies {\n", "dependencies {\n    androidTestImplementation 'androidx.test.ext:junit:1.2.1'\n    androidTestImplementation 'androidx.test:core:1.6.1'\n    androidTestImplementation 'androidx.test:runner:1.6.2'\n", 1)
+          p.write_text(text)
+          PY
+          mkdir -p native/android/app/src/androidTest/java/org/nfcpsunizik/one
+          cat > native/android/app/src/androidTest/java/org/nfcpsunizik/one/OriginStateHandoffInstrumentedTest.java <<'JAVA'
+          package org.nfcpsunizik.one;
+
+          import static org.junit.Assert.assertEquals;
+          import static org.junit.Assert.assertNotNull;
+          import static org.junit.Assert.assertTrue;
+
+          import android.app.Instrumentation;
+          import android.net.Uri;
+          import android.os.SystemClock;
+          import android.webkit.WebView;
+
+          import androidx.test.core.app.ActivityScenario;
+          import androidx.test.ext.junit.runners.AndroidJUnit4;
+          import androidx.test.platform.app.InstrumentationRegistry;
+
+          import org.json.JSONArray;
+          import org.junit.Test;
+          import org.junit.runner.RunWith;
+
+          import java.lang.reflect.Field;
+          import java.util.concurrent.CountDownLatch;
+          import java.util.concurrent.TimeUnit;
+          import java.util.concurrent.atomic.AtomicReference;
+
+          @RunWith(AndroidJUnit4.class)
+          public class OriginStateHandoffInstrumentedTest {
+              private static final String OLD = "https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/?handoff-ci=1";
+              private static final String NEXT = "https://nfcps-one-watch.floot.app/?handoff-ci=1";
+              private final Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
+
+              @Test
+              public void existingNfcpsLocalStateSurvivesLiveOriginChange() throws Exception {
+                  try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+                      AtomicReference<MainActivity> activityRef = new AtomicReference<>();
+                      scenario.onActivity(activityRef::set);
+                      MainActivity activity = activityRef.get();
+                      assertNotNull(activity);
+
+                      Field field = MainActivity.class.getDeclaredField("webView");
+                      field.setAccessible(true);
+                      WebView webView = (WebView) field.get(activity);
+                      assertNotNull(webView);
+
+                      instrumentation.runOnMainSync(() -> webView.loadUrl(OLD));
+                      waitForHost(webView, "nfcps-book-library-c2ma7y.v2.appdeploy.ai", 45_000);
+
+                      String seeded = js(webView,
+                              "(()=>{localStorage.setItem('nfcps-reader-v3',JSON.stringify({items:{'ci-book':{lastOpened:1712345678,saved:true,bookmarks:[2,8],annotations:[{id:'ci-note',text:'kept'}],offline:true}}}));"
+                                      + "localStorage.setItem('nfcps-watch-liked',JSON.stringify(['ci-video']));"
+                                      + "localStorage.setItem('nfcps-watch-notes',JSON.stringify({'ci-video':'preserve this note'}));"
+                                      + "localStorage.setItem('not-nfcps-test','do-not-copy');return 'seeded';})()"
+                      );
+                      assertEquals("seeded", seeded);
+
+                      CountDownLatch navigated = new CountDownLatch(1);
+                      instrumentation.runOnMainSync(() -> OriginStateHandoff.captureThenNavigate(
+                              activity,
+                              webView,
+                              OLD,
+                              NEXT,
+                              () -> {
+                                  webView.loadUrl(NEXT);
+                                  navigated.countDown();
+                              }
+                      ));
+                      assertTrue("handoff capture callback timed out", navigated.await(15, TimeUnit.SECONDS));
+                      waitForHost(webView, "nfcps-one-watch.floot.app", 45_000);
+
+                      // onPageFinished restores automatically. Calling again is deliberately idempotent
+                      // and also protects the assertion from a slow page callback on CI emulators.
+                      instrumentation.runOnMainSync(() -> OriginStateHandoff.restoreIfPending(activity, webView, NEXT));
+
+                      long deadline = SystemClock.elapsedRealtime() + 20_000;
+                      String state = "";
+                      while (SystemClock.elapsedRealtime() < deadline) {
+                          state = js(webView,
+                                  "(()=>JSON.stringify({reader:JSON.parse(localStorage.getItem('nfcps-reader-v3')||'{}'),liked:JSON.parse(localStorage.getItem('nfcps-watch-liked')||'[]'),notes:JSON.parse(localStorage.getItem('nfcps-watch-notes')||'{}'),foreign:localStorage.getItem('not-nfcps-test')}))()"
+                          );
+                          if (state.contains("ci-book") && state.contains("ci-video") && state.contains("preserve this note")) break;
+                          SystemClock.sleep(350);
+                      }
+
+                      assertTrue("reader state was not restored: " + state, state.contains("ci-book"));
+                      assertTrue("bookmark state was not restored: " + state, state.contains("[2,8]"));
+                      assertTrue("annotation state was not restored: " + state, state.contains("ci-note"));
+                      assertTrue("Watch liked state was not restored: " + state, state.contains("ci-video"));
+                      assertTrue("Watch notes were not restored: " + state, state.contains("preserve this note"));
+                      assertTrue("non-NFCPS localStorage must not cross origins: " + state, state.contains("\"foreign\":null"));
+                  }
+              }
+
+              private void waitForHost(WebView webView, String expectedHost, long timeoutMs) throws Exception {
+                  long deadline = SystemClock.elapsedRealtime() + timeoutMs;
+                  AtomicReference<String> current = new AtomicReference<>();
+                  while (SystemClock.elapsedRealtime() < deadline) {
+                      instrumentation.runOnMainSync(() -> current.set(webView.getUrl()));
+                      String value = current.get();
+                      if (value != null && expectedHost.equalsIgnoreCase(Uri.parse(value).getHost())) return;
+                      SystemClock.sleep(300);
+                  }
+                  throw new AssertionError("Timed out waiting for " + expectedHost + "; current URL=" + current.get());
+              }
+
+              private String js(WebView webView, String script) throws Exception {
+                  CountDownLatch latch = new CountDownLatch(1);
+                  AtomicReference<String> result = new AtomicReference<>();
+                  instrumentation.runOnMainSync(() -> webView.evaluateJavascript(script, encoded -> {
+                      result.set(encoded);
+                      latch.countDown();
+                  }));
+                  assertTrue("evaluateJavascript timed out", latch.await(10, TimeUnit.SECONDS));
+                  String encoded = result.get();
+                  if (encoded == null || "null".equals(encoded)) return null;
+                  return new JSONArray("[" + encoded + "]").optString(0, encoded);
+              }
+          }
+          JAVA
+
+      - name: Run handoff test on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: gradle -p native/android --no-daemon connectedDebugAndroidTest
