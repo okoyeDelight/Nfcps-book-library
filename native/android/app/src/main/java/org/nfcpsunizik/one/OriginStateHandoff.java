@@ -110,6 +110,13 @@ final class OriginStateHandoff {
         });
     }
 
+    // WebViewClient callbacks use their own `this`; this overload safely derives
+    // the application Context from the WebView and forwards to the real restore.
+    static void restoreIfPending(Object ignoredCaller, WebView webView, String loadedUrl) {
+        if (webView == null) return;
+        restoreIfPending(webView.getContext().getApplicationContext(), webView, loadedUrl);
+    }
+
     private static String buildRestoreScript(JSONObject source) {
         return "(()=>{try{const src=" + source.toString() + ";"
                 + "const parse=(v,f)=>{try{return JSON.parse(v)}catch(e){return f}};"
