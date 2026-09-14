@@ -9,10 +9,10 @@ export type Book = {
 };
 
 const googleCover = (id: string) =>
-  `https://books.google.com/books/content?id=${id}&printsec=frontcover&img=1&zoom=1&source=gbs_api`;
+  `https://nfcps-one.hatchable.site/api/read/cover?google=${encodeURIComponent(id)}`;
 
 const isbnCover = (isbn: string) =>
-  `https://books.google.com/books/content?vid=ISBN${isbn}&printsec=frontcover&img=1&zoom=1&source=gbs_api`;
+  `https://nfcps-one.hatchable.site/api/read/cover?isbn=${encodeURIComponent(isbn)}`;
 
 export const books: Book[] = [
   { id: 1, title: 'God Cannot Change — Why Pray?', author: 'Emmanuel Unamba', category: 'Prayer', description: 'The True Nature of a Christian Prayer explores why prayer matters when God is unchanging, presenting prayer as a life aligned with His will.', cover: isbnCover('9789785230758'), verified: true },
