@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   verify-origin-handoff:
-    runs-on: macos-13
+    runs-on: macos-latest
     timeout-minutes: 25
     steps:
       - name: Checkout
