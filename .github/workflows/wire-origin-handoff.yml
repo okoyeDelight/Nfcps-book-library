@@ -17,5 +17,41 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Validate workflow
-        run: echo "Origin handoff workflow is valid"
+        with:
+          fetch-depth: 0
+
+      - name: Wire handoff into MainActivity
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('native/android/app/src/main/java/org/nfcpsunizik/one/MainActivity.java')
+          s = p.read_text()
+          if 'OriginStateHandoff.captureThenNavigate' not in s:
+              old = '        if (webView != null && !sameTarget(visibleUrl, nextUrl)) {\n            webView.stopLoading();\n            webView.loadUrl(nextUrl);\n        }\n'
+              new = '        if (webView != null && !sameTarget(visibleUrl, nextUrl)) {\n            final String targetUrl = nextUrl;\n            OriginStateHandoff.captureThenNavigate(this, webView, visibleUrl, targetUrl, () -> {\n                webView.stopLoading();\n                webView.loadUrl(targetUrl);\n            });\n        }\n'
+              if old not in s:
+                  raise SystemExit('applyBootstrap target not found')
+              s = s.replace(old, new, 1)
+          if 'OriginStateHandoff.restoreIfPending(this, view, url);' not in s:
+              old = '                    view.evaluateJavascript(NativeServiceRouter.libraryPostBridgeScript(), null);\n                    if (nativeLiveWatchController != null) nativeLiveWatchController.onPageFinished(url);\n'
+              new = '                    view.evaluateJavascript(NativeServiceRouter.libraryPostBridgeScript(), null);\n                    OriginStateHandoff.restoreIfPending(this, view, url);\n                    if (nativeLiveWatchController != null) nativeLiveWatchController.onPageFinished(url);\n'
+              if old not in s:
+                  raise SystemExit('onPageFinished target not found')
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+
+      - name: Commit handoff wiring
+        shell: bash
+        run: |
+          if git diff --quiet -- native/android/app/src/main/java/org/nfcpsunizik/one/MainActivity.java; then
+            echo 'Origin handoff already wired.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add native/android/app/src/main/java/org/nfcpsunizik/one/MainActivity.java
+          git commit -m 'Preserve NFCPS local state across frontend migration'
+          git pull --rebase origin main
+          git push origin HEAD:main
