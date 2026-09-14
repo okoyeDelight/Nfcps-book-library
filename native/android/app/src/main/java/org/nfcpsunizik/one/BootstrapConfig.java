@@ -20,8 +20,8 @@ import java.util.Set;
 
 public final class BootstrapConfig {
     private static final String[] CONFIG_URLS = new String[] {
-            "https://raw.githubusercontent.com/okoyeDelight/Nfcps-book-library/main/nfcps-bootstrap.json",
-            "https://cdn.jsdelivr.net/gh/okoyeDelight/Nfcps-book-library@main/nfcps-bootstrap.json"
+            "https://raw.githubusercontent.com/okoyeDelight/Nfcps-book-library/main/nfcps-bootstrap-v2.json",
+            "https://cdn.jsdelivr.net/gh/okoyeDelight/Nfcps-book-library@main/nfcps-bootstrap-v2.json"
     };
     private static final String PREFS = "nfcps_remote_bootstrap";
     private static final String KEY_APP_URL = "app_url";
