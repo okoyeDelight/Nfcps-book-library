@@ -28,9 +28,9 @@ public final class BootstrapConfig {
     private static final String KEY_INTERNAL_HOSTS = "internal_hosts";
     private static final String KEY_ROUTES = "routes";
 
-    public static final String DEFAULT_APP_URL = "https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/";
-    public static final String DEFAULT_APP_HOST = "nfcps-book-library-c2ma7y.v2.appdeploy.ai";
-    public static final String DEFAULT_AUTH_HOST = "api-v2.appdeploy.ai";
+    public static final String DEFAULT_APP_URL = "https://nfcps-one-watch.floot.app/";
+    public static final String DEFAULT_APP_HOST = "nfcps-one-watch.floot.app";
+    public static final String DEFAULT_AUTH_HOST = "nfcps-one.hatchable.site";
 
     public interface Callback {
         void onResolved(Config config);
