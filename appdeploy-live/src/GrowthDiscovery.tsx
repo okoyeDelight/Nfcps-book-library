@@ -85,7 +85,7 @@ function CuratedShelf({ query }: { query: string }) {
                     </div>
                     <div className='books-track'>
                         {modern.map(book => (
-                            <a className='books-tile' key={book.id} href={book.url} target='_blank' rel='noreferrer' aria-label={`Open official source for ${book.title}`}>
+                            <a className='books-tile' key={book.id} href={book.url} rel='noreferrer' aria-label={`Open official source for ${book.title}`}>
                                 <ConceptBookCover id={book.id} title={book.title} author={book.author} />
                                 <span>
                                     <strong>{book.title}</strong>
