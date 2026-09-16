@@ -1,6 +1,6 @@
 {
-  "revision": 12,
-  "app_url": "https://nfcps-one-watch.floot.app/",
+  "revision": 13,
+  "app_url": "https://nfcps-one.hatchable.site/exact/",
   "internal_hosts": [
     "nfcps-one-watch.floot.app",
     "nfcps-one.hatchable.site"
