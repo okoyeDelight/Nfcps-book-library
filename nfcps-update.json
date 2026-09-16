@@ -1,11 +1,11 @@
 {
-  "revision": 12,
-  "enabled": false,
-  "latest_version_code": 18,
-  "latest_version_name": "1.6.7",
-  "minimum_supported_version_code": 8,
+  "revision": 13,
+  "enabled": true,
+  "latest_version_code": 24,
+  "latest_version_name": "1.7.3",
+  "minimum_supported_version_code": 24,
   "apk_url": "https://github.com/okoyeDelight/Nfcps-book-library/releases/download/nfcps-one-latest/NFCPS-One.apk",
-  "sha256": "c71883d3d7df54b7968b9fd55746a9d699fed305c76e3fcc2d7e533cd55b26f5",
-  "title": "NFCPS One 1.6.7",
-  "notes": "Native maintenance release: restores the original NFCPS shell reliably, keeps Read and Library service-backed without changing their UI, and fixes the native Read cover fallback overlay."
+  "sha256": "e1e05279c9cdfb7eac6995dfb3d6f7d917aa43b8aeca8be977f8cbc6b8333ab0",
+  "title": "NFCPS One 1.7.3 update",
+  "notes": "Required native update for the new Reading Companion notification engine. It enables the immediate Good read notification, daily reading nudges, and the native return-reminder flow while keeping the live NFCPS interface unchanged."
 }
