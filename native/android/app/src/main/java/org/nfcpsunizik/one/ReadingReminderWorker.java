@@ -41,6 +41,8 @@ import java.util.concurrent.TimeUnit;
 public final class ReadingReminderWorker extends Worker {
     private static final String CHANNEL_ID = "nfcps_reading_companion";
     private static final String CHANNEL_NAME = "NFCPS Reading companion";
+    private static final String IMMEDIATE_CHANNEL_ID = "nfcps_reading_companion_now_v1";
+    private static final String IMMEDIATE_CHANNEL_NAME = "NFCPS Reading companion alerts";
     private static final String PREFS = "nfcps-reading-reminders-v1";
     private static final String DATA_TOKEN = "token";
     private static final String DATA_KIND = "kind";
@@ -142,17 +144,19 @@ public final class ReadingReminderWorker extends Worker {
         dueAt = clean(dueAt);
         if (token.isEmpty() || !canNotify(context)) return false;
 
-        boolean firstEnable = !isEnabled(context, token);
         put(context, key("enabled", token), "1");
         put(context, key("title", token), title.isEmpty() ? "Your NFCPS book" : title);
         put(context, key("due", token), dueAt);
         scheduleDaily(context, token);
         scheduleDueWork(context, token, dueAt);
-        if (firstEnable) {
-            String safeTitle = title.isEmpty() ? "your book" : title;
-            notify(context, token + ":welcome", "Good read! 📖", "Enjoy “" + safeTitle + "”. Take something worth remembering with you.");
-        }
-        return true;
+
+        String safeTitle = title.isEmpty() ? "your book" : title;
+        return notifyImmediate(
+                context,
+                token + ":welcome:" + System.currentTimeMillis(),
+                "Good read! 📖",
+                "Enjoy “" + safeTitle + "”. Take something worth remembering with you."
+        );
     }
 
     public static synchronized void disable(Context context, String token) {
@@ -264,8 +268,42 @@ public final class ReadingReminderWorker extends Worker {
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
-        NotificationManagerCompat.from(context).notify(Math.abs(key.hashCode()), builder.build());
-        return true;
+        try {
+            NotificationManagerCompat.from(context).notify(Math.abs(key.hashCode()), builder.build());
+            return true;
+        } catch (SecurityException ignored) {
+            return false;
+        }
+    }
+
+    private static boolean notifyImmediate(Context context, String key, String title, String body) {
+        if (!canNotify(context)) return false;
+        createImmediateChannel(context);
+        Intent open = new Intent(context, MainActivity.class);
+        open.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context,
+                Math.abs(key.hashCode()),
+                open,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, IMMEDIATE_CHANNEL_ID)
+                .setSmallIcon(R.drawable.nfcps_logo)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setOnlyAlertOnce(false)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent);
+        try {
+            NotificationManagerCompat.from(context).notify(Math.abs(key.hashCode()), builder.build());
+            return true;
+        } catch (SecurityException ignored) {
+            return false;
+        }
     }
 
     private static boolean canNotify(Context context) {
@@ -282,6 +320,20 @@ public final class ReadingReminderWorker extends Worker {
         if (manager == null) return;
         NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
         channel.setDescription("Daily reading encouragement and NFCPS Library return reminders.");
+        manager.createNotificationChannel(channel);
+    }
+
+    private static void createImmediateChannel(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        if (manager == null) return;
+        NotificationChannel channel = new NotificationChannel(
+                IMMEDIATE_CHANNEL_ID,
+                IMMEDIATE_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH
+        );
+        channel.setDescription("Immediate Reading Companion confirmation alerts.");
+        channel.enableVibration(true);
         manager.createNotificationChannel(channel);
     }
 
