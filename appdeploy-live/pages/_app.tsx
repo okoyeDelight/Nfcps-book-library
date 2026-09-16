@@ -7,6 +7,7 @@ import '../styles/home-v3.css';
 import '../styles/premium-v4.css';
 import '../styles/moments.css';
 import '../styles/reader.css';
+import '../styles/reader-current.css';
 import '../styles/promo.css';
 import '../styles/watch.css';
 import '../styles/app-shell.css';
