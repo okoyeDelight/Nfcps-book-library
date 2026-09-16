@@ -49,6 +49,7 @@ public final class ReadingReminderWorker extends Worker {
     private static final String KIND_DUE_2 = "due2";
     private static final String KIND_DUE = "due";
     private static final String KIND_OVERDUE = "overdue";
+    private static final String GLOBAL_LAST_DAILY = "lastDailyGlobal";
     private static final String API_BASE = "https://nfcps-one.hatchable.site/api/circulation/";
 
     private static final String[] DAILY_TITLES = new String[] {
@@ -108,12 +109,15 @@ public final class ReadingReminderWorker extends Worker {
 
         if (KIND_DAILY.equals(kind)) {
             String today = localDayKey();
+            if (today.equals(get(getApplicationContext(), GLOBAL_LAST_DAILY))) return Result.success();
             if (today.equals(get(getApplicationContext(), key("lastDaily", token)))) return Result.success();
             int seed = Math.abs((token + today).hashCode());
             String heading = DAILY_TITLES[seed % DAILY_TITLES.length];
             String body = DAILY_BODIES[(seed / 7) % DAILY_BODIES.length] + "\n" + title;
-            notify(getApplicationContext(), token + ":daily:" + today, heading, body);
-            put(getApplicationContext(), key("lastDaily", token), today);
+            if (notify(getApplicationContext(), token + ":daily:" + today, heading, body)) {
+                put(getApplicationContext(), key("lastDaily", token), today);
+                put(getApplicationContext(), GLOBAL_LAST_DAILY, today);
+            }
             return Result.success();
         }
 
@@ -136,7 +140,7 @@ public final class ReadingReminderWorker extends Worker {
         token = clean(token);
         title = clean(title);
         dueAt = clean(dueAt);
-        if (token.isEmpty()) return false;
+        if (token.isEmpty() || !canNotify(context)) return false;
 
         boolean firstEnable = !isEnabled(context, token);
         put(context, key("enabled", token), "1");
@@ -240,8 +244,8 @@ public final class ReadingReminderWorker extends Worker {
         }
     }
 
-    private static void notify(Context context, String key, String title, String body) {
-        if (!canNotify(context)) return;
+    private static boolean notify(Context context, String key, String title, String body) {
+        if (!canNotify(context)) return false;
         createChannel(context);
         Intent open = new Intent(context, MainActivity.class);
         open.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -261,6 +265,7 @@ public final class ReadingReminderWorker extends Worker {
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
         NotificationManagerCompat.from(context).notify(Math.abs(key.hashCode()), builder.build());
+        return true;
     }
 
     private static boolean canNotify(Context context) {
