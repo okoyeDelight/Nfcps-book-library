@@ -13,13 +13,13 @@
     },
     {
       "path": "nfcps-one.css",
-      "bytes": 249070,
-      "sha256": "e4f254d69a042e9a7951ea76cf9eec873a3d778c3e04fe7bea9994c63906e74b"
+      "bytes": 251563,
+      "sha256": "fb1e9ca6f75b5adcbfc12fa5ff6427a8f095b8d76b6f8be00882350fb7209e37"
     },
     {
       "path": "nfcps-one.js",
-      "bytes": 456732,
-      "sha256": "c9c234fa7effd9ec959f4d613111d630d41e01c32988116d63eb0abb56407467"
+      "bytes": 456988,
+      "sha256": "5951d2ee878e55bd26226f8d0c4f57c1fad7786f826f9fab3055180c42581f94"
     },
     {
       "path": "resources/nfcps-logo.png",
