@@ -36,17 +36,17 @@ Steps:
 
 Expected: Account creation and sign-in succeed, pre-login reading progress remains available, and saved Scripture/growth memory remains available after cloud sync.
 
-## Test 4 - Spatial Home stays cinematic, readable, and predictable
+## Test 4 - Premium launch and Spatial Home stay cinematic, readable, and predictable
 Viewport: mobile (375x667)
-Covers: Spatial Home cinematic perspective depth, living glass NFCPS medallion, dual orbital rings, simplified hero statement, reduced-motion/performance fallback, current-book continuation, unchanged Home navigation
-Description: Verifies the cinematic Home scene remains atmospheric without moving essential controls or obscuring content.
+Covers: Apple-style launch continuity, real NFCPS identity reveal, once-per-session launch, reduced-motion launch fallback, Spatial Home cinematic perspective depth, living glass NFCPS medallion, dual orbital rings, simplified hero statement, reduced-motion/performance fallback, current-book continuation, unchanged Home navigation
+Description: Verifies the launch feels immediate and restrained, then hands off cleanly to the cinematic Home scene without moving essential controls or obscuring content.
 
 Steps:
-1. Open Home and confirm the hero begins with only “Make room for what matters.” above the current-book focus card
-2. Move or scroll through the hero and confirm the scene and medallion remain subtle while Continue Reading and the floating dock stay readable
+1. Start a fresh app session and confirm a centered NFCPS identity appears briefly on a near-black canvas, then crossfades directly into Home without a spinner, loading bar, particle burst, or intermediate screen
+2. Confirm Home begins with only “Make room for what matters.” above the current-book focus card, then move or scroll through the hero and verify Continue Reading and the floating dock stay readable
 3. Open the current book, return Home, then open You from the bottom dock
 
-Expected: Home retains its premium spatial composition, the focal object remains atmospheric rather than interactive, Continue Reading works, For You Today stays in normal flow, and navigation remains stable on capable and reduced-motion devices.
+Expected: The launch uses the real NFCPS mark, system-style typography, restrained motion, and a direct handoff into Home; it does not replay again in the same session, reduced-motion devices get a brief fallback, and Home navigation remains stable.
 
 ## Test 5 - Watch intelligence uses trusted sources first and speaker-word fallback when needed
 Viewport: mobile (375x667)

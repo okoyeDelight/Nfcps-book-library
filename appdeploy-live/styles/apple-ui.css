@@ -143,3 +143,163 @@ textarea {
 .reader-family-humanist .novel-page {
     font-family: 'Avenir Next', 'Segoe UI', var(--nfcps-ui-font);
 }
+
+/* NFCPS One launch — restrained, system-native motion with no decorative loading UI. */
+html.nfcps-launching,
+html.nfcps-launching body {
+    overflow: hidden;
+}
+
+.nfcps-launch {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: #000;
+    color: #f5f5f7;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 420ms cubic-bezier(.4, 0, .2, 1);
+}
+
+.nfcps-launch::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 45%, rgba(255,255,255,.045), transparent 34%);
+}
+
+.nfcps-launch-stage {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateY(-1.5vh) scale(1);
+    opacity: 1;
+    filter: blur(0);
+    transition: transform 420ms cubic-bezier(.4, 0, .2, 1), opacity 320ms ease, filter 420ms ease;
+    will-change: transform, opacity, filter;
+}
+
+.nfcps-launch-mark-shell {
+    width: 92px;
+    height: 92px;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    transform: scale(.84);
+    filter: blur(10px);
+    animation: nfcps-launch-mark 720ms cubic-bezier(.16, 1, .3, 1) 80ms forwards;
+    will-change: transform, opacity, filter;
+}
+
+.nfcps-launch-mark-shell img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.nfcps-launch-copy {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    font-family: var(--nfcps-ui-font);
+}
+
+.nfcps-launch-copy strong {
+    font-size: clamp(25px, 6vw, 31px);
+    line-height: 1.05;
+    font-weight: 650;
+    letter-spacing: -.045em;
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(5px);
+    animation: nfcps-launch-type 560ms cubic-bezier(.16, 1, .3, 1) 380ms forwards;
+}
+
+.nfcps-launch-copy span {
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 450;
+    letter-spacing: -.01em;
+    color: rgba(245,245,247,.58);
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(4px);
+    animation: nfcps-launch-type 520ms cubic-bezier(.16, 1, .3, 1) 500ms forwards;
+}
+
+.nfcps-launch.is-leaving {
+    opacity: 0;
+}
+
+.nfcps-launch.is-leaving .nfcps-launch-stage {
+    transform: translateY(-1.5vh) scale(.985);
+    opacity: 0;
+    filter: blur(9px);
+}
+
+@keyframes nfcps-launch-mark {
+    0% {
+        opacity: 0;
+        transform: scale(.84);
+        filter: blur(10px);
+    }
+    62% {
+        opacity: 1;
+        transform: scale(1.025);
+        filter: blur(0);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0);
+    }
+}
+
+@keyframes nfcps-launch-type {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+        filter: blur(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+    }
+}
+
+@media (max-width: 480px) {
+    .nfcps-launch-mark-shell {
+        width: 82px;
+        height: 82px;
+    }
+
+    .nfcps-launch-copy {
+        margin-top: 21px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nfcps-launch,
+    .nfcps-launch-stage {
+        transition-duration: 160ms;
+    }
+
+    .nfcps-launch-mark-shell,
+    .nfcps-launch-copy strong,
+    .nfcps-launch-copy span {
+        animation: none;
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+}
