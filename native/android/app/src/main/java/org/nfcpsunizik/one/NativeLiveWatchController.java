@@ -1,11 +1,14 @@
 package org.nfcpsunizik.one;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
@@ -21,10 +24,14 @@ import android.webkit.WebViewClient;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
+
 import org.json.JSONObject;
 
 final class NativeLiveWatchController {
     private static final long FOREGROUND_REFRESH_MS = 2 * 60 * 1000L;
+    private static final int REQUEST_READING_NOTIFICATIONS = 7203;
 
     private final Activity activity;
     private final WebView appWebView;
@@ -37,6 +44,10 @@ final class NativeLiveWatchController {
     private String pendingLiveTitle = "Live now";
     private String pendingLiveCreator = "NFCPS Watch";
     private String pendingLivePlatform = "facebook";
+    private String pendingReminderToken = "";
+    private String pendingReminderTitle = "";
+    private String pendingReminderDueAt = "";
+    private int reminderPermissionPolls;
     private Dialog liveDialog;
     private WebView liveWebView;
 
@@ -124,6 +135,27 @@ final class NativeLiveWatchController {
 
     @JavascriptInterface
     public String enableReadingReminders(String token, String title, String dueAt) {
+        token = token == null ? "" : token.trim();
+        title = title == null ? "" : title.trim();
+        dueAt = dueAt == null ? "" : dueAt.trim();
+        if (token.isEmpty()) return "error";
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            pendingReminderToken = token;
+            pendingReminderTitle = title;
+            pendingReminderDueAt = dueAt;
+            reminderPermissionPolls = 0;
+            activity.runOnUiThread(() -> {
+                try {
+                    activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQUEST_READING_NOTIFICATIONS);
+                } catch (Exception ignored) {}
+                pollReadingPermission();
+            });
+            return "permission_requested";
+        }
+
+        if (!NotificationManagerCompat.from(activity).areNotificationsEnabled()) return "notifications_blocked";
         return ReadingReminderWorker.enable(activity.getApplicationContext(), token, title, dueAt) ? "enabled" : "error";
     }
 
@@ -135,6 +167,58 @@ final class NativeLiveWatchController {
     @JavascriptInterface
     public boolean readingRemindersEnabled(String token) {
         return ReadingReminderWorker.isEnabled(activity.getApplicationContext(), token);
+    }
+
+    @JavascriptInterface
+    public String nativeAppVersion() {
+        return BuildConfig.VERSION_NAME;
+    }
+
+    @JavascriptInterface
+    public String readingNotificationStatus() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            return "permission_required";
+        }
+        return NotificationManagerCompat.from(activity).areNotificationsEnabled() ? "ready" : "blocked";
+    }
+
+    private void pollReadingPermission() {
+        if (destroyed || pendingReminderToken.isEmpty()) return;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                || ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            String token = pendingReminderToken;
+            String title = pendingReminderTitle;
+            String dueAt = pendingReminderDueAt;
+            clearPendingReminder();
+            boolean enabled = ReadingReminderWorker.enable(activity.getApplicationContext(), token, title, dueAt);
+            dispatchReminderStatus(enabled ? "enabled" : "error");
+            return;
+        }
+        reminderPermissionPolls += 1;
+        if (reminderPermissionPolls >= 50) {
+            clearPendingReminder();
+            dispatchReminderStatus("permission_denied");
+            return;
+        }
+        handler.postDelayed(this::pollReadingPermission, 300);
+    }
+
+    private void clearPendingReminder() {
+        pendingReminderToken = "";
+        pendingReminderTitle = "";
+        pendingReminderDueAt = "";
+        reminderPermissionPolls = 0;
+    }
+
+    private void dispatchReminderStatus(String status) {
+        if (appWebView == null) return;
+        appWebView.post(() -> appWebView.evaluateJavascript(
+                "window.dispatchEvent(new CustomEvent('nfcps-reading-reminder-status',{detail:{status:"
+                        + JSONObject.quote(status)
+                        + "}}));",
+                null
+        ));
     }
 
     private void openLiveInternal(String url, String title, String creator, String platform) {
@@ -252,6 +336,7 @@ final class NativeLiveWatchController {
     void destroy() {
         destroyed = true;
         handler.removeCallbacks(foregroundRefresh);
+        clearPendingReminder();
         dismissDialog();
     }
 
