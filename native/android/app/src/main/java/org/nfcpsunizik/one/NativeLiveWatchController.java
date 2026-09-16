@@ -122,6 +122,21 @@ final class NativeLiveWatchController {
         activity.runOnUiThread(() -> openLiveInternal(url, title, creator, platform));
     }
 
+    @JavascriptInterface
+    public String enableReadingReminders(String token, String title, String dueAt) {
+        return ReadingReminderWorker.enable(activity.getApplicationContext(), token, title, dueAt) ? "enabled" : "error";
+    }
+
+    @JavascriptInterface
+    public void disableReadingReminders(String token) {
+        ReadingReminderWorker.disable(activity.getApplicationContext(), token);
+    }
+
+    @JavascriptInterface
+    public boolean readingRemindersEnabled(String token) {
+        return ReadingReminderWorker.isEnabled(activity.getApplicationContext(), token);
+    }
+
     private void openLiveInternal(String url, String title, String creator, String platform) {
         String safe = safeWatchUrl(url);
         if (safe == null) return;
