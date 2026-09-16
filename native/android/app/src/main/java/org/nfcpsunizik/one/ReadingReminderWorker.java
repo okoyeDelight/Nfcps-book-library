@@ -41,9 +41,10 @@ import java.util.concurrent.TimeUnit;
 public final class ReadingReminderWorker extends Worker {
     private static final String CHANNEL_ID = "nfcps_reading_companion";
     private static final String CHANNEL_NAME = "NFCPS Reading companion";
-    private static final String IMMEDIATE_CHANNEL_ID = "nfcps_reading_companion_now_v1";
+    private static final String IMMEDIATE_CHANNEL_ID = "nfcps_reading_companion_now_v2";
     private static final String IMMEDIATE_CHANNEL_NAME = "NFCPS Reading companion alerts";
     private static final String PREFS = "nfcps-reading-reminders-v1";
+    private static final String ENGINE_VERSION = "2";
     private static final String DATA_TOKEN = "token";
     private static final String DATA_KIND = "kind";
     private static final String KIND_DAILY = "daily";
@@ -145,6 +146,7 @@ public final class ReadingReminderWorker extends Worker {
         if (token.isEmpty() || !canNotify(context)) return false;
 
         put(context, key("enabled", token), "1");
+        put(context, key("engine", token), ENGINE_VERSION);
         put(context, key("title", token), title.isEmpty() ? "Your NFCPS book" : title);
         put(context, key("due", token), dueAt);
         scheduleDaily(context, token);
@@ -165,6 +167,7 @@ public final class ReadingReminderWorker extends Worker {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         prefs.edit()
                 .remove(key("enabled", token))
+                .remove(key("engine", token))
                 .remove(key("title", token))
                 .remove(key("due", token))
                 .remove(key("lastDaily", token))
@@ -178,7 +181,9 @@ public final class ReadingReminderWorker extends Worker {
     }
 
     public static boolean isEnabled(Context context, String token) {
-        return "1".equals(get(context, key("enabled", clean(token))));
+        String safe = clean(token);
+        return "1".equals(get(context, key("enabled", safe)))
+                && ENGINE_VERSION.equals(get(context, key("engine", safe)));
     }
 
     private static void scheduleDaily(Context context, String token) {
@@ -292,7 +297,8 @@ public final class ReadingReminderWorker extends Worker {
                 .setContentTitle(title)
                 .setContentText(body)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setOnlyAlertOnce(false)
@@ -334,6 +340,7 @@ public final class ReadingReminderWorker extends Worker {
         );
         channel.setDescription("Immediate Reading Companion confirmation alerts.");
         channel.enableVibration(true);
+        channel.enableLights(true);
         manager.createNotificationChannel(channel);
     }
 
