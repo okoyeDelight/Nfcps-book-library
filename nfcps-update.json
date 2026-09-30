@@ -1,11 +1,11 @@
 {
-  "revision": 31,
-  "enabled": true,
+  "revision": 32,
+  "enabled": false,
   "latest_version_code": 30,
   "latest_version_name": "1.8.5",
   "minimum_supported_version_code": 29,
   "apk_url": "https://nfcps-one.hatchable.site/updates/NFCPS-One-1.8.5-Bridge.apk",
   "sha256": "05b7c19ae628905b5a50728617853c83bdda79299baa7f71a9f9e81780b625b6",
-  "title": "NFCPS One 1.8.5 Portability Update",
-  "notes": "In-place NFCPS One update: the app can switch frontend hosts through the remote bootstrap without reinstalling, carries NFCPS local state between hosts, keeps Publish routing canonical, preserves sign-in more reliably, and lets the Enable alerts control request Android notification permission directly."
+  "title": "NFCPS One 1.8.5 preparing",
+  "notes": "The final signed portability update is being verified. NFCPS One will offer it automatically when the verified package is ready."
 }
