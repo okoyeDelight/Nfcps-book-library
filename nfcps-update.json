@@ -1,11 +1,11 @@
 {
-  "revision": 29,
+  "revision": 30,
   "enabled": true,
-  "latest_version_code": 28,
-  "latest_version_name": "1.8.3",
-  "minimum_supported_version_code": 28,
-  "apk_url": "https://nfcps-one.hatchable.site/updates/NFCPS-One-1.8.3-Bridge.apk",
-  "sha256": "8a74f01a433b927a630c87559e8ad0a3f918c680b9eda020a39ca5bbe480bfa5",
-  "title": "NFCPS One 1.8.3 Important Update",
-  "notes": "This update permanently fixes native update discovery. NFCPS now checks the real AppDeploy API host plus trusted public mirrors, chooses the newest valid release, retries after temporary failures, and keeps future serious updates inside the app."
+  "latest_version_code": 29,
+  "latest_version_name": "1.8.4",
+  "minimum_supported_version_code": 29,
+  "apk_url": "https://nfcps-one.hatchable.site/updates/NFCPS-One-1.8.4-Bridge.apk",
+  "sha256": "0c4f4c78ffed6a19d93d6bc8929036c2e758fd04203b5c016e1ec803464f9e1a",
+  "title": "NFCPS One 1.8.4 Foundation Repair",
+  "notes": "Final updater foundation: native web-to-updater bridge, resilient update discovery across multiple trusted endpoints, retry-on-foreground, in-app percentage downloads, signature verification, reliable notifications, and seasonal overlays on the original NFCPS logo."
 }
