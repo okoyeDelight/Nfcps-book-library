@@ -1,9 +1,9 @@
 {
-  "revision": 5,
-  "app_url": "https://nfcps-one.hatchable.site/exact/",
+  "revision": 6,
+  "app_url": "https://nfcps-book-library-c2ma7y.v2.appdeploy.ai/",
   "internal_hosts": [
-    "nfcps-one.hatchable.site",
-    "nfcps-book-library-c2ma7y.v2.appdeploy.ai"
+    "nfcps-book-library-c2ma7y.v2.appdeploy.ai",
+    "nfcps-one.hatchable.site"
   ],
   "routes": []
 }
