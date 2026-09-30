@@ -1,11 +1,11 @@
 {
-  "revision": 26,
+  "revision": 27,
   "enabled": true,
-  "latest_version_code": 25,
-  "latest_version_name": "1.8.0",
-  "minimum_supported_version_code": 25,
-  "apk_url": "https://nfcps-one.hatchable.site/updates/NFCPS-One-1.8.0-Bridge.apk",
-  "sha256": "e453a6284288932df0d572157c9d5fcf46b017ec5af32313e8afa31441baf6ea",
-  "title": "NFCPS One 1.8.0 Foundation Update",
-  "notes": "A small Foundation update is ready. NFCPS One will download and verify the signed update inside the app, then Android will ask you to confirm the update. No uninstall is required."
+  "latest_version_code": 26,
+  "latest_version_name": "1.8.1",
+  "minimum_supported_version_code": 26,
+  "apk_url": "https://nfcps-one.hatchable.site/updates/NFCPS-One-1.8.1-Bridge.apk",
+  "sha256": "ab29bc23c6e707a60ca4a029afa11377d38d5fe1c27f53092e720af65429502c",
+  "title": "NFCPS One 1.8.1 Foundation Update",
+  "notes": "A small Foundation update is ready. It restores the original NFCPS logo, adds seasonal accents on top of the logo, enables reliable official notifications, and installs future updates inside NFCPS. No uninstall is required."
 }
