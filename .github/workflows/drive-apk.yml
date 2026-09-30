@@ -1,0 +1,27 @@
+name: Prepare NFCPS Drive APK
+on:
+  push:
+    paths:
+      - ".github/workflows/drive-apk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download signed NFCPS One 1.8.4
+        run: |
+          curl -fL --retry 3 --retry-delay 2 \
+            "https://nfcps-one.hatchable.site/updates/NFCPS-One-1.8.4-Bridge.apk" \
+            -o NFCPS-One-Latest.apk
+          test -s NFCPS-One-Latest.apk
+          test "$(stat -c%s NFCPS-One-Latest.apk)" -gt 3000000
+          sha256sum NFCPS-One-Latest.apk
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NFCPS-One-Latest
+          path: NFCPS-One-Latest.apk
+          retention-days: 1
