@@ -1,11 +1,11 @@
 {
-  "revision": 30,
+  "revision": 31,
   "enabled": true,
-  "latest_version_code": 29,
-  "latest_version_name": "1.8.4",
+  "latest_version_code": 30,
+  "latest_version_name": "1.8.5",
   "minimum_supported_version_code": 29,
-  "apk_url": "https://nfcps-one.hatchable.site/updates/NFCPS-One-1.8.4-Bridge.apk",
-  "sha256": "0c4f4c78ffed6a19d93d6bc8929036c2e758fd04203b5c016e1ec803464f9e1a",
-  "title": "NFCPS One 1.8.4 Foundation Repair",
-  "notes": "Final updater foundation: native web-to-updater bridge, resilient update discovery across multiple trusted endpoints, retry-on-foreground, in-app percentage downloads, signature verification, reliable notifications, and seasonal overlays on the original NFCPS logo."
+  "apk_url": "https://nfcps-one.hatchable.site/updates/NFCPS-One-1.8.5-Bridge.apk",
+  "sha256": "05b7c19ae628905b5a50728617853c83bdda79299baa7f71a9f9e81780b625b6",
+  "title": "NFCPS One 1.8.5 Portability Update",
+  "notes": "In-place NFCPS One update: the app can switch frontend hosts through the remote bootstrap without reinstalling, carries NFCPS local state between hosts, keeps Publish routing canonical, preserves sign-in more reliably, and lets the Enable alerts control request Android notification permission directly."
 }
