@@ -1,11 +1,11 @@
 {
-  "revision": 27,
+  "revision": 28,
   "enabled": true,
-  "latest_version_code": 26,
-  "latest_version_name": "1.8.1",
-  "minimum_supported_version_code": 26,
-  "apk_url": "https://nfcps-one.hatchable.site/updates/NFCPS-One-1.8.1-Bridge.apk",
-  "sha256": "ab29bc23c6e707a60ca4a029afa11377d38d5fe1c27f53092e720af65429502c",
-  "title": "NFCPS One 1.8.1 Foundation Update",
-  "notes": "A small Foundation update is ready. It restores the original NFCPS logo, adds seasonal accents on top of the logo, enables reliable official notifications, and installs future updates inside NFCPS. No uninstall is required."
+  "latest_version_code": 27,
+  "latest_version_name": "1.8.2",
+  "minimum_supported_version_code": 27,
+  "apk_url": "https://nfcps-one.hatchable.site/updates/NFCPS-One-1.8.2-Bridge.apk",
+  "sha256": "0f3c6bc5f17740aa2edcba2a630f286a986a466bf4ce60de378308402ba6d5f5",
+  "title": "NFCPS One 1.8.2 Important Update",
+  "notes": "This important NFCPS One update improves the update system itself: serious releases now recheck when the app returns to the foreground and retry automatically after temporary network failures. It also keeps the original NFCPS logo with seasonal accents and reliable native notifications."
 }
