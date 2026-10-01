@@ -1,11 +1,11 @@
 {
-  "revision": 33,
+  "revision": 34,
   "enabled": true,
-  "latest_version_code": 30,
-  "latest_version_name": "1.8.5",
+  "latest_version_code": 31,
+  "latest_version_name": "1.8.6",
   "minimum_supported_version_code": 29,
-  "apk_url": "https://nfcps-one.hatchable.site/updates/NFCPS-One-1.8.5-Bridge.apk",
-  "sha256": "ed2b852ff48bb0a91d06906c86c12074c0e98bc6aa760935b316dbe11b3a1633",
-  "title": "NFCPS One 1.8.5 Portability Update",
-  "notes": "In-place update for the existing NFCPS One app. It keeps the same package and signing identity, can switch frontend hosts through the remote bootstrap, carries NFCPS and sign-in state between approved hosts, keeps Publish on its canonical service, and lets Enable alerts request Android notification permission directly."
+  "apk_url": "https://nfcps-one.hatchable.site/updates/NFCPS-One-1.8.6-Bridge.apk",
+  "sha256": "8cb471b5e48ee2bbb1db2c27b69da4a60ca129be2df45f8265fc6be9a1f3eff0",
+  "title": "NFCPS One 1.8.6 Connection Update",
+  "notes": "In-place update for the existing NFCPS One app. It keeps the same package and signing identity, preserves host switching, and adds private signed-in user notification routing so NFCPS Family, Moments and library reminders can keep working when the frontend moves between approved hosts."
 }
