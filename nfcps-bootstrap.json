@@ -1,11 +1,10 @@
 {
-  "revision": 14,
-  "app_url": "https://nfcps-one-app.onrender.com/app/",
+  "revision": 15,
+  "app_url": "https://nfcps-book-library-source-vercel-po.vercel.app/exact/",
   "service_gateway": "https://nfcps-one.hatchable.site/api/compat",
   "internal_hosts": [
-    "nfcps-one-app.onrender.com",
-    "nfcps-one.hatchable.site",
     "nfcps-book-library-source-vercel-po.vercel.app",
+    "nfcps-one.hatchable.site",
     "nfcps-book-library-c2ma7y.v2.appdeploy.ai"
   ],
   "routes": [
