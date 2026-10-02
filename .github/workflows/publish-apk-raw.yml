@@ -32,7 +32,7 @@ jobs:
           git switch --orphan nfcps-apk-work
           git rm -rf . >/dev/null 2>&1 || true
           cp "$TMP_APK" NFCPS-One.apk
-          printf '%s\n' 'NFCPS One 1.8.8 · versionCode 33' > VERSION.txt
+          printf '%s\n' 'NFCPS One 1.8.9 · versionCode 34' > VERSION.txt
           git add NFCPS-One.apk VERSION.txt
-          git commit -m 'Publish NFCPS One 1.8.8 APK'
+          git commit -m 'Publish NFCPS One 1.8.9 APK'
           git push --force origin HEAD:nfcps-apk
