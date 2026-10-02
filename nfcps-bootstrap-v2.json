@@ -1,5 +1,5 @@
 {
-  "revision": 11,
+  "revision": 12,
   "app_url": "https://nfcps-book-library-source-vercel-po.vercel.app/exact/",
   "service_gateway": "https://nfcps-one.hatchable.site/api/compat",
   "internal_hosts": [
@@ -11,6 +11,10 @@
     {
       "path_prefix": "/publish",
       "origin": "https://nfcps-book-library-source-vercel-po.vercel.app"
+    },
+    {
+      "path_prefix": "/__legacy_appdeploy",
+      "origin": "https://nfcps-book-library-c2ma7y.v2.appdeploy.ai"
     }
   ]
 }
