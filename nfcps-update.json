@@ -1,11 +1,11 @@
 {
-  "revision": 35,
+  "revision": 36,
   "enabled": true,
   "latest_version_code": 32,
   "latest_version_name": "1.8.7",
   "minimum_supported_version_code": 29,
-  "apk_url": "https://github.com/okoyeDelight/Nfcps-book-library-source/releases/download/nfcps-one-latest/NFCPS-One.apk",
+  "apk_url": "https://raw.githubusercontent.com/okoyeDelight/Nfcps-book-library/nfcps-apk/NFCPS-One.apk",
   "sha256": "591e820e6fc2b8b6d07edf6337718d957e82efffea8a1a8984c391fadacf878b",
   "title": "NFCPS One 1.8.7 Media Update",
-  "notes": "In-place update for existing NFCPS One installations. Adds Android Picture-in-Picture for Watch, media controls for background and lock-screen playback where the video provider permits it, while keeping existing accounts, Publish access, reading data and app identity unchanged."
+  "notes": "In-place update for existing NFCPS One installations. Adds Android Picture-in-Picture for Watch and media controls for background and lock-screen playback where the video provider permits it. Existing accounts, Publish access, reading data and app identity stay unchanged."
 }
