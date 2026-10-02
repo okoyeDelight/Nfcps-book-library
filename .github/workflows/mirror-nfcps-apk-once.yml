@@ -29,8 +29,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if gh release view nfcps-one-latest >/dev/null 2>&1; then
-            gh release upload nfcps-one-latest artifact/NFCPS-One.apk --clobber
+          if gh release view nfcps-one-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload nfcps-one-latest artifact/NFCPS-One.apk --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create nfcps-one-latest artifact/NFCPS-One.apk --target main --title 'NFCPS One — Android Update' --notes 'Public signed update package for existing NFCPS One installations.'
+            gh release create nfcps-one-latest artifact/NFCPS-One.apk --repo "$GITHUB_REPOSITORY" --target main --title 'NFCPS One — Android Update' --notes 'Public signed update package for existing NFCPS One installations.'
           fi
