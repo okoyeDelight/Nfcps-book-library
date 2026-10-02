@@ -4,7 +4,7 @@
   "latest_version_code": 36,
   "latest_version_name": "1.8.11",
   "minimum_supported_version_code": 29,
-  "apk_url": "https://github.com/okoyeDelight/Nfcps-book-library-source/releases/download/nfcps-one-latest/NFCPS-One.apk",
+  "apk_url": "https://github.com/okoyeDelight/Nfcps-book-library/releases/download/nfcps-one-latest/NFCPS-One.apk",
   "sha256": "e197a5bd14053a29030007f57f0f5e8c04f2fa38721d6fb5e1be9b282c815b04",
   "title": "NFCPS One 1.8.11 Watch Together",
   "notes": "Fixes Watch Together room creation and joining, routes Cinema rooms to the dedicated room service, and adds NFCPS One room invite links. Shared invites can open the room in NFCPS One, offer the app install, or continue in the browser. The rest of NFCPS One remains unchanged."
