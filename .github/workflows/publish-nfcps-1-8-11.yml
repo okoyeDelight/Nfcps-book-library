@@ -30,12 +30,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release view nfcps-one-latest >/dev/null
-          gh release upload nfcps-one-latest NFCPS-One.apk --clobber
+          gh release view nfcps-one-latest --repo okoyeDelight/Nfcps-book-library >/dev/null
+          gh release upload nfcps-one-latest NFCPS-One.apk --clobber --repo okoyeDelight/Nfcps-book-library
 
       - name: Verify public release asset
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release view nfcps-one-latest --json assets
+          gh release view nfcps-one-latest --repo okoyeDelight/Nfcps-book-library --json assets
