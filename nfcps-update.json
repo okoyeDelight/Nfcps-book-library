@@ -1,5 +1,5 @@
 {
-  "revision": 37,
+  "revision": 38,
   "enabled": true,
   "latest_version_code": 33,
   "latest_version_name": "1.8.8",
@@ -7,5 +7,5 @@
   "apk_url": "https://raw.githubusercontent.com/okoyeDelight/Nfcps-book-library/nfcps-apk/NFCPS-One.apk",
   "sha256": "25f6437973f7036f23f9a54f2619933d859288543e8c4384e082bbbde1a75afe",
   "title": "NFCPS One 1.8.8 Update Fix",
-  "notes": "In-place update for existing NFCPS One installations. Fixes update delivery by using the public NFCPS mirror first and automatically retrying temporary download failures. Also includes Picture-in-Picture and Android media controls for Watch. Existing accounts, Publish access, reading data and app identity stay unchanged."
+  "notes": "In-place update for existing NFCPS One installations. Uses the public raw mirror to avoid the broken GitHub release redirect. Adds Android Picture-in-Picture and media controls while keeping existing accounts, Publish access, reading data and app identity unchanged."
 }
