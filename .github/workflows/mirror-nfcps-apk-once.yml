@@ -1,0 +1,36 @@
+name: Mirror NFCPS APK to public release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/mirror-nfcps-apk-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download signed APK artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 'https://sdmntprnortheu.oaiusercontent.com/files/00000000-af58-81f4-a324-f2620e728f0d/raw?se=2026-10-02T12%3A43%3A28Z&sp=r&sv=2026-02-06&sr=b&scid=d99dd7cc-e0ca-5b6a-be14-ec323dc6ffec&skoid=1d6acb5b-b3f4-43ec-a5ec-b05c4a7708c8&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-02T07%3A54%3A16Z&ske=2026-10-03T07%3A54%3A16Z&sks=b&skv=2026-02-06&sig=GevI31%2BsCDihejFzX3NSfgVF8Rk2BMdYNhfZK3Rlo3k%3D' --output artifact.zip
+          unzip -q artifact.zip -d artifact
+          test -s artifact/NFCPS-One.apk
+          echo '25f6437973f7036f23f9a54f2619933d859288543e8c4384e082bbbde1a75afe  artifact/NFCPS-One.apk' | sha256sum -c -
+
+      - name: Publish public rolling release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view nfcps-one-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload nfcps-one-latest artifact/NFCPS-One.apk --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create nfcps-one-latest artifact/NFCPS-One.apk --repo "$GITHUB_REPOSITORY" --target main --title 'NFCPS One — Android Update' --notes 'Public signed update package for existing NFCPS One installations.'
+          fi
