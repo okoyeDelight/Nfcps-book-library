@@ -1,11 +1,11 @@
 {
-  "revision": 38,
+  "revision": 39,
   "enabled": true,
-  "latest_version_code": 33,
-  "latest_version_name": "1.8.8",
+  "latest_version_code": 34,
+  "latest_version_name": "1.8.9",
   "minimum_supported_version_code": 29,
   "apk_url": "https://raw.githubusercontent.com/okoyeDelight/Nfcps-book-library/nfcps-apk/NFCPS-One.apk",
-  "sha256": "25f6437973f7036f23f9a54f2619933d859288543e8c4384e082bbbde1a75afe",
-  "title": "NFCPS One 1.8.8 Update Fix",
-  "notes": "In-place update for existing NFCPS One installations. Uses the public raw mirror to avoid the broken GitHub release redirect. Adds Android Picture-in-Picture and media controls while keeping existing accounts, Publish access, reading data and app identity unchanged."
+  "sha256": "4568500f1b38ae0ce5750757a7812ece7cdbbf2c4afa8cf72e674fd1d91c8adf",
+  "title": "NFCPS One 1.8.9 Update",
+  "notes": "Smaller in-place update for existing NFCPS One installations (about 23 MB). Fixes the oversized package issue, keeps existing accounts and data, and includes Android Picture-in-Picture/media controls. Scripture Lens downloads its offline speech model only when playback Lens is first used instead of bundling it into every APK."
 }
