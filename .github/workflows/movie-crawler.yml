@@ -1,0 +1,184 @@
+name: NFCPS Cinema movie index
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/movie-crawler.yml'
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nfcps-cinema-index
+  cancel-in-progress: false
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare crawler
+        run: python -m pip install --disable-pip-version-check -q yt-dlp
+
+      - name: Build and refresh Christian movie catalogue
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess, time
+          from datetime import datetime, timezone
+
+          DEEP=[
+            'christian full movie',
+            'gospel full movie',
+            'nigerian christian full movie',
+            'mount zion full movie',
+            'african christian full movie',
+            'faith based full movie',
+            'christian drama full movie',
+            'christian family full movie',
+            'christian romance full movie',
+            'christian movie english full',
+            'gospel movie nigeria full',
+            'christian documentary full movie',
+            'christian biopic full movie',
+            'christian youth movie full',
+            'christian campus movie full',
+            'christian marriage movie full',
+            'christian movie 2026 full',
+            'gospel film 2026 full movie'
+          ]
+          FRESH=[
+            'christian movie premiere',
+            'gospel movie premiere',
+            'mount zion movie premiere',
+            'christian full movie 2026',
+            'nigerian christian movie 2026',
+            'faith based movie premiere',
+            'christian movie coming soon'
+          ]
+          reject=re.compile(r'\b(trailer|teaser|reaction|review|behind the scenes|bts|sermon|message|preaching|podcast|interview|worship session|music video|lyric video|shorts?)\b',re.I)
+          positive=re.compile(r'\b(movie|film|drama|cinema|feature|episode|season|story)\b',re.I)
+          christian=re.compile(r'\b(christian|gospel|faith|jesus|christ|church|believer|kingdom|bible|god|mount zion|ministry)\b',re.I)
+
+          try:
+            subprocess.run(['git','fetch','origin','nfcps-movies:nfcps-movies'],check=False,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            raw=subprocess.check_output(['git','show','nfcps-movies:movie-catalog.json'],stderr=subprocess.DEVNULL,text=True)
+            old=json.loads(raw)
+            existing={m['id']:m for m in old.get('movies',[]) if m.get('id')}
+          except Exception:
+            existing={}
+
+          first_run=not bool(existing)
+          queries=DEEP+FRESH if first_run else FRESH
+          limit='35' if first_run else '20'
+          found={}
+
+          def classify(text):
+            t=text.lower()
+            if re.search(r'marriage|romance|love|relationship|courtship',t): return 'Love & Family'
+            if re.search(r'youth|teen|campus|student|school',t): return 'Young Believers'
+            if re.search(r'true story|biopic|biography|based on',t): return 'True Stories'
+            if re.search(r'mission|evangel|persecution|martyr',t): return 'Faith Under Fire'
+            if re.search(r'africa|nigeria|ghana|kenya|mount zion|yoruba',t): return 'African Christian Cinema'
+            if re.search(r'family|children|kids',t): return 'Family Night'
+            if re.search(r'documentary',t): return 'Documentary'
+            return 'Faith & Drama'
+
+          for q in queries:
+            cmd=['yt-dlp','--ignore-errors','--skip-download','--no-warnings','--dump-json',f'ytsearch{limit}:{q}']
+            try:
+              p=subprocess.run(cmd,capture_output=True,text=True,timeout=240)
+            except Exception:
+              continue
+            for line in p.stdout.splitlines():
+              try: x=json.loads(line)
+              except Exception: continue
+              vid=x.get('id')
+              title=(x.get('title') or '').strip()
+              desc=(x.get('description') or '')[:1400]
+              channel=(x.get('channel') or x.get('uploader') or '').strip()
+              duration=x.get('duration')
+              live=x.get('live_status') or 'not_live'
+              release=x.get('release_timestamp') or x.get('timestamp')
+              if not vid or len(vid)!=11 or not title: continue
+              text=' '.join([title,desc,channel,q])
+              upcoming=live in ('is_upcoming','is_live') or (release and release>time.time()+120)
+              if not upcoming:
+                if duration is None or duration < 1500 or duration > 18000: continue
+                if reject.search(title): continue
+                if not positive.search(text): continue
+              if not christian.search(text): continue
+              if x.get('playable_in_embed') is False: continue
+              published=''
+              ts=x.get('timestamp') or x.get('release_timestamp')
+              if ts:
+                try: published=datetime.fromtimestamp(ts,timezone.utc).isoformat().replace('+00:00','Z')
+                except Exception: pass
+              item={
+                'id':vid,
+                'title':title,
+                'creator':channel or 'Christian Cinema',
+                'published':published,
+                'category':classify(text),
+                'duration':int(duration or 0),
+                'liveStatus':live,
+                'releaseTimestamp':int(release or 0),
+                'description':re.sub(r'\s+',' ',desc).strip()[:700],
+                'thumbnail':f'https://i.ytimg.com/vi/{vid}/maxresdefault.jpg',
+                'sourceUrl':f'https://www.youtube.com/watch?v={vid}',
+                'discoveredAt':datetime.now(timezone.utc).isoformat().replace('+00:00','Z')
+              }
+              found[vid]=item
+
+          merged={**existing,**found}
+          now=int(time.time())
+          movies=[]
+          for m in merged.values():
+            status=m.get('liveStatus','not_live')
+            rel=int(m.get('releaseTimestamp') or 0)
+            if status=='is_upcoming' or rel>now:
+              m['availability']='upcoming'
+            elif status=='is_live':
+              m['availability']='premiere'
+            else:
+              m['availability']='available'
+            movies.append(m)
+
+          def score(m):
+            a=m.get('availability')
+            if a=='premiere': return (0,-int(m.get('releaseTimestamp') or 0))
+            if a=='upcoming': return (1,int(m.get('releaseTimestamp') or 9999999999))
+            return (2,-int(m.get('releaseTimestamp') or 0),m.get('title',''))
+          movies.sort(key=score)
+          payload={
+            'movies':movies[:1200],
+            'updatedAt':datetime.now(timezone.utc).isoformat().replace('+00:00','Z'),
+            'mode':'deep-index' if first_run else 'premiere-refresh',
+            'count':len(movies[:1200])
+          }
+          with open('movie-catalog.json','w',encoding='utf-8') as f:
+            json.dump(payload,f,separators=(',',':'),ensure_ascii=False)
+          print('movies',payload['count'],'new_or_refreshed',len(found),'mode',payload['mode'])
+          PY
+
+      - name: Publish catalogue
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp movie-catalog.json "$RUNNER_TEMP/movie-catalog.json"
+          git config user.name 'NFCPS Cinema Index'
+          git config user.email 'actions@users.noreply.github.com'
+          git switch --orphan nfcps-movies-work
+          git rm -rf . >/dev/null 2>&1 || true
+          cp "$RUNNER_TEMP/movie-catalog.json" movie-catalog.json
+          printf '%s\n' 'NFCPS Cinema catalogue. Generated automatically.' > README.txt
+          git add movie-catalog.json README.txt
+          git commit -m 'Refresh NFCPS Cinema catalogue'
+          git push --force origin HEAD:nfcps-movies
