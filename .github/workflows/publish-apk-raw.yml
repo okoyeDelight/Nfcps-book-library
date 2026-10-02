@@ -26,13 +26,13 @@ jobs:
           set -euo pipefail
           TMP_APK="$RUNNER_TEMP/NFCPS-One.apk"
           gh release download nfcps-one-latest --repo "$GITHUB_REPOSITORY" --pattern 'NFCPS-One.apk' --output "$TMP_APK" --clobber
-          echo '591e820e6fc2b8b6d07edf6337718d957e82efffea8a1a8984c391fadacf878b  '"$TMP_APK" | sha256sum -c -
+          echo '25f6437973f7036f23f9a54f2619933d859288543e8c4384e082bbbde1a75afe  '"$TMP_APK" | sha256sum -c -
           git config user.name 'NFCPS Release Bot'
           git config user.email 'actions@users.noreply.github.com'
           git switch --orphan nfcps-apk-work
           git rm -rf . >/dev/null 2>&1 || true
           cp "$TMP_APK" NFCPS-One.apk
-          printf '%s\n' 'NFCPS One 1.8.7 · versionCode 32' > VERSION.txt
+          printf '%s\n' 'NFCPS One 1.8.8 · versionCode 33' > VERSION.txt
           git add NFCPS-One.apk VERSION.txt
-          git commit -m 'Publish NFCPS One 1.8.7 APK'
+          git commit -m 'Publish NFCPS One 1.8.8 APK'
           git push --force origin HEAD:nfcps-apk
