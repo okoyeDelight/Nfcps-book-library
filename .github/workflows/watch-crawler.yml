@@ -1,0 +1,126 @@
+name: NFCPS Watch live crawler
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/watch-crawler.yml'
+  schedule:
+    - cron: '*/5 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nfcps-watch-live-crawler
+  cancel-in-progress: true
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Crawl trusted YouTube channels
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, re, urllib.parse, urllib.request, xml.etree.ElementTree as ET
+          from datetime import datetime, timezone
+
+          SOURCES=[
+            ('arome','Apostle Arome Osayi','Spiritual Growth','https://www.youtube.com/@apostlearomeosayi','UCh6Sn6v_mdhwWTEpNvo5A4A'),
+            ('orokpo','Apostle Michael Orokpo','Kingdom','https://www.youtube.com/@apostleorokpomichael','UCxssq4RFmPSgUzyjpIZBjSQ'),
+            ('lawrence','Lawrence Oyor','Worship','https://www.youtube.com/@LawrenceOyor','UCNeLs83EPGjX8Pz7wsiBckw'),
+            ('iren','Apostle Emmanuel Iren','Bible Study','https://www.youtube.com/@pst_iren','UC0LnPAjiEk6pZqd7bIzq4sw'),
+            ('ukeme','Godswill Ukeme','Christian Creativity','https://www.youtube.com/channel/UCb_lGM90apxVynXkZ-xgHNQ','UCb_lGM90apxVynXkZ-xgHNQ'),
+            ('effa','Apostle Effa Emmanuel Isaac','Discipleship','https://www.youtube.com/@apostleeffaemmanuelisaac',''),
+            ('edu','Apostle Edu Udechukwu','Revival','https://www.youtube.com/@ApostleEduUdechukwu',''),
+            ('gbile','Bro. Gbile Akanni','Bible Study','https://www.youtube.com/user/LivingseedTeam',''),
+            ('theophilus','Theophilus Sunday','Worship','https://www.youtube.com/@TheophilusSunday',''),
+            ('dunsin','Dunsin Oyekan','Worship','https://www.youtube.com/@DunsinOyekan',''),
+            ('selman','Koinonia · Apostle Joshua Selman','Bible Study','https://www.youtube.com/@KoinoniaGlobal',''),
+            ('femi','Apostle Femi Lazarus','Bible Study','https://www.youtube.com/@FemiLazarus',''),
+            ('victoria','Victoria Orenze','Worship','https://www.youtube.com/@VictoriaOrenze',''),
+            ('greatman','Greatman Takit','Christian Creativity','https://www.youtube.com/@GreatmanTakit',''),
+            ('kaestrings','Kaestrings','Worship','https://www.youtube.com/@Kaestrings',''),
+            ('godswill-oyor','Godswill Oyor','Prayer','https://www.youtube.com/@GodswillOyor','')
+          ]
+          UA='Mozilla/5.0 NFCPSWatchCrawler/6.0'
+          def get(url, timeout=10):
+            req=urllib.request.Request(url,headers={'User-Agent':UA,'Accept-Language':'en-US,en;q=0.9'})
+            with urllib.request.urlopen(req,timeout=timeout) as r:
+              return r.read().decode('utf-8','replace')
+          def resolve(url, known):
+            if known: return known
+            try:
+              body=get(url,8)
+              for pat in (r'"channelId":"(UC[A-Za-z0-9_-]+)"',r'itemprop="channelId" content="(UC[A-Za-z0-9_-]+)"',r'youtube\.com/channel/(UC[A-Za-z0-9_-]+)'):
+                m=re.search(pat,body)
+                if m:return m.group(1)
+            except Exception: pass
+            return ''
+          def cat(title, fallback):
+            t=title.lower()
+            if re.search(r'prayer|pray|intercession|tarry|altar',t):return 'Prayer'
+            if re.search(r'worship|praise|song|music|chant|sound',t):return 'Worship'
+            if re.search(r'revival|holy spirit|holy ghost|pentecost|awakening',t):return 'Revival'
+            if re.search(r'purpose|calling|destiny|leadership',t):return 'Purpose'
+            if re.search(r'bible|scripture|doctrine|theology|teaching|discipleship|word',t):return 'Bible Teaching'
+            if re.search(r'evangel|mission|gospel',t):return 'Evangelism'
+            if re.search(r'relationship|marriage|courtship|family|love',t):return 'Relationships'
+            return fallback
+          videos=[];clips=[];seen=set();clip_seen=set()
+          ns={'a':'http://www.w3.org/2005/Atom','yt':'http://www.youtube.com/xml/schemas/2015'}
+          for key,name,fallback,url,known in SOURCES:
+            cid=resolve(url,known)
+            if cid:
+              try:
+                xml=get('https://www.youtube.com/feeds/videos.xml?channel_id='+urllib.parse.quote(cid),8)
+                root=ET.fromstring(xml)
+                for entry in root.findall('a:entry',ns)[:15]:
+                  vid=(entry.findtext('yt:videoId',default='',namespaces=ns) or '').strip()
+                  title=(entry.findtext('a:title',default='',namespaces=ns) or '').strip()
+                  published=(entry.findtext('a:published',default='',namespaces=ns) or '').strip()
+                  if not vid or not title or vid in seen: continue
+                  seen.add(vid)
+                  videos.append({'id':vid,'title':title,'creator':name,'creatorKey':key,'published':published,'category':cat(title,fallback),'source':'latest','channelUrl':url})
+              except Exception as e:
+                print('RSS skip',name,e)
+            try:
+              body=get(url.rstrip('/')+'/shorts',8)
+              for m in re.finditer(r'"videoId":"([A-Za-z0-9_-]{11})"',body):
+                vid=m.group(1)
+                if vid in clip_seen:continue
+                clip_seen.add(vid)
+                near=body[m.start():m.start()+5200]
+                tm=re.search(r'"title":\{"runs":\[\{"text":"((?:\\.|[^"])*)"',near) or re.search(r'"title":\{"simpleText":"((?:\\.|[^"])*)"',near)
+                title=(tm.group(1) if tm else ('Short from '+name)).replace('\\u0026','&').replace('\\n',' ')
+                clips.append({'id':vid,'title':title,'creator':name,'creatorKey':key,'published':datetime.now(timezone.utc).isoformat().replace('+00:00','Z'),'category':cat(title,fallback),'source':'clip','channelUrl':url})
+                if sum(1 for x in clips if x['creatorKey']==key)>=10:break
+            except Exception as e:
+              print('Shorts skip',name,e)
+          videos.sort(key=lambda x:x.get('published',''),reverse=True)
+          now=datetime.now(timezone.utc).isoformat().replace('+00:00','Z')
+          payload={'videos':videos[:220],'lives':[],'clips':clips[:180],'liveCount':0,'freshCount':len(videos[:220]),'shortCount':len(clips[:180]),'updatedAt':now,'sourceUpdatedAt':videos[0]['published'] if videos else None,'degraded':not bool(videos),'source':'github-youtube-live-crawler'}
+          with open('watch-feed.json','w',encoding='utf-8') as f: json.dump(payload,f,separators=(',',':'),ensure_ascii=False)
+          print('videos',len(payload['videos']),'clips',len(payload['clips']))
+          PY
+
+      - name: Publish live feed branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp watch-feed.json "$RUNNER_TEMP/watch-feed.json"
+          git config user.name 'NFCPS Watch Crawler'
+          git config user.email 'actions@users.noreply.github.com'
+          git switch --orphan nfcps-live-work
+          git rm -rf . >/dev/null 2>&1 || true
+          cp "$RUNNER_TEMP/watch-feed.json" watch-feed.json
+          printf '%s\n' 'Generated automatically from trusted YouTube channels.' > README.txt
+          git add watch-feed.json README.txt
+          git commit -m "Refresh NFCPS Watch feed"
+          git push --force origin HEAD:nfcps-live
