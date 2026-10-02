@@ -1,11 +1,11 @@
 {
-  "revision": 43,
+  "revision": 45,
   "enabled": true,
-  "latest_version_code": 35,
-  "latest_version_name": "1.8.10",
+  "latest_version_code": 36,
+  "latest_version_name": "1.8.11",
   "minimum_supported_version_code": 29,
-  "apk_url": "https://raw.githubusercontent.com/okoyeDelight/Nfcps-book-library/nfcps-apk/NFCPS-One.apk",
-  "sha256": "34ecc6d93e2bbc1e7c378c5a2363ca87e9416fdc0debdcde48fff5f7bc4f455f",
-  "title": "NFCPS One 1.8.10 Family Fix",
-  "notes": "Fixes NFCPS Family and Welfare connectivity and adds explicit, opt-in Android support for broad-area suggestions from device location and privacy-preserving contact matching. Contact numbers are hashed on-device before matching; exact location is not uploaded. The rest of NFCPS One remains unchanged."
+  "apk_url": "https://github.com/okoyeDelight/Nfcps-book-library-source/releases/download/nfcps-one-latest/NFCPS-One.apk",
+  "sha256": "e197a5bd14053a29030007f57f0f5e8c04f2fa38721d6fb5e1be9b282c815b04",
+  "title": "NFCPS One 1.8.11 Watch Together",
+  "notes": "Fixes Watch Together room creation and joining, routes Cinema rooms to the dedicated room service, and adds NFCPS One room invite links. Shared invites can open the room in NFCPS One, offer the app install, or continue in the browser. The rest of NFCPS One remains unchanged."
 }
