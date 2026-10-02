@@ -14,157 +14,136 @@ permissions:
 
 concurrency:
   group: nfcps-cinema-index
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   index:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Prepare crawler
-        run: python -m pip install --disable-pip-version-check -q yt-dlp
-
-      - name: Build and refresh Christian movie catalogue
+      - name: Build Christian movie catalogue
         shell: bash
         run: |
           python3 - <<'PY'
-          import json, os, re, subprocess, time
-          from datetime import datetime, timezone
+          import json,re,subprocess,time,urllib.parse,urllib.request
+          from concurrent.futures import ThreadPoolExecutor,as_completed
+          from datetime import datetime,timezone
 
           DEEP=[
-            'christian full movie',
-            'gospel full movie',
-            'nigerian christian full movie',
-            'mount zion full movie',
-            'african christian full movie',
-            'faith based full movie',
-            'christian drama full movie',
-            'christian family full movie',
-            'christian romance full movie',
-            'christian movie english full',
-            'gospel movie nigeria full',
-            'christian documentary full movie',
-            'christian biopic full movie',
-            'christian youth movie full',
-            'christian campus movie full',
-            'christian marriage movie full',
-            'christian movie 2026 full',
-            'gospel film 2026 full movie'
+            'christian full movie','gospel full movie','nigerian christian full movie',
+            'mount zion full movie','african christian full movie','faith based full movie',
+            'christian drama full movie','christian family full movie','christian romance full movie',
+            'christian movie english full','gospel movie nigeria full','christian documentary full movie',
+            'christian biopic full movie','christian youth movie full','christian campus movie full',
+            'christian marriage movie full','christian movie full 2026','gospel film full 2026',
+            'christian movie full 2025','christian movie full 2024','christian movie full 2023',
+            'christian african movie full english','christian faith film full',
+            'christian testimony movie full','christian salvation movie full'
           ]
           FRESH=[
-            'christian movie premiere',
-            'gospel movie premiere',
-            'mount zion movie premiere',
-            'christian full movie 2026',
-            'nigerian christian movie 2026',
-            'faith based movie premiere',
-            'christian movie coming soon'
+            'christian movie premiere','gospel movie premiere','mount zion movie premiere',
+            'christian full movie 2026','nigerian christian movie 2026',
+            'faith based movie premiere','christian movie coming soon',
+            'gospel film premiere 2026'
           ]
-          reject=re.compile(r'\b(trailer|teaser|reaction|review|behind the scenes|bts|sermon|message|preaching|podcast|interview|worship session|music video|lyric video|shorts?)\b',re.I)
-          positive=re.compile(r'\b(movie|film|drama|cinema|feature|episode|season|story)\b',re.I)
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36'
+          reject=re.compile(r'\b(trailer|teaser|reaction|review|behind the scenes|\bbts\b|sermon|message|preaching|podcast|interview|worship session|music video|lyric video|shorts?)\b',re.I)
+          positive=re.compile(r'\b(movie|film|drama|cinema|feature|story)\b',re.I)
           christian=re.compile(r'\b(christian|gospel|faith|jesus|christ|church|believer|kingdom|bible|god|mount zion|ministry)\b',re.I)
+
+          def clean(s):
+            return (s or '').replace('\\u0026','&').replace('\\n',' ').replace('\\\"','"').replace('&amp;','&').replace('&#39;',"'").replace('&quot;','"').strip()
+
+          def seconds(raw):
+            if not raw:return 0
+            parts=raw.split(':')
+            try:
+              n=0
+              for p in parts:n=n*60+int(p)
+              return n
+            except:return 0
+
+          def cat(text):
+            t=text.lower()
+            if re.search(r'marriage|romance|love|relationship|courtship',t):return 'Love & Family'
+            if re.search(r'youth|teen|campus|student|school',t):return 'Young Believers'
+            if re.search(r'true story|biopic|biography|based on',t):return 'True Stories'
+            if re.search(r'mission|evangel|persecution|martyr',t):return 'Faith Under Fire'
+            if re.search(r'africa|nigeria|ghana|kenya|mount zion|yoruba',t):return 'African Christian Cinema'
+            if re.search(r'family|children|kids',t):return 'Family Night'
+            if re.search(r'documentary',t):return 'Documentary'
+            return 'Faith & Drama'
+
+          def search(q):
+            url='https://www.youtube.com/results?search_query='+urllib.parse.quote(q)+'&app=desktop'
+            req=urllib.request.Request(url,headers={'User-Agent':UA,'Accept-Language':'en-US,en;q=0.9'})
+            try:
+              with urllib.request.urlopen(req,timeout=12) as r: html=r.read().decode('utf-8','replace')
+            except Exception:return []
+            out=[];seen=set()
+            for hit in re.finditer(r'"videoId":"([A-Za-z0-9_-]{11})"',html):
+              vid=hit.group(1)
+              if vid in seen:continue
+              seen.add(vid)
+              near=html[hit.start():hit.start()+12000]
+              tm=re.search(r'"title":\{"runs":\[\{"text":"((?:\\.|[^"])*)"',near) or re.search(r'"title":\{"simpleText":"((?:\\.|[^"])*)"',near)
+              if not tm:continue
+              title=clean(tm.group(1))
+              owner=re.search(r'"ownerText":\{"runs":\[\{"text":"((?:\\.|[^"])*)"',near) or re.search(r'"longBylineText":\{"runs":\[\{"text":"((?:\\.|[^"])*)"',near)
+              creator=clean(owner.group(1) if owner else 'Christian Cinema')
+              lm=re.search(r'"lengthText":\{"accessibility":\{"accessibilityData":\{"label":"[^"]*"\}\},"simpleText":"([0-9:]+)"',near) or re.search(r'"lengthText":\{"simpleText":"([0-9:]+)"',near)
+              duration=seconds(lm.group(1) if lm else '')
+              start=re.search(r'"startTime":"?(\d{9,12})"?',near)
+              release=int(start.group(1)) if start else 0
+              upcoming=bool(re.search(r'UPCOMING|PREMIERE|upcomingEventData',near,re.I) and release>int(time.time())-600)
+              live=bool(re.search(r'BADGE_STYLE_TYPE_LIVE_NOW|"label":"LIVE"',near))
+              text=' '.join([title,creator,q])
+              if not upcoming and not live:
+                if duration<1500 or duration>18000:continue
+                if reject.search(title):continue
+                if not positive.search(text):continue
+              if not christian.search(text):continue
+              out.append({
+                'id':vid,'title':title,'creator':creator,'published':'',
+                'category':cat(text),'duration':duration,
+                'liveStatus':'is_live' if live else ('is_upcoming' if upcoming else 'not_live'),
+                'releaseTimestamp':release,'description':'',
+                'thumbnail':f'https://i.ytimg.com/vi/{vid}/maxresdefault.jpg',
+                'sourceUrl':f'https://www.youtube.com/watch?v={vid}',
+                'discoveredAt':datetime.now(timezone.utc).isoformat().replace('+00:00','Z')
+              })
+              if len(out)>=30:break
+            return out
 
           try:
             subprocess.run(['git','fetch','origin','nfcps-movies:nfcps-movies'],check=False,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-            raw=subprocess.check_output(['git','show','nfcps-movies:movie-catalog.json'],stderr=subprocess.DEVNULL,text=True)
-            old=json.loads(raw)
+            old=json.loads(subprocess.check_output(['git','show','nfcps-movies:movie-catalog.json'],stderr=subprocess.DEVNULL,text=True))
             existing={m['id']:m for m in old.get('movies',[]) if m.get('id')}
           except Exception:
             existing={}
 
-          first_run=not bool(existing)
-          queries=DEEP+FRESH if first_run else FRESH
-          limit='35' if first_run else '20'
+          first=not bool(existing)
+          queries=DEEP+FRESH if first else FRESH
           found={}
+          with ThreadPoolExecutor(max_workers=8) as ex:
+            futures={ex.submit(search,q):q for q in queries}
+            for fut in as_completed(futures):
+              try:
+                for m in fut.result():found[m['id']]=m
+              except Exception:pass
 
-          def classify(text):
-            t=text.lower()
-            if re.search(r'marriage|romance|love|relationship|courtship',t): return 'Love & Family'
-            if re.search(r'youth|teen|campus|student|school',t): return 'Young Believers'
-            if re.search(r'true story|biopic|biography|based on',t): return 'True Stories'
-            if re.search(r'mission|evangel|persecution|martyr',t): return 'Faith Under Fire'
-            if re.search(r'africa|nigeria|ghana|kenya|mount zion|yoruba',t): return 'African Christian Cinema'
-            if re.search(r'family|children|kids',t): return 'Family Night'
-            if re.search(r'documentary',t): return 'Documentary'
-            return 'Faith & Drama'
-
-          for q in queries:
-            cmd=['yt-dlp','--ignore-errors','--skip-download','--no-warnings','--dump-json',f'ytsearch{limit}:{q}']
-            try:
-              p=subprocess.run(cmd,capture_output=True,text=True,timeout=240)
-            except Exception:
-              continue
-            for line in p.stdout.splitlines():
-              try: x=json.loads(line)
-              except Exception: continue
-              vid=x.get('id')
-              title=(x.get('title') or '').strip()
-              desc=(x.get('description') or '')[:1400]
-              channel=(x.get('channel') or x.get('uploader') or '').strip()
-              duration=x.get('duration')
-              live=x.get('live_status') or 'not_live'
-              release=x.get('release_timestamp') or x.get('timestamp')
-              if not vid or len(vid)!=11 or not title: continue
-              text=' '.join([title,desc,channel,q])
-              upcoming=live in ('is_upcoming','is_live') or (release and release>time.time()+120)
-              if not upcoming:
-                if duration is None or duration < 1500 or duration > 18000: continue
-                if reject.search(title): continue
-                if not positive.search(text): continue
-              if not christian.search(text): continue
-              if x.get('playable_in_embed') is False: continue
-              published=''
-              ts=x.get('timestamp') or x.get('release_timestamp')
-              if ts:
-                try: published=datetime.fromtimestamp(ts,timezone.utc).isoformat().replace('+00:00','Z')
-                except Exception: pass
-              item={
-                'id':vid,
-                'title':title,
-                'creator':channel or 'Christian Cinema',
-                'published':published,
-                'category':classify(text),
-                'duration':int(duration or 0),
-                'liveStatus':live,
-                'releaseTimestamp':int(release or 0),
-                'description':re.sub(r'\s+',' ',desc).strip()[:700],
-                'thumbnail':f'https://i.ytimg.com/vi/{vid}/maxresdefault.jpg',
-                'sourceUrl':f'https://www.youtube.com/watch?v={vid}',
-                'discoveredAt':datetime.now(timezone.utc).isoformat().replace('+00:00','Z')
-              }
-              found[vid]=item
-
-          merged={**existing,**found}
-          now=int(time.time())
-          movies=[]
+          merged={**existing,**found};now=int(time.time());movies=[]
           for m in merged.values():
-            status=m.get('liveStatus','not_live')
-            rel=int(m.get('releaseTimestamp') or 0)
-            if status=='is_upcoming' or rel>now:
-              m['availability']='upcoming'
-            elif status=='is_live':
-              m['availability']='premiere'
-            else:
-              m['availability']='available'
+            live=m.get('liveStatus','not_live');rel=int(m.get('releaseTimestamp') or 0)
+            m['availability']='premiere' if live=='is_live' else ('upcoming' if live=='is_upcoming' or rel>now else 'available')
             movies.append(m)
-
-          def score(m):
-            a=m.get('availability')
-            if a=='premiere': return (0,-int(m.get('releaseTimestamp') or 0))
-            if a=='upcoming': return (1,int(m.get('releaseTimestamp') or 9999999999))
-            return (2,-int(m.get('releaseTimestamp') or 0),m.get('title',''))
-          movies.sort(key=score)
-          payload={
-            'movies':movies[:1200],
-            'updatedAt':datetime.now(timezone.utc).isoformat().replace('+00:00','Z'),
-            'mode':'deep-index' if first_run else 'premiere-refresh',
-            'count':len(movies[:1200])
-          }
-          with open('movie-catalog.json','w',encoding='utf-8') as f:
-            json.dump(payload,f,separators=(',',':'),ensure_ascii=False)
+          movies.sort(key=lambda m:(0 if m['availability']=='premiere' else 1 if m['availability']=='upcoming' else 2, int(m.get('releaseTimestamp') or 0) if m['availability']=='upcoming' else -int(m.get('releaseTimestamp') or 0), m.get('title','')))
+          payload={'movies':movies[:1200],'updatedAt':datetime.now(timezone.utc).isoformat().replace('+00:00','Z'),'mode':'deep-index' if first else 'premiere-refresh','count':len(movies[:1200])}
+          with open('movie-catalog.json','w',encoding='utf-8') as f:json.dump(payload,f,separators=(',',':'),ensure_ascii=False)
           print('movies',payload['count'],'new_or_refreshed',len(found),'mode',payload['mode'])
           PY
 
