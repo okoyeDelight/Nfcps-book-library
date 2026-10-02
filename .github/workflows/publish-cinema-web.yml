@@ -1,4 +1,4 @@
-name: Publish NFCPS Cinema web mirror
+name: Publish NFCPS Cinema web
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Fetch compiled NFCPS Cinema frontend
+      - name: Download built Cinema frontend
         shell: bash
         run: |
           set -euo pipefail
@@ -25,17 +25,16 @@ jobs:
           mkdir -p "$RUNNER_TEMP/cinema"
           unzip -q "$RUNNER_TEMP/cinema.zip" -d "$RUNNER_TEMP/cinema"
           test -s "$RUNNER_TEMP/cinema/index.html"
-      - name: Publish clean static branch
+      - name: Publish public static branch
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'NFCPS Web Release'
+          git config user.name 'NFCPS Cinema Release'
           git config user.email 'actions@users.noreply.github.com'
           git switch --orphan nfcps-web-work
           git rm -rf . >/dev/null 2>&1 || true
-          git clean -fdx >/dev/null 2>&1 || true
           cp -R "$RUNNER_TEMP/cinema/." .
-          printf '%s\n' 'NFCPS One web mirror with Cinema.' > BUILD.txt
+          printf '%s\n' 'NFCPS One Cinema frontend' > BUILD.txt
           git add -A
-          git commit -m 'Publish NFCPS Cinema web mirror'
+          git commit -m 'Publish NFCPS Cinema frontend'
           git push --force origin HEAD:nfcps-web
