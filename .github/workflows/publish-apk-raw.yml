@@ -24,11 +24,11 @@ jobs:
           set -euo pipefail
           TMP_ZIP="$RUNNER_TEMP/NFCPS-One-Signed-Android.zip"
           TMP_DIR="$RUNNER_TEMP/nfcps-apk"
-          curl --fail --location --retry 3 'https://sdmntprdenmarkeast.oaiusercontent.com/files/00000000-15a4-8210-b253-0983d87863b0/raw?se=2026-10-02T13%3A55%3A07Z&sp=r&sv=2026-02-06&sr=b&scid=31ea1ed7-bb82-5bbe-bd03-c6f72b1bc148&skoid=1d6acb5b-b3f4-43ec-a5ec-b05c4a7708c8&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-02T05%3A02%3A05Z&ske=2026-10-03T05%3A02%3A05Z&sks=b&skv=2026-02-06&sig=luAnjw%2Bj%2BjiqsuCvUIM3pYfKaxPK5VU9LQZq9pTieMA%3D' --output "$TMP_ZIP"
+          curl --fail --location --retry 3 'https://sdmntprdenmarkeast.oaiusercontent.com/files/00000000-a7dc-8210-ba67-2e4dda19c140/raw?se=2026-10-02T16%3A19%3A49Z&sp=r&sv=2026-02-06&sr=b&scid=1d5952d0-4c7c-5108-a918-ec77a973f559&skoid=1d6acb5b-b3f4-43ec-a5ec-b05c4a7708c8&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-02T07%3A23%3A22Z&ske=2026-10-03T07%3A23%3A22Z&sks=b&skv=2026-02-06&sig=t5/DFNOi%2Bc9YuI7RrIxwPoxU%2BvAoTDTQAl/JzpoZv1Y%3D' --output "$TMP_ZIP"
           mkdir -p "$TMP_DIR"
           unzip -q "$TMP_ZIP" -d "$TMP_DIR"
           test -s "$TMP_DIR/NFCPS-One.apk"
-          echo 'ce4fcb12a903ecec7eaa588455872a84b4b90bdf204d25a4042246a06312dfc4  '"$TMP_DIR/NFCPS-One.apk" | sha256sum -c -
+          echo '34ecc6d93e2bbc1e7c378c5a2363ca87e9416fdc0debdcde48fff5f7bc4f455f  '"$TMP_DIR/NFCPS-One.apk" | sha256sum -c -
           git config user.name 'NFCPS Release Bot'
           git config user.email 'actions@users.noreply.github.com'
           git switch --orphan nfcps-apk-work
