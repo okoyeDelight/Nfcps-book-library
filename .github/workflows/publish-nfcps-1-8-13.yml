@@ -1,0 +1,37 @@
+name: Publish NFCPS One 1.8.13 Public APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-nfcps-1-8-13.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download signed 1.8.13 artifact
+        env:
+          ARTIFACT_URL: "https://sdmntprdenmarkeast.oaiusercontent.com/files/00000000-3bd0-8210-b102-46585619224b/raw?se=2026-10-03T12%3A52%3A43Z&sp=r&sv=2026-02-06&sr=b&scid=9fedb55e-d1e2-5cc6-bb5e-9b1f1661e259&skoid=1d6acb5b-b3f4-43ec-a5ec-b05c4a7708c8&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-03T08%3A29%3A18Z&ske=2026-10-04T08%3A29%3A18Z&sks=b&skv=2026-02-06&sig=kWzJrF8Sd%2BIeCdpHHqNwMYG5BBujX7eg1MRnNBv0wxw%3D"
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 "$ARTIFACT_URL" --output signed-artifact.zip
+          unzip -o signed-artifact.zip NFCPS-One.apk
+          test -s NFCPS-One.apk
+          echo "554453f72ae20e4796cc48d08cadd7f2176a95f3f1d7031d640227e2388f02a4  NFCPS-One.apk" | sha256sum -c -
+
+      - name: Publish public rolling APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view nfcps-one-latest --repo okoyeDelight/Nfcps-book-library >/dev/null
+          gh release upload nfcps-one-latest NFCPS-One.apk --clobber --repo okoyeDelight/Nfcps-book-library
+
+      - name: Verify public asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release view nfcps-one-latest --repo okoyeDelight/Nfcps-book-library --json assets
