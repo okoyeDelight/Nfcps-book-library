@@ -1,11 +1,11 @@
 {
-  "revision": 46,
+  "revision": 47,
   "enabled": true,
-  "latest_version_code": 37,
-  "latest_version_name": "1.8.12",
+  "latest_version_code": 38,
+  "latest_version_name": "1.8.13",
   "minimum_supported_version_code": 29,
   "apk_url": "https://github.com/okoyeDelight/Nfcps-book-library/releases/download/nfcps-one-latest/NFCPS-One.apk",
-  "sha256": "17062f5ac0b1883445186114c1dc9158d3ebab76815e3d90e677a7bd97493683",
-  "title": "NFCPS One 1.8.12 Offline Intro",
-  "notes": "The cinematic NFCPS One intro now plays on every app launch and is packaged inside the Android app for instant offline playback. The WebView loads behind the intro, so slow network no longer exposes a white loading screen. Remember me remains independent: signed-in members go from intro straight to Home, while signed-out members see Sign in/Create account after the intro."
+  "sha256": "554453f72ae20e4796cc48d08cadd7f2176a95f3f1d7031d640227e2388f02a4",
+  "title": "NFCPS One 1.8.13 Static Launch",
+  "notes": "The cinematic intro video is paused for now. NFCPS One opens with the dark Preparing your space screen while the live app loads behind it. Cinema spotlight shelves now advance automatically every 3 seconds and keep smooth manual swipe-and-snap behavior."
 }
