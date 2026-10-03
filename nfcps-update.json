@@ -1,11 +1,11 @@
 {
-  "revision": 47,
+  "revision": 48,
   "enabled": true,
-  "latest_version_code": 38,
-  "latest_version_name": "1.8.13",
+  "latest_version_code": 39,
+  "latest_version_name": "1.8.14",
   "minimum_supported_version_code": 29,
   "apk_url": "https://github.com/okoyeDelight/Nfcps-book-library/releases/download/nfcps-one-latest/NFCPS-One.apk",
-  "sha256": "554453f72ae20e4796cc48d08cadd7f2176a95f3f1d7031d640227e2388f02a4",
-  "title": "NFCPS One 1.8.13 Static Launch",
-  "notes": "The cinematic intro video is paused for now. NFCPS One opens with the dark Preparing your space screen while the live app loads behind it. Cinema spotlight shelves now advance automatically every 3 seconds and keep smooth manual swipe-and-snap behavior."
+  "sha256": "cf1ca8c7f2b69fc131f9d7155c3d8089de10dbd7ce622fc65a24794653a40583",
+  "title": "NFCPS One 1.8.14 Watch Together Links",
+  "notes": "Watch Together now uses the NFCPS Watch-style movie frame, remembers an active room so it can be continued later, and shares verified NFCPS One HTTPS room links. On Android 1.8.14, installed NFCPS One can open those links directly into the matching Cinema room; otherwise the same link falls back to the web app."
 }
