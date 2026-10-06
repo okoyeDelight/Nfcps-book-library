@@ -2354,3 +2354,41 @@ The correct behaviour is:
 - update this file immediately
 
 This document is deliberately more detailed than a normal README because NFCPS One has been built across multiple hosts, code generations and ChatGPT sessions. Losing the reasoning is as dangerous as losing the code.
+
+
+---
+
+# 69. Public repository tree audit — 6 October 2026, 18:20 WAT
+
+The public compatibility repository was re-audited after this master handoff was committed.
+
+Current root:
+- `.github/`
+- `NFCPS_ONE_MASTER_HANDOFF.md` — canonical whole-product continuity document; read first
+- `NFCPS_ACADEMIC_HANDOFF_CURRENT.md` — specialised Academic companion
+- `README.md` — now points maintainers to this master handoff first
+- `academic-reader/` — maintainable Academic reader source/architecture
+- `nfcps-bootstrap.json`
+- `nfcps-bootstrap-v2.json`
+- `nfcps-update.json`
+
+Current public workflows:
+- `.github/workflows/watch-crawler.yml`
+- `.github/workflows/movie-crawler.yml`
+- `.github/workflows/publish-cinema-web.yml`
+- `.github/workflows/publish-apk-raw.yml`
+
+Current `academic-reader/` top-level source:
+- `academic-reader/README.md`
+- `academic-reader/ARCHITECTURE.md`
+- `academic-reader/.env.example`
+- `academic-reader/frontend/`
+- `academic-reader/supabase/`
+
+Important interpretation:
+- The public repo is now the canonical **continuity/release/compatibility** location, but it is still not proof that the entire historical NFCPS app source lives here.
+- For non-Academic surfaces, the historical/private source repo, AppDeploy snapshots, Hatchable compatibility layer, Supabase functions/data and current deployed Vercel bundle may still contain implementation that is not represented as clean source in this public repo.
+- Do not conclude that a feature does not exist merely because no corresponding clean source file is visible in this public repository.
+- Do not delete hosted services or legacy compatibility code until current production references have been searched and tested.
+
+This appendix was added specifically so a new ChatGPT account can distinguish **repo contents**, **production contents**, **historical source**, and **hosted runtime state** without asking the user to re-explain the project.
