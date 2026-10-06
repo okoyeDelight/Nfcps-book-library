@@ -1,3 +1,13 @@
+# NFCPS One — START HERE
+
+> **For any new ChatGPT account, developer, agent or maintainer:** read [NFCPS_ONE_MASTER_HANDOFF.md](./NFCPS_ONE_MASTER_HANDOFF.md) **before changing anything**.
+>
+> It is the canonical whole-product continuity file: history, product decisions, UI/UX, infrastructure, Android, auth, Watch, Movies/Cinema, Watch Together, Family/Welfare, Publish/admin, notifications, Books, Academic, deployments, regressions, dependencies, tools, current topology, unresolved work, and the exhaustive change log explaining why earlier approaches were changed or rejected.
+>
+> [NFCPS_ACADEMIC_HANDOFF_CURRENT.md](./NFCPS_ACADEMIC_HANDOFF_CURRENT.md) is the specialised Academic companion. It is **not** the whole NFCPS One history.
+
+---
+
 # NFCPS One — Academic Reader Source
 
 This repository now contains the maintainable source for the NFCPS One Academic Reader.
