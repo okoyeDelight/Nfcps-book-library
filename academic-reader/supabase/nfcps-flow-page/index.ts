@@ -126,7 +126,8 @@ Deno.serve(async req=>{
   const imageAudit=imageCoverage(flowHtml,imgs.length);
   const sourceChars=normalizeForCoverage(st.asText()).length;
   const flowChars=normalizeForCoverage(plain).length;
-  const needsReview=!imageAudit.complete||!!images.find(x=>x.unplaced)||(!scanOnly&&sourceChars>40&&flowChars<sourceChars*.85);
+  const ambiguousColumns=columnCandidate.left.length>=4&&columnCandidate.right.length>=4&&!twoCol;
+  const needsReview=!imageAudit.complete||!!images.find(x=>x.unplaced)||ambiguousColumns||(!scanOnly&&sourceChars>40&&flowChars<sourceChars*.85);
   const slideDeck=String(m.mime_type||'').toLowerCase().includes('presentation')||/\.(ppt|pptx|pptm)$/i.test(String(m.title||''))||pageW/pageH>1.18;
   const payload={ok:true,material,title:m.title,page:pageNo,pages,layoutHint:slideDeck?'slides':'document',slideDeck,html:flowHtml,text:plain||clean(indexed?.page_text||''),imageCount:imgs.length,renderedImageCount:imageAudit.rendered,scanOnly,twoColumn:twoCol,needsVisualReview:needsReview,layoutVersion:3};
   st.destroy();page.destroy();doc.destroy();cache.set(ck,payload);if(cache.size>120){const first=cache.keys().next().value;if(first)cache.delete(first)}
