@@ -2692,3 +2692,21 @@ Keep the hourly zero-backlog watch active, audit actual source page completeness
 - CEO Live is real status visualisation but not face-to-face agent meeting animation or spoken videos.
 - 4,000+ pending OCR pages and hundreds of review flags remain. Source integrity/quality and student comprehension certification remains open, and zero verified Agent Company repairs cannot be concealed.
 - No paid service, other app section changes, site builds or Vercel rewrites. Security: no credential copied to the public repo; a minimal public CEO summary has SELECT-only RLS access for anon/authenticated.
+
+---
+
+# 82. 10 October 2026 — Invisible Academic Agent Company; source-grounded educational visuals
+
+**Corrected user requirement:** CEO operations should happen only in the BACKEND. Students must not see CEO buttons, chats, work receipts, evidence tickers, business leaderboards, or simulated meetings. Success is measured by **better Academic outcomes**, not by exposed corporate activity.
+
+Actions deployed:
+- Removed the `CEO Live` button/panel, Academic work ticker, and `Evidence of Academic agents at work` panel from the public Academic Reader.
+- Retired the formerly public `nfcps-academic-ceo-live` Edge Function; all requests (other than CORS OPTIONS) return HTTP **410**. No longer exports company metrics or work receipts.
+- Revoked `anon` and `authenticated` SELECT privileges on both `public.nfcps_academic_ceo_feed` and `public.nfcps_academic_work_receipts`; removed public row-reading policies. This ensures the backing tables are backend-only even though their names remain in the public schema for existing private cron compatibility. Private `nfcps_agent_ops` records and the 20-minute `nfcps-academic-agent-company-council` cron remain active.
+- Existing original app, CSS and non-Academic features unchanged.
+- **Student-facing science functionality retained:** interactive original PDF figure popup with zoom/pan/spotlight/reveal; original-page exploration link when source visual service is available; a source-list-driven concept map; a labelled interactive plant-morphology study schematic. These are tools for exploring evidence, not proof of scientific animation completeness or accurate causal biological simulation.
+- Published source metadata checks must not be falsely described as independently verified scientific repairs. At deployment, 319 private inspection records existed and 0 independently certified Academic Agent Company repairs.
+- Tests updated to **fail** if CEO widgets, work-proof URLs or student agent tickers reappear. Ten figure/privacy contracts plus five reader contracts passed in source-harness checks. Public JS HTTP 200 with source figure and morphology code present, CEO/worker overlays absent; both formerly public agent endpoints answered 410.
+- Student-facing Android gestures and comprehensive scientific accuracy remain unverified. Most medical and scientific mechanisms have not been given domain-validated interactive animations; do not claim full completion.
+
+The user wants the Agent Company to stay invisible while **its genuine fixes and improvements** are experienced through source-faithful reading, safe source explanations, verified exam questions and trustworthy figures.
