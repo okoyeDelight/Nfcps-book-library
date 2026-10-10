@@ -1,0 +1,29 @@
+name: Academic Quality Gate
+on:
+  pull_request:
+    paths:
+      - 'academic-reader/**'
+      - '.github/workflows/academic-quality-checks.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'academic-reader/**'
+      - '.github/workflows/academic-quality-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Ensure Academic frontend parses
+        run: node --check --input-type=commonjs < academic-reader/frontend/NfcpsAcademicBookReader.jsx
+      - name: Check agent policy tests
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s academic-reader/agent/tests -p 'test_*.py' -v
+      - name: Verify source, image and teaching fidelity
+        run: node --test academic-reader/agentic-company/academic-quality.test.mjs

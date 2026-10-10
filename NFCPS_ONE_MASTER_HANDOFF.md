@@ -2392,3 +2392,26 @@ Important interpretation:
 - Do not delete hosted services or legacy compatibility code until current production references have been searched and tested.
 
 This appendix was added specifically so a new ChatGPT account can distinguish **repo contents**, **production contents**, **historical source**, and **hosted runtime state** without asking the user to re-explain the project.
+
+
+---
+
+# 70. 10 October 2026 — Academic Intelligence Company foundation (repository source, not yet live)
+
+**Read Section 1–69 first; this is a non-destructive continuity delta.** The student-facing NFCPS visual identity and the stable app routing are explicit immutable constraints for this work. No parallel replacement app, new APK, iframe, PDF screenshot UI, or rewrite catch-all is authorised.
+
+A new evidence-first "Academic Intelligence Company" foundation is being developed in the *existing* public compatibility repository under \`academic-reader/agentic-company/\`. It is a software organisation, not dozens of independently expensive hosted AI agents. The initial charter defines the board, orchestrator, source librarian, reader-quality engineer, image guardian, calculation auditor, exam officer, tutor, animation studio, security, resource-budget officer, and digital cleaner.
+
+**Implemented in this source change:**
+- Pure deterministic source-to-render audit, with page and block identifiers, text consistency, image asset hashes, formula/table checks, ordering and clipping evidence.
+- Teaching provenance validation, separating verified source questions from generated predictions; optional animation evidence and clinical review checks.
+- Work-ticket prioritiser that forbids paid API, production mutation, and exceeding local compute budgets.
+- Regression tests and GitHub Actions quality gate; tests are synthetic and not equivalent to installed-device validation.
+- A minimal, UI-preserving reader improvement: retry page/manifest requests in place without reloading NFCPS, and show exam source year/page and explicit prediction captions inside existing visual cards.
+- \`academic-reader/supabase/nfcps-academic-ui-assets-v3/index.ts\` has been synchronized to the updated canonical reader component **within GitHub only**.
+
+**Production deployment update, 10 October 2026:** The connected Supabase project `fuusztcioodflmgqawyl` accepted the existing function `nfcps-academic-ui-assets-v3` as active **version 5**. Only the embedded reader code changed; `BASE_JS`, `BASE_CSS`, `CSS_APPEND`, and the proxy function's asset paths were retained. A subsequent readback of the function confirmed v5 active with the retry and prediction markers. A readback of Vercel confirmed its two exact Academic JS/CSS asset routes still unchanged at version `a5e8849f-474c-46da-957e-754726c959bc`. **This is a function-level deployment verification, not proof that the installed app visibly renders and functions correctly.**
+
+**Not yet implemented or verified:** real mobile visual checks, actual source image/page corpus auditing, autonomous tutoring, Pidgin lesson generation, animations, expanded live intelligence or 24/7 resident agents. No changes to the two current Vercel production routing rules have been made by this work.
+
+**Safe deployment route:** Connect the Supabase project admin, diff and deploy the mirrored \`nfcps-academic-ui-assets-v3\` source, verify live asset bytes and user-visible app behavior, and retain the ability to restore the prior Edge version. Do not claim the app shows this change before that verification. Run Watch/Family/Auth/Publish regressions for any eventual deployment.

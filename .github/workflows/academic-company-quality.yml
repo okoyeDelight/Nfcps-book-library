@@ -1,0 +1,31 @@
+name: NFCPS Academic Quality Contracts
+
+on:
+  pull_request:
+    paths:
+      - 'academic-reader/**'
+      - '.github/workflows/academic-company-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'academic-reader/**'
+      - '.github/workflows/academic-company-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fidelity-and-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check reader JS syntax without running a fake production build
+        run: node --check --input-type=commonjs < academic-reader/frontend/NfcpsAcademicBookReader.jsx
+      - name: Verify academic agent quality and unchanged UI contracts
+        run: node --test academic-reader/agentic-company/*.test.mjs
+      - name: Verify existing free night-agent contracts
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 -m unittest discover -s academic-reader/agent/tests -p 'test_*.py' -v
