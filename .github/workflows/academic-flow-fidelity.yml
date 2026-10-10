@@ -26,6 +26,7 @@ jobs:
       - name: Check five-level readiness rules and layout fidelity
         run: |
           node --test academic-reader/supabase/nfcps-flow-page/flow-layout.test.mjs
+          node --test academic-reader/supabase/nfcps-flow-page/source-recovery.test.mjs
           node --test academic-reader/agentic-company/five-level-readiness.test.mjs
           node --test academic-reader/agentic-company/academic-quality.test.mjs
       - name: Verify existing Academic coding-agent contract tests

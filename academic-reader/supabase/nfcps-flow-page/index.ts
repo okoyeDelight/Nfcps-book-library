@@ -1,4 +1,5 @@
 import * as mupdf from 'npm:mupdf@1.28.1';
+import {chooseSourceRecovery} from './source-recovery.mjs';
 import {rect,reconstructLines,classifyColumns,orderedEvents,imageCoverage,normalizeForCoverage,readingQuality} from './flow-layout.mjs';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 const U=Deno.env.get('SUPABASE_URL')!,K=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -59,7 +60,7 @@ Deno.serve(async req=>{
  try{
   const u=new URL(req.url),material=(u.searchParams.get('material')||'').trim(),pageNo=Math.max(1,Number(u.searchParams.get('page')||1)),version=(u.searchParams.get('v')||'').trim();
   if(!material)return new Response(JSON.stringify({error:'material required'}),{status:400,headers:H});
-  const ck=material+':'+pageNo+':'+version+':layout3';const hit=cache.get(ck);if(hit)return new Response(JSON.stringify(hit),{headers:H});
+  const ck=material+':'+pageNo+':'+version+':layout4';const hit=cache.get(ck);if(hit)return new Response(JSON.stringify(hit),{headers:H});
   const {data:m,error}=await sb.from('nfcps_academic_materials').select('drive_id,title,polished_url,mime_type,course_code,course_label').eq('drive_id',material).maybeSingle();
   if(error)throw error;if(!m?.polished_url)return new Response(JSON.stringify({error:'material unavailable'}),{status:404,headers:H});
   const bytes=await bytesFor(m.polished_url),doc=mupdf.Document.openDocument(bytes,'application/pdf'),pages=doc.countPages();
@@ -145,8 +146,12 @@ Deno.serve(async req=>{
     ...(!scanOnly&&sourceChars>40&&flowChars<sourceChars*.85?["SOURCE_TEXT_COVERAGE_LOW"]:[])
   ];
   const needsReview=reviewReasons.length>0;
+  const recovery=u.searchParams.get('layout')==='4'?
+    chooseSourceRecovery({reasons:reviewReasons,polishedUrl:m.polished_url,pageNo,title:m.title}):
+    {mode:'native',unreliableText:false,html:null};
+  const displayHtml=recovery.html||flowHtml;
   const slideDeck=String(m.mime_type||'').toLowerCase().includes('presentation')||/\.(ppt|pptx|pptm)$/i.test(String(m.title||''))||pageW/pageH>1.18;
-  const payload={ok:true,material,title:m.title,page:pageNo,pages,layoutHint:slideDeck?'slides':'document',slideDeck,html:flowHtml,text:plain||clean(indexed?.page_text||''),imageCount:imgs.length,renderedImageCount:imageAudit.rendered,unresolvedImageResources,scanOnly,twoColumn:twoCol,needsVisualReview:needsReview,reviewReasons,layoutVersion:3};
+  const payload={ok:true,material,title:m.title,page:pageNo,pages,layoutHint:slideDeck?'slides':'document',slideDeck,html:displayHtml,text:plain||clean(indexed?.page_text||''),imageCount:imgs.length,renderedImageCount:imageAudit.rendered,unresolvedImageResources,scanOnly,twoColumn:twoCol,needsVisualReview:needsReview,reviewReasons,layoutVersion:4,renderMode:recovery.mode,unreliableText:recovery.unreliableText};
   st.destroy();page.destroy();doc.destroy();cache.set(ck,payload);if(cache.size>120){const first=cache.keys().next().value;if(first)cache.delete(first)}
   return new Response(JSON.stringify(payload),{headers:H});
  }catch(e){return new Response(JSON.stringify({ok:false,error:e instanceof Error?e.message:String(e)}),{status:500,headers:{...H,'cache-control':'no-store'}})}
