@@ -1,6 +1,6 @@
 
 function NfcpsAcademicBookReader({material:l}){
- const[manifest,setManifest]=d.useState(null),[loading,setLoading]=d.useState(!0),[err,setErr]=d.useState(""),[sourcePage,setSourcePage]=d.useState(1),[pages,setPages]=d.useState({}),[fontSize,setFontSize]=d.useState(18),[twoUp,setTwoUp]=d.useState(!1),[subPage,setSubPage]=d.useState(0),[subCount,setSubCount]=d.useState(1),[toolsOpen,setToolsOpen]=d.useState(!1),[tool,setTool]=d.useState("reader"),[study,setStudy]=d.useState(null),[busy,setBusy]=d.useState(!1),[ask,setAsk]=d.useState(""),[selectedQuestion,setSelectedQuestion]=d.useState(null),[questionDetail,setQuestionDetail]=d.useState(null),[questionBusy,setQuestionBusy]=d.useState(!1),[dark,setDark]=d.useState(!1),[retryCounter,setRetryCounter]=d.useState(0),[manifestRetry,setManifestRetry]=d.useState(0),viewportRef=d.useRef(null),columnsRef=d.useRef(null),gestureRef=d.useRef({dist:0,startFont:18,sx:0,sy:0,pinch:!1}),goLastRef=d.useRef(!1);
+ const[manifest,setManifest]=d.useState(null),[loading,setLoading]=d.useState(!0),[err,setErr]=d.useState(""),[sourcePage,setSourcePage]=d.useState(1),[pages,setPages]=d.useState({}),[fontSize,setFontSize]=d.useState(18),[twoUp,setTwoUp]=d.useState(!1),[subPage,setSubPage]=d.useState(0),[subCount,setSubCount]=d.useState(1),[toolsOpen,setToolsOpen]=d.useState(!1),[tool,setTool]=d.useState("reader"),[study,setStudy]=d.useState(null),[busy,setBusy]=d.useState(!1),[ask,setAsk]=d.useState(""),[selectedQuestion,setSelectedQuestion]=d.useState(null),[questionDetail,setQuestionDetail]=d.useState(null),[questionBusy,setQuestionBusy]=d.useState(!1),[figure,setFigure]=d.useState(null),[figureZoom,setFigureZoom]=d.useState(1),[figurePan,setFigurePan]=d.useState({x:0,y:0}),[figureMode,setFigureMode]=d.useState("explore"),[figureReveal,setFigureReveal]=d.useState(100),[figureSpot,setFigureSpot]=d.useState({x:50,y:50}),[figurePlaying,setFigurePlaying]=d.useState(!1),[workProof,setWorkProof]=d.useState(null),[workError,setWorkError]=d.useState(""),[workRefresh,setWorkRefresh]=d.useState(0),[dark,setDark]=d.useState(!1),[retryCounter,setRetryCounter]=d.useState(0),[manifestRetry,setManifestRetry]=d.useState(0),viewportRef=d.useRef(null),columnsRef=d.useRef(null),gestureRef=d.useRef({dist:0,startFont:18,sx:0,sy:0,pinch:!1}),goLastRef=d.useRef(!1),figurePointers=d.useRef(new Map()),figureGesture=d.useRef(null);
  const PKG="https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-academic-book-package",FLOW="https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-flow-page",LENS="https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-study-lens";
  d.useEffect(()=>{let live=!0;const ctl=new AbortController;setLoading(!0);setErr("");setManifest(null);setSourcePage(1);setPages({});fetch(PKG+"?mode=manifest&material="+encodeURIComponent(l.id),{signal:ctl.signal,cache:"no-store"}).then(async r=>{const x=await r.json();if(!r.ok||!x?.ready)throw new Error(x?.error||"Material unavailable");if(live){setManifest(x);setTwoUp(x.layoutHint==="slides");setFontSize(x.layoutHint==="slides"?17:18);setLoading(!1)}}).catch(e=>{if(e?.name!=="AbortError"&&live){setErr(String(e?.message||e));setLoading(!1)}});return()=>{live=!1;ctl.abort()}},[l.id,manifestRetry]);
  const sourceCount=Math.max(1,Number(manifest?.pageCount||1)),current=Math.max(1,Math.min(sourceCount,sourcePage)),pairEnd=twoUp?Math.min(sourceCount,current+1):current,sourceStep=twoUp?2:1;
@@ -29,6 +29,56 @@ function NfcpsAcademicBookReader({material:l}){
    const x=await r.json();if(!r.ok)throw new Error(x?.error||"Question details unavailable");setQuestionDetail(x);
   }catch(e){setQuestionDetail({error:String(e?.message||e)})}finally{setQuestionBusy(!1)}
  };
+
+ d.useEffect(()=>{
+  if(!toolsOpen||tool!=="reader")return;
+  let alive=true;
+  const load=async()=>{
+   try{
+    const r=await fetch("https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-academic-ceo-live?mode=proof&material="+encodeURIComponent(l.id),{cache:"no-store"});
+    const x=await r.json();if(!r.ok||!x?.ok)throw new Error(x?.error||"No academic work log available");
+    if(alive){setWorkProof(x);setWorkError("")}
+   }catch(e){if(alive)setWorkError(String(e?.message||e))}
+  };
+  load();const poll=setInterval(load,60000);return()=>{alive=false;clearInterval(poll)}
+ },[toolsOpen,tool,l.id,workRefresh]);
+ d.useEffect(()=>{
+  if(!figure||!figurePlaying||figureMode!=="reveal")return;
+  const timer=setInterval(()=>setFigureReveal(v=>v>=100?5:Math.min(100,v+5)),170);
+  return()=>clearInterval(timer);
+ },[figure,figurePlaying,figureMode]);
+ const openFigure=e=>{
+  const img=e.target?.closest?.("figure.book-figure img");
+  if(!img)return;
+  const src=String(img.getAttribute("src")||"");
+  if(!/^data:image\/(?:png|jpeg|webp|gif);base64,/i.test(src)
+      && !/^https:\/\/(?:fuusztcioodflmgqawyl\.supabase\.co|nfcps-academic-visual\.onrender\.com)\//i.test(src))return;
+  setFigure({src,alt:img.alt||"Original handout figure",page:current,title:manifest?.title||l.title||"Handout"});
+  setFigureZoom(1);setFigurePan({x:0,y:0});setFigureMode("explore");setFigureReveal(100);setFigurePlaying(!1);
+ };
+ const moveFigureZoom=change=>setFigureZoom(z=>Math.max(1,Math.min(5,Math.round((z+change)*10)/10)));
+ const pointerStart=e=>{
+  e.preventDefault();e.currentTarget.setPointerCapture?.(e.pointerId);
+  figurePointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const a=[...figurePointers.current.values()];
+  if(a.length===2)figureGesture.current={startDistance:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1,startZoom:figureZoom};
+ };
+ const pointerMove=e=>{
+  const map=figurePointers.current;if(!map.has(e.pointerId))return;
+  const old=map.get(e.pointerId);map.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const a=[...map.values()];
+  if(figureMode==="spotlight"){
+   const b=e.currentTarget.getBoundingClientRect();
+   setFigureSpot({x:Math.max(0,Math.min(100,(e.clientX-b.left)/b.width*100)),y:Math.max(0,Math.min(100,(e.clientY-b.top)/b.height*100))});
+  }
+  if(a.length===2&&figureGesture.current){
+   const dist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1;
+   setFigureZoom(Math.max(1,Math.min(5,figureGesture.current.startZoom*dist/figureGesture.current.startDistance)));
+  }else if(a.length===1&&figureZoom>1){
+   setFigurePan(p=>({x:p.x+e.clientX-old.x,y:p.y+e.clientY-old.y}));
+  }
+ };
+ const pointerEnd=e=>{figurePointers.current.delete(e.pointerId);if(figurePointers.current.size<2)figureGesture.current=null};
  const ready=!!pageData&&(!twoUp||pairEnd===current||!!secondData),indicator=(twoUp&&pairEnd>current?"Sources "+current+"–"+pairEnd+" of "+sourceCount:"Source "+current+" of "+sourceCount)+(subCount>1?" · "+(subPage+1)+"/"+subCount:"");
  return t.jsxs("div",{className:"academic-book-reader"+(dark?" dark":""),children:[
   t.jsx("div",{className:"academic-book-progress",children:t.jsx("i",{style:{width:(pairEnd/sourceCount*100)+"%"}})}),
@@ -36,7 +86,7 @@ function NfcpsAcademicBookReader({material:l}){
    t.jsxs("div",{children:[t.jsx("strong",{children:indicator}),manifest?.courseCode&&t.jsx("small",{children:manifest.courseCode})]}),
    t.jsx("button",{onClick:()=>setToolsOpen(!toolsOpen),children:toolsOpen?"Close":"Reading tools"})
   ]}),
-  t.jsxs("div",{className:"academic-book-viewport",ref:viewportRef,children:[
+  t.jsxs("div",{className:"academic-book-viewport",ref:viewportRef,onClick:openFigure,children:[
    loading&&t.jsxs("div",{className:"academic-book-state",children:[t.jsx("strong",{children:"Opening book"}),t.jsx("small",{children:"Preparing the first reader page…"})]}),
    err&&t.jsxs("div",{className:"academic-book-state error",children:[t.jsx("strong",{children:"Could not build this page"}),t.jsx("small",{children:err}),t.jsx("button",{onClick:()=>{setErr("");if(!manifest){setManifestRetry(n=>n+1)}else{setPages(p=>{const n={...p};delete n[current];delete n[pairEnd];return n});setRetryCounter(n=>n+1)}},children:"Try again"})]}),
    !loading&&!err&&!ready&&t.jsx("div",{className:"academic-book-state",children:"Arranging this page…"}),
