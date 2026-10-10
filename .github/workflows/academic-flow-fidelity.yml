@@ -37,5 +37,6 @@ jobs:
           node --test academic-reader/agentic-company/ocr-retry-policy.test.mjs
           node --test academic-reader/agentic-company/specialist-inspection-policy.test.mjs
           node --test academic-reader/agentic-company/specialist-recheck-policy.test.mjs
+          node --test academic-reader/agentic-company/native-salvage-policy.test.mjs
       - name: Verify existing Academic coding-agent contract tests
         run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s academic-reader/agent/tests -p 'test_*.py' -v
