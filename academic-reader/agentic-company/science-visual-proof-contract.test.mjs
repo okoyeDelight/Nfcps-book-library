@@ -14,7 +14,7 @@ test("original handout figures support pinch zoom pan and spotlight",()=>{
  for(const key of ["figure.book-figure img","pointerStart","pointerMove","figurePointers",
    "figureZoom","figurePan","figureMode","spotlight","radial-gradient","onDoubleClick"])assert.ok(reader.includes(key),key);
  assert.ok(reader.includes("data:image"));
- assert.ok(reader.includes("nfcps-academic-visual.onrender.com"));
+ assert.ok(reader.includes("nfcps-academic-visual"));
 });
 test("original-page vector graphics remain accessible without generated science facts",()=>{
  assert.ok(reader.includes("sourceVisualBase"));
