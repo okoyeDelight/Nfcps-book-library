@@ -1,0 +1,95 @@
+name: NFCPS Academic Night Agent (review only)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 00:37 UTC = 01:37 WAT (Nigeria); runs only after this workflow is merged.
+    - cron: '37 0 * * *'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: nfcps-academic-night-agent
+  cancel-in-progress: false
+
+jobs:
+  propose-one-fix:
+    if: github.repository == 'okoyeDelight/Nfcps-book-library'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      HAS_API_KEY: ${{ secrets.OPENAI_API_KEY != '' }}
+    steps:
+      - name: Check out source without persisting credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Establish a baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check --input-type=commonjs < academic-reader/frontend/NfcpsAcademicBookReader.jsx
+          python3 -m unittest discover -s academic-reader/agent/tests -p 'test_*.py' -v
+          if [ "$HAS_API_KEY" != "true" ]; then
+            echo "::notice::OPENAI_API_KEY is not configured; read-only baseline completed. No AI changes attempted."
+          fi
+
+      - name: Investigate and propose one bounded Academic fix
+        if: env.HAS_API_KEY == 'true'
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ':workspace'
+          prompt-file: academic-reader/agent/OVERNIGHT_MISSION.md
+
+      - name: Validate proposed changes and file boundaries
+        id: guard
+        if: env.HAS_API_KEY == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )"
+          if [ -z "$changed" ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No safe, evidence-backed changes proposed tonight."
+            exit 0
+          fi
+
+          while IFS= read -r path; do
+            case "$path" in
+              academic-reader/frontend/*|academic-reader/agent/tests/*) ;;
+              *) echo "::error::Night agent touched an out-of-scope file: $path"; exit 1 ;;
+            esac
+          done <<< "$changed"
+
+          node --check --input-type=commonjs < academic-reader/frontend/NfcpsAcademicBookReader.jsx
+          python3 -m unittest discover -s academic-reader/agent/tests -p 'test_*.py' -v
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update draft PR (never merge or deploy)
+        if: steps.guard.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: |
+            academic-reader/frontend/
+            academic-reader/agent/tests/
+          branch: automation/academic-night-agent
+          base: main
+          draft: true
+          commit-message: 'propose: bounded Academic Reader improvement'
+          title: 'Night agent: review proposed Academic Reader fix'
+          body: |
+            Automated *proposal only*. No live NFCPS deployment was changed.
+
+            Review the exact diff and exercise the installed Academic Reader
+            before merging. Local checks cover JavaScript syntax and a small
+            set of static feature contracts, **not** end-to-end/mobile quality.
+
+            Invariants: preserve all page content, Study Lens, 1/2 slide
+            navigation, actual-vs-predicted questions, and NFCPS UI.
+            Any change to the production bridge requires a separate,
+            explicitly reviewed deployment.
