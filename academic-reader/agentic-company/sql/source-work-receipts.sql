@@ -1,6 +1,8 @@
+-- Private Agent Company records. NO student app API, user-visible CEO feed, or public grants.
+-- The previous public tables were migrated into the private nfcps_agent_ops schema.
+CREATE SCHEMA IF NOT EXISTS nfcps_agent_ops;
 -- Academic company evidence is PRIVATE, never shown directly to students.
--- Only trusted system checks are published, never student submissions or handout page text.
-CREATE TABLE IF NOT EXISTS public.nfcps_academic_work_receipts (
+CREATE TABLE IF NOT EXISTS nfcps_agent_ops.nfcps_academic_work_receipts (
  source_kind text NOT NULL CHECK(source_kind IN ('source_page_audit','specialist_inspection','independent_repair')),
  source_ref text NOT NULL,
  level integer NOT NULL CHECK(level IN(100,200,300,400,500)),
@@ -10,13 +12,16 @@ CREATE TABLE IF NOT EXISTS public.nfcps_academic_work_receipts (
  evidence_page_index_id bigint, evidence_at timestamptz NOT NULL,
  published_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(source_kind,source_ref)
 );
-CREATE INDEX IF NOT EXISTS academic_work_receipt_recent ON public.nfcps_academic_work_receipts(evidence_at DESC);
-CREATE INDEX IF NOT EXISTS academic_work_receipt_material ON public.nfcps_academic_work_receipts(material_drive_id,evidence_at DESC);
-ALTER TABLE public.nfcps_academic_work_receipts ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.nfcps_academic_work_receipts FROM PUBLIC,anon,authenticated;
+CREATE INDEX IF NOT EXISTS academic_work_receipt_recent ON nfcps_agent_ops.nfcps_academic_work_receipts(evidence_at DESC);
+CREATE INDEX IF NOT EXISTS academic_work_receipt_material ON nfcps_agent_ops.nfcps_academic_work_receipts(material_drive_id,evidence_at DESC);
+ALTER TABLE nfcps_agent_ops.nfcps_academic_work_receipts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON nfcps_agent_ops.nfcps_academic_work_receipts FROM PUBLIC,anon,authenticated;
 -- No public SELECT: organisational evidence stays backend-only.
-DROP POLICY IF EXISTS academic_public_verified_receipts ON public.nfcps_academic_work_receipts;
+
 -- No SELECT policy: UI sees only user-facing Academic learning outcomes.
+
+
+REVOKE ALL ON nfcps_agent_ops.nfcps_academic_work_receipts FROM PUBLIC,anon,authenticated,service_role;
 
 CREATE OR REPLACE FUNCTION nfcps_agent_ops.publish_work_receipts()
  RETURNS jsonb
@@ -25,7 +30,7 @@ CREATE OR REPLACE FUNCTION nfcps_agent_ops.publish_work_receipts()
 AS $function$
 DECLARE v_obs integer:=0;v_pages integer:=0;v_repairs integer:=0;
 BEGIN
- INSERT INTO public.nfcps_academic_work_receipts
+ INSERT INTO nfcps_agent_ops.nfcps_academic_work_receipts
  (source_kind,source_ref,level,material_drive_id,material_title,source_page,specialist_role,action_code,progress_state,evidence_page_index_id,evidence_at,published_at)
  SELECT 'specialist_inspection',o.id::text,o.level,o.material_drive_id,left(m.title,180),o.page_number,
   o.specialist_role,o.issue_code,
@@ -39,7 +44,7 @@ BEGIN
   progress_state=EXCLUDED.progress_state,published_at=now();
  GET DIAGNOSTICS v_obs=ROW_COUNT;
 
- INSERT INTO public.nfcps_academic_work_receipts
+ INSERT INTO nfcps_agent_ops.nfcps_academic_work_receipts
  (source_kind,source_ref,level,material_drive_id,material_title,source_page,specialist_role,action_code,progress_state,evidence_page_index_id,evidence_at,published_at)
  SELECT 'source_page_audit',m.drive_id,m.level,m.drive_id,left(m.title,180),null,
   'pagination_inspector','ORIGINAL_PAGES_1_TO_N','verified',null,
@@ -54,7 +59,7 @@ BEGIN
   evidence_at=EXCLUDED.evidence_at,published_at=now();
  GET DIAGNOSTICS v_pages=ROW_COUNT;
 
- INSERT INTO public.nfcps_academic_work_receipts
+ INSERT INTO nfcps_agent_ops.nfcps_academic_work_receipts
  (source_kind,source_ref,level,material_drive_id,material_title,source_page,specialist_role,action_code,progress_state,evidence_page_index_id,evidence_at,published_at)
  SELECT 'independent_repair',i.id::text,i.level,i.source_material_id,
   left(m.title,180),i.source_page,coalesce(i.assigned_role,'academic_reviewer'),
@@ -70,4 +75,3 @@ BEGIN
 END;$function$
 ;
 REVOKE ALL ON FUNCTION nfcps_agent_ops.publish_work_receipts() FROM PUBLIC,anon,authenticated,service_role;
--- Called exclusively via private nfcps_agent_ops.company_cycle every 20 minutes.
