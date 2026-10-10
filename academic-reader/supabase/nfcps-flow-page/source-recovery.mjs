@@ -16,7 +16,7 @@ export function approvedSourceVisual(polishedUrl,pageNo) {
       encodeURIComponent(u.href)+"&page="+pageNo;
   }catch{return null;}
 }
-export function chooseSourceRecovery({reasons=[],polishedUrl="",pageNo=0,title=""}={}) {
+export function chooseSourceRecovery({reasons=[],polishedUrl="",pageNo=0,title="",forceOriginalForBlankPage=false}={}) {
   const reasonList=Array.isArray(reasons)?reasons:[];
   const visualUrl=approvedSourceVisual(polishedUrl,pageNo);
   const severe=(reasonList.includes("AMBIGUOUS_READING_ORDER")&&
@@ -24,7 +24,7 @@ export function chooseSourceRecovery({reasons=[],polishedUrl="",pageNo=0,title="
      reasonList.includes("FRAGMENTED_SOURCE_LINES")))||
     (reasonList.includes("FRAGMENTED_SOURCE_LINES")&&
      reasonList.includes("SUSPICIOUS_SINGLE_LETTER_TOKENS"));
-  if(!visualUrl||!severe)return {
+  if(!visualUrl||(!severe&&forceOriginalForBlankPage!==true))return {
     mode:"native",unreliableText:false,html:null,sourceVisualUrl:null
   };
   // The existing book-figure is used: no new navigation, reader shell,

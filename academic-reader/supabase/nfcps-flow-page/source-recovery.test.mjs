@@ -47,3 +47,14 @@ test("a single heuristic must not replace readable pages",()=>{
   assert.equal(chooseSourceRecovery({reasons:[reason],polishedUrl:trusted,pageNo:1}).mode,"native");
  }
 });
+
+test("a genuinely empty PDF source page can show the intact original without new UI",()=>{
+ const r=chooseSourceRecovery({reasons:[],polishedUrl:trusted,pageNo:3,forceOriginalForBlankPage:true});
+ assert.equal(r.mode,"original-source-exception");
+ assert.equal(r.unreliableText,true);
+ assert.ok(r.html.includes('data-source-recovery="true"'));
+});
+test("blank-page recovery cannot be triggered without a trusted PDF source",()=>{
+ const r=chooseSourceRecovery({forceOriginalForBlankPage:true,polishedUrl:"https://evil.example/p.pdf",pageNo:1});
+ assert.equal(r.mode,"native");
+});

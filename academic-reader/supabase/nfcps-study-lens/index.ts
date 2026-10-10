@@ -303,25 +303,43 @@ Deno.serve(async req=>{
    if(mode==='ask'){
     const question=String(body?.question||'').trim().slice(0,1000);
     if(!question)return out({error:'Ask a question first.'},400);
-    let contexts=Array.isArray(body?.contexts)?body.contexts.slice(0,10):[];
+    // Client-supplied context is not an independently verified citation.
+    // Only completed, source-audited indexed pages may be cited as verified.
+    let contexts:any[]=[];
     if(materialId){
-     const {data:indexed}=await sb.from('nfcps_academic_page_index')
-      .select('page_number,page_text')
+     const {data:indexed,error:readError}=await sb.from('nfcps_academic_page_index')
+      .select('page_number,page_text,ocr_status,audit_status')
       .eq('material_drive_id',materialId)
-      .limit(250);
+      .eq('audit_status','passed')
+      .in('ocr_status',['ready','not_needed'])
+      .order('page_number',{ascending:true}).limit(1000);
+     if(readError)throw readError;
      for(const row of indexed||[]){
-      if(!row?.page_text)continue;
-      const p=Number(row.page_number||1);
-      if(!contexts.some((c:any)=>Number(c?.page||0)===p))contexts.push({page:p,text:String(row.page_text)});
+      if(String(row?.page_text||'').trim().length<40)continue;
+      contexts.push({page:Number(row.page_number||1),text:String(row.page_text)});
      }
     }
-    if(!contexts.length&&pageText)contexts=[{page,text:pageText}];
+    const verifiedContexts=contexts.length>0;
+    // Preserve basic Ask functionality on as-yet-unindexed native content,
+    // but NEVER present its provisional sentences as verified evidence.
+    if(!verifiedContexts&&pageText.trim().length>=40)contexts=[{page,text:pageText}];
     const result=answerFromContexts(question,contexts,page);
-    return out({mode:'ask',materialId,page,question,...result,scope:contexts.length>1?'handout':'page',searchedPages:contexts.length,sourceGrounded:true});
+    const answer=!verifiedContexts
+     ? (result.supported
+         ? 'Provisional reading extract (check against the original handout): '+result.answer
+         : 'There is not enough verified source text here to answer reliably yet.')
+     : result.answer;
+    return out({mode:'ask',materialId,page,question,...result,answer,
+     supported:verifiedContexts&&result.supported,sourceGrounded:verifiedContexts,
+     requiresSourceReview:!verifiedContexts,
+     evidence:result.evidence.map((e:any)=>({...e,verified:verifiedContexts})),
+     scope:contexts.length>1?'handout':'page',searchedPages:contexts.length});
    }
 
    if(mode!=='study'&&mode!=='related'&&mode!=='predict')return out({error:'Unknown mode'},404);
    const guide=pageGuide(pageText);
+   // The reader supplies current-page text, which is useful but not independently reviewed.
+   guide.sourceGrounded=false;
    const ranked=await rankBank(pageText,courseCode,guide);
    const top=ranked.slice(0,10);
    const sources=await sourceMapFor(top);
@@ -336,12 +354,7 @@ Deno.serve(async req=>{
    });
    const predictions=buildPredictions(pageText,guide,ranked.slice(0,40));
 
-   if(materialId&&pageText){
-    await sb.from('nfcps_academic_page_index').upsert({
-     material_drive_id:materialId,page_number:page,course_code:courseCode||null,
-     heading:guide.heading,page_text:pageText,topics:guide.keyTerms,indexed_at:new Date().toISOString()
-    },{onConflict:'material_drive_id,page_number'});
-   }
+   // No index writes from client reading tools. Source ingestion owns indexed evidence.
 
    return out({
     materialId,page,courseCode,guide,pastQuestions:actual,predictions,
