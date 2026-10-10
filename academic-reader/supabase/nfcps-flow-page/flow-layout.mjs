@@ -129,3 +129,25 @@ export function normalizeForCoverage(text) {
   return String(text??"").normalize("NFKC").replace(/[\s\u00ad]+/g,"")
     .replace(/[^\p{L}\p{N}°±×÷⁻⁺⁰¹²³⁴⁵⁶⁷⁸⁹+\-=/^]/gu,"").toLowerCase();
 }
+
+/**
+ * Conservative indicators that the selectable PDF text layer is scrambled.
+ * Never "correct" a lecturer's words using guesses; report for visual/OCR QA.
+ */
+export function readingQuality(lines, text) {
+  const rows=(Array.isArray(lines)?lines:[]).filter(l=>typeof l?.text==="string"&&l.text.trim());
+  const words=String(text??"").match(/[\p{L}\p{N}]+/gu)||[];
+  const unusuallyShort=rows.filter(l=>l.text.trim().length<=8).length;
+  const tinyTokens=words.filter(w=>w.length===1&&/[\p{L}]/u.test(w)).length;
+  const brokenRows=rows.filter((l,i)=>{
+    const next=rows[i+1];
+    return next && /[\p{L}]{1,3}$/u.test(l.text.trim()) &&
+      /^[\p{Ll}]{4,}/u.test(next.text.trim()) &&
+      Math.abs(next.y-l.y)>Math.max(1,l.h)*.6;
+  }).length;
+  const flags=[];
+  if(rows.length>=12 && unusuallyShort/rows.length>.23)flags.push("FRAGMENTED_SOURCE_LINES");
+  if(words.length>=25 && tinyTokens/words.length>.15)flags.push("SUSPICIOUS_SINGLE_LETTER_TOKENS");
+  if(rows.length>=12 && brokenRows/rows.length>.15)flags.push("WORDS_SPLIT_ACROSS_LINES");
+  return {needsReview:flags.length>0,flags,metrics:{lines:rows.length,wordTokens:words.length,shortLineRatio:rows.length?Number((unusuallyShort/rows.length).toFixed(3)):0}};
+}
