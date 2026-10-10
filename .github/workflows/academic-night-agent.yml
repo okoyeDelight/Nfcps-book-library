@@ -1,10 +1,14 @@
-name: NFCPS Academic Night Agent (free local model, review only)
+name: NFCPS Academic Continuous Agent (free, review only)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/academic-night-agent.yml'
   schedule:
-    # 00:37 UTC = 01:37 WAT, only after this workflow is merged into main.
-    - cron: '37 0 * * *'
+    # Every 15 minutes, all day. GitHub may delay/skip scheduled runs.
+    - cron: '3,18,33,48 * * * *'
 
 permissions:
   contents: write
@@ -34,7 +38,34 @@ jobs:
           node --check --input-type=commonjs < academic-reader/frontend/NfcpsAcademicBookReader.jsx
           python3 -m unittest discover -s academic-reader/agent/tests -p 'test_*.py' -v
 
+      - name: Skip expensive inference when no work or draft is pending
+        id: plan
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "$(gh pr list --head automation/academic-night-agent-free --state open --json number --jq 'length')" -gt 0 ]; then
+            echo "needs_ai=false" >> "$GITHUB_OUTPUT"
+            echo "Existing Academic proposal is waiting for review: no new model download."
+            exit 0
+          fi
+          python3 - <<'PY'
+          import importlib.util, os
+          from pathlib import Path
+          file = Path('academic-reader/agent/free_night_agent.py')
+          spec = importlib.util.spec_from_file_location('free_night_agent', file)
+          agent = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(agent)
+          source = agent.SOURCE.read_text(encoding='utf-8')
+          ready = agent.choose_issue(source) is not None
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
+              f.write('needs_ai=' + ('true' if ready else 'false') + '\\n')
+          print('Free model needed:', ready)
+          PY
+
       - name: Start local open-source coding model
+        if: steps.plan.outputs.needs_ai == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -48,12 +79,14 @@ jobs:
           timeout 12m ollama pull "$OLLAMA_MODEL"
 
       - name: Propose one tiny improvement (offline from AI providers)
+        if: steps.plan.outputs.needs_ai == 'true'
         shell: bash
         run: |
           set -euo pipefail
           timeout 20m python3 academic-reader/agent/free_night_agent.py
 
       - name: Reject unsafe or unverified changes
+        if: steps.plan.outputs.needs_ai == 'true'
         id: guard
         shell: bash
         run: |
