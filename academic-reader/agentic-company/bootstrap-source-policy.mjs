@@ -36,3 +36,46 @@ export function verifyPdfSource({pageCount,encrypted,byteCount}){
     return {ok:false,reason:"SOURCE_PAGE_COUNT_UNVERIFIED"};
   return {ok:true,pageCount};
 }
+
+
+/**
+ * A first page is not an indexed document. Verify the precise one-to-one
+ * correspondence with the original PDF page manifest.
+ */
+export function sourceIndexComplete(expectedPages, pageNumbers){
+  if(!Number.isSafeInteger(expectedPages)||expectedPages<1||expectedPages>MAX_SOURCE_PAGES)return false;
+  const pages=pageNumbers instanceof Set?pageNumbers:
+    new Set(Array.isArray(pageNumbers)?pageNumbers:[]);
+  if(pages.size!==expectedPages)return false;
+  for(let n=1;n<=expectedPages;n++)if(!pages.has(n))return false;
+  return true;
+}
+export function needsSourceReconciliation(material,indexedPages){
+  if(material?.metadata?.source_page_count_status!=="source_pdf_verified")return false;
+  const expected=Number(material?.metadata?.source_page_count);
+  return !sourceIndexComplete(expected,indexedPages);
+}
+
+/**
+ * Finish unseen/partial files first; once there are no eligible missing files,
+ * independently compare already-indexed legacy files to their source PDFs.
+ */
+export function chooseCoverageStage(materials,indexedIds,pagesByDoc,nowMs=Date.now()){
+ const have=new Set(indexedIds||[]);
+ for(const m of materials||[]){
+  if(needsSourceReconciliation(m,pagesByDoc?.get(m.drive_id)))have.delete(m.drive_id);
+ }
+ const missing=pickBootstrapBatch(materials,have,nowMs);
+ if(missing.length)return {stage:"recover_missing",items:missing};
+ const audited=new Set();
+ for(const m of materials||[]){
+  const meta=m?.metadata||{};
+  const expected=Number(meta.source_page_count);
+  if(meta.source_page_count_status==="source_pdf_verified" &&
+     meta.source_page_index_status==="complete" &&
+     meta.source_page_version===String(m.polished_at||"undated") &&
+     sourceIndexComplete(expected,pagesByDoc?.get(m.drive_id)))
+    audited.add(m.drive_id);
+ }
+ return {stage:"verify_legacy_index",items:pickBootstrapBatch(materials,audited,nowMs)};
+}

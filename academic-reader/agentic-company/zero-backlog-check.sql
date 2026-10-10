@@ -25,6 +25,7 @@ page_audit AS (
  CASE WHEN (r.metadata->>'source_page_count') ~ '^[0-9]+$'
   THEN (r.metadata->>'source_page_count')::int ELSE NULL END verified_source_pages,
  COALESCE(r.metadata->>'source_page_count_status','') count_status,
+ COALESCE(r.metadata->>'source_page_index_status','') source_index_status,
  COALESCE(r.metadata->>'book_bootstrap_error','') source_error,
  CASE WHEN COALESCE(x.indexed_rows,0)>0 AND
   (x.unique_pages<>x.indexed_rows OR x.first_page<>1) THEN 1 ELSE 0 END page_gap
@@ -34,6 +35,7 @@ page_audit AS (
  COUNT(*) FILTER(WHERE indexed_rows=0) completely_unindexed,
  COUNT(*) FILTER(WHERE source_error ~* 'encrypted|password') source_owner_needed,
  COUNT(*) FILTER(WHERE count_status<>'source_pdf_verified') pdf_count_not_verified,
+ COUNT(*) FILTER(WHERE source_index_status<>'complete') document_page_coverage_unverified,
  COUNT(*) FILTER(WHERE verified_source_pages IS NOT NULL AND indexed_rows<>verified_source_pages) mismatched_source_index,
  SUM(page_gap) pages_not_contiguous,
  SUM(OCR_unresolved) unresolved_OCR_pages,
@@ -46,6 +48,7 @@ SELECT l.level,COALESCE(x.ready_materials,0) ready_materials,
  COALESCE(x.completely_unindexed,0) completely_unindexed,
  COALESCE(x.source_owner_needed,0) source_owner_needed,
  COALESCE(x.pdf_count_not_verified,0) pdf_count_not_verified,
+ COALESCE(x.document_page_coverage_unverified,0) document_page_coverage_unverified,
  COALESCE(x.mismatched_source_index,0) mismatched_source_index,
  COALESCE(x.pages_not_contiguous,0) pages_not_contiguous,
  COALESCE(x.unresolved_OCR_pages,0) unresolved_OCR_pages,

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {isEligibleForBootstrap,pickBootstrapBatch,verifyPdfSource} from "./bootstrap-source-policy.mjs";
+import {isEligibleForBootstrap,pickBootstrapBatch,verifyPdfSource,sourceIndexComplete,needsSourceReconciliation,chooseCoverageStage} from "./bootstrap-source-policy.mjs";
 const entry=(id,metadata={})=>({drive_id:id,polished_url:"https://valid.example/source.pdf",metadata});
 test("only real unindexed documents selected, max three per invocation",()=>{
  const all=Array.from({length:10},(_,i)=>entry("s"+i));
@@ -27,4 +27,39 @@ test("normal PDF source count is accepted without external OCR or paid services"
 });
 test("existing indexed materials cannot be reprocessed by bootstrap",()=>{
  assert.equal(isEligibleForBootstrap(entry("a"),new Set(["a"])),false);
+});
+
+test("indexed first page is never mistaken for all source pages",()=>{
+ assert.equal(sourceIndexComplete(10,new Set([1])),false);
+ assert.equal(needsSourceReconciliation(entry("r",{source_page_count_status:"source_pdf_verified",source_page_count:10}),new Set([1])),true);
+});
+test("complete source page coverage requires exactly 1..N",()=>{
+ assert.equal(sourceIndexComplete(4,new Set([1,2,3,4])),true);
+ assert.equal(sourceIndexComplete(4,new Set([1,2,4,5])),false);
+ assert.equal(sourceIndexComplete(4,new Set([1,2,3])),false);
+});
+test("unverified legacy count is not silently accepted as source-complete",()=>{
+ assert.equal(needsSourceReconciliation(entry("r",{source_page_count_status:"estimated",source_page_count:10}),new Set([1])),false);
+ assert.equal(sourceIndexComplete(0,new Set()),false);
+});
+
+test("missing originals are always processed ahead of legacy audit",()=>{
+ const materials=[entry("indexed",{source_page_count:2,source_page_count_status:"source_pdf_verified"}),
+  entry("missing")];
+ const result=chooseCoverageStage(materials,new Set(["indexed"]),new Map([["indexed",new Set([1,2])]]));
+ assert.equal(result.stage,"recover_missing");
+ assert.deepEqual(result.items.map(x=>x.drive_id),["missing"]);
+});
+test("after missing queue, legacy index must be verified against original PDF",()=>{
+ const materials=[entry("old",{source_page_count:3,source_page_count_status:"source_pdf_verified"}),
+  entry("done",{source_page_count:1,source_page_count_status:"source_pdf_verified",source_page_index_status:"complete",source_page_version:"undated"})];
+ const result=chooseCoverageStage(materials,new Set(["old","done"]),new Map([["old",new Set([1,2,3])],["done",new Set([1])]]));
+ assert.equal(result.stage,"verify_legacy_index");
+ assert.deepEqual(result.items.map(x=>x.drive_id),["old"]);
+});
+test("partial original document recovers even though one page already indexed",()=>{
+ const material=entry("partial",{source_page_count:5,source_page_count_status:"source_pdf_verified"});
+ const result=chooseCoverageStage([material],new Set(["partial"]),new Map([["partial",new Set([1,2])]]));
+ assert.equal(result.stage,"recover_missing");
+ assert.equal(result.items[0].drive_id,"partial");
 });
