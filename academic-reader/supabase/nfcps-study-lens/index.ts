@@ -338,6 +338,8 @@ Deno.serve(async req=>{
 
    if(mode!=='study'&&mode!=='related'&&mode!=='predict')return out({error:'Unknown mode'},404);
    const guide=pageGuide(pageText);
+   // The reader supplies current-page text, which is useful but not independently reviewed.
+   guide.sourceGrounded=false;
    const ranked=await rankBank(pageText,courseCode,guide);
    const top=ranked.slice(0,10);
    const sources=await sourceMapFor(top);
