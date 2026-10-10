@@ -55,3 +55,27 @@ export function needsSourceReconciliation(material,indexedPages){
   const expected=Number(material?.metadata?.source_page_count);
   return !sourceIndexComplete(expected,indexedPages);
 }
+
+/**
+ * Finish unseen/partial files first; once there are no eligible missing files,
+ * independently compare already-indexed legacy files to their source PDFs.
+ */
+export function chooseCoverageStage(materials,indexedIds,pagesByDoc,nowMs=Date.now()){
+ const have=new Set(indexedIds||[]);
+ for(const m of materials||[]){
+  if(needsSourceReconciliation(m,pagesByDoc?.get(m.drive_id)))have.delete(m.drive_id);
+ }
+ const missing=pickBootstrapBatch(materials,have,nowMs);
+ if(missing.length)return {stage:"recover_missing",items:missing};
+ const audited=new Set();
+ for(const m of materials||[]){
+  const meta=m?.metadata||{};
+  const expected=Number(meta.source_page_count);
+  if(meta.source_page_count_status==="source_pdf_verified" &&
+     meta.source_page_index_status==="complete" &&
+     meta.source_page_version===String(m.polished_at||"undated") &&
+     sourceIndexComplete(expected,pagesByDoc?.get(m.drive_id)))
+    audited.add(m.drive_id);
+ }
+ return {stage:"verify_legacy_index",items:pickBootstrapBatch(materials,audited,nowMs)};
+}
