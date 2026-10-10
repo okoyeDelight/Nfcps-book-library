@@ -8,7 +8,7 @@ Deno.serve(async req=>{
  if(req.method!=="GET")return new Response(JSON.stringify({error:"Read-only feed"}),{status:405,headers:H});
  try{
   const url=Deno.env.get("SUPABASE_URL")||"";
-  const key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
+  const key=Deno.env.get("SUPABASE_ANON_KEY")||"";
   if(!url||!key)throw Error("Academic status service unavailable");
   const target=url.replace(/\/$/,"")+
     "/rest/v1/nfcps_academic_ceo_feed?select=level,is_lead,performance_score,ready_handouts,indexed_handouts,verified_page_coverage,queued_tasks,board_decisions,last_meeting_at,last_updated_at&order=level.asc";
