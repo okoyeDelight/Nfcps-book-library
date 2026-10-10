@@ -96,6 +96,32 @@ function NfcpsAcademicBookReader({material:l}){
    t.jsx("button",{className:"academic-book-arrow prev",disabled:current<=1&&subPage===0,onClick:prev,children:"‹"}),
    t.jsx("button",{className:"academic-book-arrow next",disabled:pairEnd>=sourceCount&&subPage>=subCount-1,onClick:next,children:"›"})
   ]}),
+  figure&&t.jsxs("div",{role:"dialog","aria-modal":true,"aria-label":"Interactive original scientific figure",style:{
+    position:"fixed",inset:"0",zIndex:999999,display:"flex",flexDirection:"column",
+    justifyContent:"center",gap:"10px",padding:"14px",boxSizing:"border-box",color:"#f5f7fa",
+    background:"rgba(9,17,23,.96)",backdropFilter:"blur(15px)",WebkitBackdropFilter:"blur(15px)"},children:[
+    t.jsxs("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"10px"},children:[
+     t.jsxs("div",{style:{minWidth:0},children:[t.jsx("strong",{children:"Explore original source figure"}),t.jsx("small",{style:{display:"block",opacity:.8},children:(figure.title||"Handout")+" · source page "+figure.page})]}),
+     t.jsx("button",{type:"button",onClick:()=>{setFigure(null);setFigurePlaying(!1);figurePointers.current.clear()},style:{padding:"10px 16px",borderRadius:"22px"},children:"Close"})
+    ]}),
+    t.jsxs("div",{style:{display:"flex",gap:"7px",flexWrap:"wrap"},children:[
+     ...["explore","spotlight","reveal"].map(mode=>t.jsx("button",{type:"button",onClick:()=>{setFigureMode(mode);setFigurePlaying(!1);setFigureSpot({x:50,y:50})},style:{borderRadius:"18px",padding:"8px 12px",background:figureMode===mode?"#4770ec":"rgba(255,255,255,.15)",color:"#fff"},children:mode[0].toUpperCase()+mode.slice(1)},mode)),
+     t.jsx("button",{type:"button",onClick:()=>moveFigureZoom(-.3),disabled:figureZoom<=1,children:"− Zoom"}),
+     t.jsx("button",{type:"button",onClick:()=>moveFigureZoom(.3),disabled:figureZoom>=5,children:"+ Zoom"}),
+     t.jsx("button",{type:"button",onClick:()=>{setFigureZoom(1);setFigurePan({x:0,y:0});setFigureReveal(100)},children:"Reset"})
+    ]}),
+    t.jsxs("div",{onPointerDown:pointerStart,onPointerMove:pointerMove,onPointerUp:pointerEnd,onPointerCancel:pointerEnd,onDoubleClick:()=>moveFigureZoom(figureZoom<2?1:-1),
+     style:{touchAction:"none",position:"relative",overflow:"hidden",flex:"1 1 auto",minHeight:"160px",maxHeight:"68vh",borderRadius:"18px",border:"1px solid rgba(255,255,255,.17)",display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,.055)",cursor:figureZoom>1?"grab":"crosshair"},children:[
+      t.jsx("img",{src:figure.src,alt:figure.alt,draggable:false,style:{display:"block",maxWidth:"100%",maxHeight:"100%",width:"auto",height:"auto",objectFit:"contain",userSelect:"none",WebkitUserSelect:"none",transform:"translate("+figurePan.x+"px,"+figurePan.y+"px) scale("+figureZoom+")",clipPath:figureMode==="reveal"?"inset(0 "+(100-figureReveal)+"% 0 0)":"none",pointerEvents:"none"}}),
+      figureMode==="spotlight"&&t.jsx("div",{style:{position:"absolute",inset:0,pointerEvents:"none",background:"radial-gradient(circle 95px at "+figureSpot.x+"% "+figureSpot.y+"%, transparent 0px, transparent 66px, rgba(0,0,0,.75) 95px)"}})
+     ]}),
+    figureMode==="reveal"&&t.jsxs("div",{style:{display:"flex",alignItems:"center",gap:"10px"},children:[
+     t.jsx("label",{children:"Reveal "+figureReveal+"%"}),
+     t.jsx("input",{type:"range",min:5,max:100,step:5,value:figureReveal,onChange:e=>setFigureReveal(Number(e.target.value)),style:{flex:1}, "aria-label":"Reveal original scientific figure"}),
+     t.jsx("button",{type:"button",onClick:()=>setFigurePlaying(x=>!x),children:figurePlaying?"Pause":"Auto-reveal"})
+    ]}),
+    t.jsx("small",{style:{opacity:.75},children:"Pinch or use Zoom, drag to examine details, move the spotlight, or reveal the unchanged original figure step by step. No scientific labels or mechanisms have been invented."})
+   ]}),
   toolsOpen&&!loading&&!err&&t.jsxs("section",{className:"academic-book-tools",children:[
    t.jsx("div",{className:"academic-book-tabs",children:["reader","understand","ask","exam","recall"].map(x=>t.jsx("button",{className:tool===x?"active":"",onClick:()=>loadTool(x),children:x[0].toUpperCase()+x.slice(1)},x))}),
    t.jsxs("div",{className:"academic-book-toolbody",children:[
