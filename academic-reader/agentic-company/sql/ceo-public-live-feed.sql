@@ -1,6 +1,8 @@
+-- Private Agent Company records. NO student app API, user-visible CEO feed, or public grants.
+-- The previous public tables were migrated into the private nfcps_agent_ops schema.
+CREATE SCHEMA IF NOT EXISTS nfcps_agent_ops;
 -- Internal Academic CEO aggregate; no public CEO dashboard or worker feed.
--- Source feed is read-only and refreshed by the private Academic company cycle.
-CREATE TABLE IF NOT EXISTS public.nfcps_academic_ceo_feed (
+CREATE TABLE IF NOT EXISTS nfcps_agent_ops.nfcps_academic_ceo_feed (
  level integer PRIMARY KEY CHECK(level IN(100,200,300,400,500)),
  is_lead boolean NOT NULL DEFAULT false,
  performance_score numeric(6,2),
@@ -12,11 +14,14 @@ CREATE TABLE IF NOT EXISTS public.nfcps_academic_ceo_feed (
  last_meeting_at timestamptz,
  last_updated_at timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE public.nfcps_academic_ceo_feed ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.nfcps_academic_ceo_feed FROM PUBLIC,anon,authenticated;
+ALTER TABLE nfcps_agent_ops.nfcps_academic_ceo_feed ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON nfcps_agent_ops.nfcps_academic_ceo_feed FROM PUBLIC,anon,authenticated;
 -- No public SELECT: organisational evidence stays backend-only.
-DROP POLICY IF EXISTS read_academic_ceo_summary ON public.nfcps_academic_ceo_feed;
+
 -- No SELECT policy: UI sees only user-facing Academic learning outcomes.
+
+
+REVOKE ALL ON nfcps_agent_ops.nfcps_academic_ceo_feed FROM PUBLIC,anon,authenticated,service_role;
 
 CREATE OR REPLACE FUNCTION nfcps_agent_ops.publish_ceo_feed()
  RETURNS jsonb
@@ -25,7 +30,7 @@ CREATE OR REPLACE FUNCTION nfcps_agent_ops.publish_ceo_feed()
 AS $function$
 DECLARE n integer;
 BEGIN
- INSERT INTO public.nfcps_academic_ceo_feed
+ INSERT INTO nfcps_agent_ops.nfcps_academic_ceo_feed
  (level,is_lead,performance_score,ready_handouts,indexed_handouts,
   verified_page_coverage,queued_tasks,board_decisions,last_meeting_at,last_updated_at)
  SELECT b.level,b.is_lead,s.score,coalesce(s.ready_files,0),
@@ -51,4 +56,3 @@ BEGIN
 END;$function$
 ;
 REVOKE ALL ON FUNCTION nfcps_agent_ops.publish_ceo_feed() FROM PUBLIC,anon,authenticated,service_role;
--- Existing private company_cycle() calls publish_ceo_feed() every 20 minutes.
