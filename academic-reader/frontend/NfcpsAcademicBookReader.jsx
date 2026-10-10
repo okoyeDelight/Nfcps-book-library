@@ -1,6 +1,6 @@
 
 function NfcpsAcademicBookReader({material:l}){
- const[manifest,setManifest]=d.useState(null),[loading,setLoading]=d.useState(!0),[err,setErr]=d.useState(""),[sourcePage,setSourcePage]=d.useState(1),[pages,setPages]=d.useState({}),[fontSize,setFontSize]=d.useState(18),[twoUp,setTwoUp]=d.useState(!1),[subPage,setSubPage]=d.useState(0),[subCount,setSubCount]=d.useState(1),[toolsOpen,setToolsOpen]=d.useState(!1),[tool,setTool]=d.useState("reader"),[study,setStudy]=d.useState(null),[busy,setBusy]=d.useState(!1),[ask,setAsk]=d.useState(""),[selectedQuestion,setSelectedQuestion]=d.useState(null),[questionDetail,setQuestionDetail]=d.useState(null),[questionBusy,setQuestionBusy]=d.useState(!1),[figure,setFigure]=d.useState(null),[figureZoom,setFigureZoom]=d.useState(1),[figurePan,setFigurePan]=d.useState({x:0,y:0}),[figureMode,setFigureMode]=d.useState("explore"),[figureReveal,setFigureReveal]=d.useState(100),[figureSpot,setFigureSpot]=d.useState({x:50,y:50}),[figurePlaying,setFigurePlaying]=d.useState(!1),[conceptStep,setConceptStep]=d.useState(0),[conceptAutoplay,setConceptAutoplay]=d.useState(!1),[workProof,setWorkProof]=d.useState(null),[workError,setWorkError]=d.useState(""),[workRefresh,setWorkRefresh]=d.useState(0),[dark,setDark]=d.useState(!1),[retryCounter,setRetryCounter]=d.useState(0),[manifestRetry,setManifestRetry]=d.useState(0),viewportRef=d.useRef(null),columnsRef=d.useRef(null),gestureRef=d.useRef({dist:0,startFont:18,sx:0,sy:0,pinch:!1}),goLastRef=d.useRef(!1),figurePointers=d.useRef(new Map()),figureGesture=d.useRef(null);
+ const[manifest,setManifest]=d.useState(null),[loading,setLoading]=d.useState(!0),[err,setErr]=d.useState(""),[sourcePage,setSourcePage]=d.useState(1),[pages,setPages]=d.useState({}),[fontSize,setFontSize]=d.useState(18),[twoUp,setTwoUp]=d.useState(!1),[subPage,setSubPage]=d.useState(0),[subCount,setSubCount]=d.useState(1),[toolsOpen,setToolsOpen]=d.useState(!1),[tool,setTool]=d.useState("reader"),[study,setStudy]=d.useState(null),[busy,setBusy]=d.useState(!1),[ask,setAsk]=d.useState(""),[selectedQuestion,setSelectedQuestion]=d.useState(null),[questionDetail,setQuestionDetail]=d.useState(null),[questionBusy,setQuestionBusy]=d.useState(!1),[figure,setFigure]=d.useState(null),[figureZoom,setFigureZoom]=d.useState(1),[figurePan,setFigurePan]=d.useState({x:0,y:0}),[figureMode,setFigureMode]=d.useState("explore"),[figureReveal,setFigureReveal]=d.useState(100),[figureSpot,setFigureSpot]=d.useState({x:50,y:50}),[figurePlaying,setFigurePlaying]=d.useState(!1),[conceptStep,setConceptStep]=d.useState(0),[conceptAutoplay,setConceptAutoplay]=d.useState(!1),[plantFocus,setPlantFocus]=d.useState("root"),[plantStage,setPlantStage]=d.useState(100),[plantPlaying,setPlantPlaying]=d.useState(!1),[workProof,setWorkProof]=d.useState(null),[workError,setWorkError]=d.useState(""),[workRefresh,setWorkRefresh]=d.useState(0),[dark,setDark]=d.useState(!1),[retryCounter,setRetryCounter]=d.useState(0),[manifestRetry,setManifestRetry]=d.useState(0),viewportRef=d.useRef(null),columnsRef=d.useRef(null),gestureRef=d.useRef({dist:0,startFont:18,sx:0,sy:0,pinch:!1}),goLastRef=d.useRef(!1),figurePointers=d.useRef(new Map()),figureGesture=d.useRef(null);
  const PKG="https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-academic-book-package",FLOW="https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-flow-page",LENS="https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-study-lens";
  d.useEffect(()=>{let live=!0;const ctl=new AbortController;setLoading(!0);setErr("");setManifest(null);setSourcePage(1);setPages({});fetch(PKG+"?mode=manifest&material="+encodeURIComponent(l.id),{signal:ctl.signal,cache:"no-store"}).then(async r=>{const x=await r.json();if(!r.ok||!x?.ready)throw new Error(x?.error||"Material unavailable");if(live){setManifest(x);setTwoUp(x.layoutHint==="slides");setFontSize(x.layoutHint==="slides"?17:18);setLoading(!1)}}).catch(e=>{if(e?.name!=="AbortError"&&live){setErr(String(e?.message||e));setLoading(!1)}});return()=>{live=!1;ctl.abort()}},[l.id,manifestRetry]);
  const sourceCount=Math.max(1,Number(manifest?.pageCount||1)),current=Math.max(1,Math.min(sourceCount,sourcePage)),pairEnd=twoUp?Math.min(sourceCount,current+1):current,sourceStep=twoUp?2:1;
@@ -10,7 +10,7 @@ function NfcpsAcademicBookReader({material:l}){
  const restrictedStudy=!!(pageData?.unreliableText||secondData?.unreliableText),qualityNotice="The original source page is shown because its extracted words need verification. Study answers for this page are paused to avoid teaching incorrect text.";
  const combinedHtml=(pageData?.html||"")+(secondData?'<div class="book-slide-divider"><span>Next slide</span></div>'+secondData.html:"");
  const measure=()=>{const vp=viewportRef.current,col=columnsRef.current;if(!vp||!col)return;const w=Math.max(1,vp.clientWidth),count=Math.max(1,Math.round(col.scrollWidth/w));setSubCount(count);const target=goLastRef.current?count-1:Math.min(subPage,count-1);goLastRef.current=!1;setSubPage(target);requestAnimationFrame(()=>{vp.scrollLeft=target*w})};
- d.useEffect(()=>{setSubPage(0);setStudy(null);setConceptStep(0);setConceptAutoplay(!1);setTimeout(measure,40);setTimeout(measure,220)},[combinedHtml,fontSize,twoUp]);
+ d.useEffect(()=>{setSubPage(0);setStudy(null);setConceptStep(0);setConceptAutoplay(!1);setPlantFocus("root");setPlantPlaying(!1);setPlantStage(100);setTimeout(measure,40);setTimeout(measure,220)},[combinedHtml,fontSize,twoUp]);
  d.useEffect(()=>{const ro=typeof ResizeObserver!=="undefined"&&columnsRef.current?new ResizeObserver(()=>measure()):null;ro&&ro.observe(columnsRef.current);window.addEventListener("resize",measure);return()=>{ro&&ro.disconnect();window.removeEventListener("resize",measure)}},[combinedHtml]);
  const moveSub=n=>{const vp=viewportRef.current;if(!vp)return;const next=Math.max(0,Math.min(subCount-1,n));setSubPage(next);vp.scrollTo({left:next*vp.clientWidth,behavior:"smooth"})};
  const goSource=n=>{const next=Math.max(1,Math.min(sourceCount,n));setErr("");setSourcePage(next);setSubPage(0);setStudy(null);if(viewportRef.current)viewportRef.current.scrollLeft=0};
@@ -34,6 +34,13 @@ function NfcpsAcademicBookReader({material:l}){
   const timer=setInterval(()=>setConceptStep(n=>(n+1)%sourceConcepts.length),2300);
   return()=>clearInterval(timer);
  },[tool,conceptAutoplay,sourceConcepts.length]);
+
+ const plantLesson=/^PCG\b/i.test(String(manifest?.courseCode||l.courseCode||""))&&/\bmorphology\b|\broot anatomy\b|\bplant parts\b/i.test(String(pageData?.text||""));
+ const plantLessonExcerpt=sourceConcepts.find(x=>new RegExp("\\b"+plantFocus+"\\b","i").test(x.fullText))?.fullText||"This source page has no separately identified "+plantFocus+" description. Refer to the original handout or nearby pages.";
+ d.useEffect(()=>{if(!plantPlaying||!plantLesson||tool!=="understand")return;
+  const clock=setInterval(()=>setPlantStage(v=>v>=100?40:Math.min(100,v+4)),150);
+  return()=>clearInterval(clock);
+ },[plantPlaying,plantLesson,tool]);
  const activeText=(pageData?.text||"")+(secondData?"\n"+(secondData.text||""):""),guide=study?.guide||{},past=study?.pastQuestions||[],pred=study?.predictions||[],answer=study?.askResult;
  const loadTool=async name=>{setTool(name);setStudy(null);if(restrictedStudy&&name!=="reader"){setStudy({error:qualityNotice});return}if(!["understand","exam","recall"].includes(name)||!pageData||busy)return;setBusy(!0);try{const r=await fetch(LENS,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode:"study",materialId:l.id,page:current,courseCode:manifest?.courseCode||l.courseCode||"",pageText:activeText})}),x=await r.json();if(!r.ok)throw new Error(x?.error||"Study tools unavailable");setStudy(x)}catch(e){setStudy({error:String(e?.message||e)})}finally{setBusy(!1)}};
  const askPage=async()=>{if(restrictedStudy){setStudy({askResult:{error:qualityNotice}});return}const q=ask.trim();if(!q||!pageData)return;setBusy(!0);try{const r=await fetch(LENS,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode:"ask",materialId:l.id,page:current,courseCode:manifest?.courseCode||l.courseCode||"",question:q,pageText:activeText})}),x=await r.json();if(!r.ok)throw new Error(x?.error||"Could not answer");setStudy({askResult:x})}catch(e){setStudy({askResult:{error:String(e?.message||e)}})}finally{setBusy(!1)}};
@@ -217,6 +224,38 @@ function NfcpsAcademicBookReader({material:l}){
        t.jsx("button",{type:"button",onClick:()=>{setConceptStep(n=>(n+sourceConcepts.length-1)%sourceConcepts.length);setConceptAutoplay(!1)},children:"← Previous"}),
        t.jsx("button",{type:"button",onClick:()=>{setConceptStep(n=>(n+1)%sourceConcepts.length);setConceptAutoplay(!1)},children:"Next →"}),
        t.jsx("button",{type:"button",onClick:()=>setConceptAutoplay(x=>!x),children:conceptAutoplay?"Pause explanation sequence":"Auto-explore items"})
+      ]})
+     ]}),
+    tool==="understand"&&plantLesson&&!restrictedStudy&&t.jsxs("section",{className:"academic-book-card",style:{marginTop:"12px"},children:[
+      t.jsx("strong",{children:"Interactive plant morphology · source-linked study model"}),
+      t.jsx("p",{style:{fontSize:"12px"},children:"Tap a plant part to connect the illustration to the lecturer's written description. This is a simplified study schematic, not an original handout image or a biological growth-rate prediction."}),
+      t.jsxs("svg",{viewBox:"0 0 300 345",width:"100%",height:"250",role:"img","aria-label":"Interactive botanical schematic with selectable root, stem, leaves and flower",style:{display:"block",maxWidth:"360px",margin:"0 auto",background:"rgba(87,154,113,.05)",borderRadius:"18px"},children:[
+       t.jsx("path",{d:"M20 285 H280",stroke:"#a18b6b",strokeWidth:3,strokeDasharray:"7 6",fill:"none"}),
+       t.jsx("g",{onClick:()=>setPlantFocus("root"),style:{cursor:"pointer"},children:
+        t.jsx("path",{d:"M150 282 Q127 302 98 323 M150 282 Q172 312 212 330 M150 282 V337 M150 294 Q129 305 123 340 M150 297 Q176 306 178 338",fill:"none",stroke:plantFocus==="root"?"#e19736":"#957457",strokeWidth:plantFocus==="root"?7:4,strokeLinecap:"round"})}),
+       t.jsxs("g",{transform:"translate(150 285) scale("+(plantStage/100)+") translate(-150 -285)",children:[
+        t.jsx("path",{d:"M150 285 Q149 204 150 90",stroke:plantFocus==="stem"?"#e19736":"#468c60",strokeWidth:plantFocus==="stem"?13:8,fill:"none",strokeLinecap:"round",onClick:()=>setPlantFocus("stem"),style:{cursor:"pointer"}}),
+        t.jsx("ellipse",{cx:110,cy:191,rx:54,ry:19,transform:"rotate(20 110 191)",fill:plantFocus==="leaf"?"#e19736":"#61ae76",stroke:"#367447",strokeWidth:3,onClick:()=>setPlantFocus("leaf"),style:{cursor:"pointer"}}),
+        t.jsx("ellipse",{cx:194,cy:151,rx:52,ry:18,transform:"rotate(-20 194 151)",fill:plantFocus==="leaf"?"#e19736":"#65b77c",stroke:"#367447",strokeWidth:3,onClick:()=>setPlantFocus("leaf"),style:{cursor:"pointer"}}),
+        t.jsx("ellipse",{cx:113,cy:112,rx:40,ry:15,transform:"rotate(30 113 112)",fill:plantFocus==="leaf"?"#e19736":"#76c188",stroke:"#367447",strokeWidth:3,onClick:()=>setPlantFocus("leaf"),style:{cursor:"pointer"}}),
+        t.jsx("g",{onClick:()=>setPlantFocus("flower"),style:{cursor:"pointer"},children:
+         t.jsxs("g",{children:[
+          ...Array.from({length:6},(_,i)=>t.jsx("ellipse",{cx:150,cy:48,rx:14,ry:31,fill:plantFocus==="flower"?"#efbd62":"#f1a0b4",stroke:"#bb718b",strokeWidth:2,transform:"rotate("+(i*60)+" 150 72)"},i)),
+          t.jsx("circle",{cx:150,cy:72,r:15,fill:"#eed26b",stroke:"#a8893f",strokeWidth:2})
+         ]})})
+       ]}),
+       t.jsx("text",{x:15,y:335,fill:dark?"#faf1df":"#596b54",fontSize:"12",children:"Illustrative only · source text remains authoritative"})
+      ]}),
+      t.jsx("div",{style:{display:"flex",flexWrap:"wrap",gap:"6px",marginTop:"9px"},children:["root","stem","leaf","flower"].map(part=>t.jsx("button",{type:"button",onClick:()=>{setPlantFocus(part);setPlantPlaying(!1)},style:{background:plantFocus===part?"#4870df":"rgba(78,111,91,.12)",color:plantFocus===part?"#fff":"inherit",borderRadius:"14px",padding:"8px 12px"},children:part[0].toUpperCase()+part.slice(1)},part))}),
+      t.jsxs("div",{style:{border:"1px solid rgba(80,123,99,.25)",borderRadius:"12px",padding:"10px",marginTop:"9px"},children:[
+       t.jsx("strong",{children:"From this handout: "+plantFocus}),
+       t.jsx("p",{children:plantLessonExcerpt}),
+       t.jsx("small",{children:"This text comes from the source's detected list items and is not independently verified scientific interpretation."})
+      ]}),
+      t.jsxs("div",{style:{display:"flex",alignItems:"center",flexWrap:"wrap",gap:"8px",marginTop:"8px"},children:[
+       t.jsx("label",{children:"Schematic size "+plantStage+"%"}),
+       t.jsx("input",{type:"range",min:40,max:100,step:5,value:plantStage,onChange:e=>{setPlantStage(Number(e.target.value));setPlantPlaying(!1)},"aria-label":"Change plant schematic size",style:{flex:1}}),
+       t.jsx("button",{type:"button",onClick:()=>setPlantPlaying(v=>!v),children:plantPlaying?"Pause schematic":"Animate schematic"})
       ]})
      ]}),
     tool==="ask"&&t.jsxs("div",{children:[t.jsx("textarea",{value:ask,onChange:e=>setAsk(e.target.value),placeholder:"Ask anything from this handout…"}),t.jsx("button",{className:"academic-book-ask",onClick:askPage,disabled:busy,children:busy?"Searching…":"Ask"}),answer&&t.jsx("div",{className:"academic-book-card",children:t.jsx("p",{children:answer.answer||answer.error||"No answer found."})})]}),
