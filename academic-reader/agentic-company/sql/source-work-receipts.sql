@@ -1,4 +1,4 @@
--- NFCPS Academic evidence receipts, privacy-minimised and read-only for students.
+-- Academic company evidence is PRIVATE, never shown directly to students.
 -- Only trusted system checks are published, never student submissions or handout page text.
 CREATE TABLE IF NOT EXISTS public.nfcps_academic_work_receipts (
  source_kind text NOT NULL CHECK(source_kind IN ('source_page_audit','specialist_inspection','independent_repair')),
@@ -14,9 +14,9 @@ CREATE INDEX IF NOT EXISTS academic_work_receipt_recent ON public.nfcps_academic
 CREATE INDEX IF NOT EXISTS academic_work_receipt_material ON public.nfcps_academic_work_receipts(material_drive_id,evidence_at DESC);
 ALTER TABLE public.nfcps_academic_work_receipts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.nfcps_academic_work_receipts FROM PUBLIC,anon,authenticated;
-GRANT SELECT ON public.nfcps_academic_work_receipts TO anon,authenticated;
+-- No public SELECT: organisational evidence stays backend-only.
 DROP POLICY IF EXISTS academic_public_verified_receipts ON public.nfcps_academic_work_receipts;
-CREATE POLICY academic_public_verified_receipts ON public.nfcps_academic_work_receipts FOR SELECT TO anon,authenticated USING(true);
+-- No SELECT policy: UI sees only user-facing Academic learning outcomes.
 
 CREATE OR REPLACE FUNCTION nfcps_agent_ops.publish_work_receipts()
  RETURNS jsonb
