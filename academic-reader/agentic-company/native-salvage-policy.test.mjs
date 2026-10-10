@@ -1,0 +1,14 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {nativeSalvageDecision} from "./native-salvage-policy.mjs";
+const source={level:200,polishStatus:"ready",countStatus:"source_pdf_verified",indexStatus:"complete",sourceVersionMatches:true,pageCount:20};
+const page={materialId:"abc_source",pageNumber:4,ocrStatus:"pending",auditStatus:"pending",ocrAttempts:0,pageText:""};
+const flow={ok:true,layoutVersion:6,material:"abc_source",page:4,textOrigin:"native",renderMode:"native",unreliableText:false,needsVisualReview:false,unresolvedImageResources:0,reviewReasons:[],text:"A fully formatted original source paragraph from the handout explains biochemical reactions and supporting equations in a long documented source passage."};
+test("only original native source accepted",()=>{const x=nativeSalvageDecision(source,page,flow);assert.equal(x.accept,true);assert.equal(x.auditStatus,"pending");assert.equal(x.independentlyVerified,false);});
+test("broken source visual cannot masquerade as text",()=>{assert.equal(nativeSalvageDecision(source,page,{...flow,textOrigin:"source_unverified",renderMode:"original-source-exception"}).accept,false);});
+test("mixed-up PDF reading order rejected",()=>{assert.equal(nativeSalvageDecision(source,page,{...flow,needsVisualReview:true,reviewReasons:["AMBIGUOUS_READING_ORDER"]}).accept,false);});
+test("a page belongs to its correct original document",()=>{assert.equal(nativeSalvageDecision(source,page,{...flow,material:"forged"}).accept,false);assert.equal(nativeSalvageDecision(source,page,{...flow,page:7}).accept,false);});
+test("never overwrite completed OCR or a page claimed by a worker",()=>{assert.equal(nativeSalvageDecision(source,{...page,ocrStatus:"processing"},flow).accept,false);assert.equal(nativeSalvageDecision(source,{...page,ocrAttempts:1},flow).accept,false);assert.equal(nativeSalvageDecision(source,{...page,pageText:"Previously recovered source text"},flow).accept,false);});
+test("no guessed source count or stale revision accepted",()=>{assert.equal(nativeSalvageDecision({...source,countStatus:"estimated"},page,flow).accept,false);assert.equal(nativeSalvageDecision({...source,sourceVersionMatches:false},page,flow).accept,false);});
+test("page-only diagram and short headings are not false OCR completions",()=>{assert.equal(nativeSalvageDecision(source,page,{...flow,text:"PHARMACOLOGY"}).accept,false);});
+test("all recovered pages still require independent academic QA",()=>{const x=nativeSalvageDecision(source,page,flow);assert.equal(x.independentlyVerified,false);assert.equal(x.sourceTextModified,false);});

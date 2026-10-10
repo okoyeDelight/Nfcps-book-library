@@ -2635,3 +2635,29 @@ OCR backlog snapshot before deployment: 1,170 `pending`, 654 `needs_review`, two
 
 ## Continued work
 Keep the hourly zero-backlog watch active, audit actual source page completeness before claiming success, recover quarantined OCR with review, check scientific accuracy and diagram layout on real devices, and obtain legitimate first-year materials. No UI/CSS, routing, non-Academic or payment changes are authorised.
+
+---
+
+# 80. 10 October 2026 — Native PDF text rescue and real-data CEO command-centre backend
+
+**Deadline context:** user requested ambitious Academic-only fixes by **23:10 WAT**. A one-time 23:10 WAT audit is scheduled; do not promise impossible complete scientific/corpus QA before that deadline. Preserve NFCPS original UI, Vercel two exact routes, unrelated app services, and do not add paid infrastructure.
+
+## Confirmed live baseline before this pass
+- 459 ready Academic documents across 200,300,400,500; level 100 has zero source files. **3 ready documents still have no page-index rows** because their source PDFs are encrypted and require legitimate unprotected copies (one 200-level Dispensing; two 500-level infectious-disease originals). Never bypass encryption or insert fabricated source text.
+- 2026-10-10 22:55 WAT: **4504 pending OCR pages**, 713 needs-review, 0 independently verified Agent Company repairs. On the current compute budget this cannot be fully solved by 23:10. Both existing 10-second OCR cron workers and indexing/Agent Company jobs remain active.
+- Real layout=6 probes verified that some empty OCR placeholders correspond to truly clean, selectable native PDF source text. Other pages still require original-source image fallback and were safely rejected.
+
+## Deployed verified live changes
+- New **private** table `nfcps_agent_ops.native_salvage_request`, no source text stored in the observation log and no exposed Data API access for `anon`, `authenticated` or `service_role`.
+- `native_salvage_dispatch_tick()`: sources only proven original PDF page counts, fully indexed documents with matching source version, and pending/unclaimed OCR rows; schedules at most **4** public same-project Academic flow layout-6 extraction requests every 2 minutes with `pg_net`.
+- `native_salvage_apply_tick()`: checks real original `material`, page, layout version, native text origin, unreliability and visual-review flags, no unresolved images, acceptable source text quality, and competing OCR status. Only then changes that indexed page's `page_text` to **native source text**, `ocr_status=not_needed`, leaves `audit_status=pending`, and labels `native_text_recovered_review_pending`. Existing original PDF, figure images, non-Academic service and UI are never altered. Unsafe source responses are declined, not treated as completed OCR.
+- `native_salvage_cycle()` is invoked by a new `nfcps-academic-native-salvage` cron every **two minutes**; its first two scheduled executions both succeeded. At about 23:04 WAT the ledger reported **five** verified-native page recoveries, **four** unsafe source refusals and three still-requested probes. OCR backlog separately continued declining under its original workers. These recovered pages are NOT independently checked as scientifically correct.
+- `nfcps_agent_ops.command_centre_snapshot()`: a **private, read-only, real-data JSON feed** for five CEO branches, current lead, actual source-quality scores, meetings, Board decisions, specialist findings, and repair statistics. It explicitly reports **no actual human/video call**; no student-facing or publicly exposed real-time dashboard has been enabled pending access control. The previous cinematic CEO UI image was a static conceptual mockup, not live-video evidence.
+- **Eight** isolated native salvage trust tests passed, and the Academic CI workflow invokes them. The pure source-trust policy, live SQL functions, private schema, cron source, and rollback guidance are recorded under `academic-reader/agentic-company/`. GitHub Actions/physical Android tests remain unverified.
+
+## Must remain open until source-backed truth is available
+- 3 encrypted originals cannot be repaired without lawful accessible versions, and missing first-year documents cannot be fabricated.
+- >4,000 pending OCR pages, hundreds needing review, diagram/formula/reading-order QA, and independent scientific QA are a separate backlog not solved by native text rescue.
+- The Agent Company can route work, inspect and recheck but has **0 independently verified issue repairs** in the latest readback.
+- Do not describe a private JSON feed as a deployed live UI or automated video meeting. Later integration should be role-gated, read-only and separate from the student's unchanged existing app screen.
+- If free quota/egress makes the new source probes unsustainable, `SELECT cron.unschedule('nfcps-academic-native-salvage');` halts only this added task while original OCR/index workers remain.
