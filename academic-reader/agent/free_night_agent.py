@@ -79,7 +79,7 @@ def valid_replacement(source: str, issue: dict, answer: dict) -> str:
         if 'setErr("")' not in new or not all(x in new for x in required):
             raise ValueError("Replacement does not preserve/reset navigation state")
     elif issue["id"].startswith("label-"):
-        if "aria-label:" not in new or 'className:"academic-book-arrow' not in new:
+        if not ('"aria-label":' in new or "'aria-label':" in new) or 'className:"academic-book-arrow' not in new:
             raise ValueError("Replacement lacks accessible label or drops button")
     else:
         raise ValueError("Unknown issue type")
