@@ -35,12 +35,12 @@ test("concept map uses original DOM source lists with no causal graph invention"
  assert.ok(reader.includes("Interactive concept map"));
  assert.ok(reader.includes("not presented as invented causal steps"));
 });
-test("agent receipts show actual source and review state instead of fictional heroism",()=>{
- assert.ok(reader.includes("Evidence of Academic agents at work"));
- assert.ok(reader.includes("not repaired"));
- assert.ok(reader.includes("Evidence "));
- assert.ok(proxy.includes('mode==="proof"'));
- assert.ok(proxy.includes("nfcps_academic_work_receipts"));
+test("agent company is backend-only with no evidence or CEO dashboard in student app",()=>{
+ for(const word of ["CEO Live","ceoOpen","workProof","workError","mode=proof",
+  "Evidence of Academic agents at work","Academic work · source proof"])
+   assert.ok(!reader.includes(word),word);
+ assert.ok(proxy.includes("status:410"));
+ assert.ok(!proxy.includes("SUPABASE_ANON_KEY"));
  assert.ok(!proxy.includes("SUPABASE_SERVICE_ROLE_KEY"));
 });
 test("baseline Academic styling and tab workflows preserved",()=>{
