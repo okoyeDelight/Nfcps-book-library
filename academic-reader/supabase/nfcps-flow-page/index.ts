@@ -1,7 +1,7 @@
 import * as mupdf from 'npm:mupdf@1.28.1';
 import {chooseSourceRecovery} from './source-recovery.mjs';
 import {choosePageEvidence} from './page-evidence.mjs';
-import {rect,reconstructLines,classifyColumns,orderedEvents,imageCoverage,normalizeForCoverage,readingQuality} from './flow-layout.mjs';
+import {rect,reconstructLines,classifyColumns,orderedEvents,imageCoverage,normalizeForCoverage,readingQuality,splitColumnSections} from './flow-layout.mjs';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 const U=Deno.env.get('SUPABASE_URL')!,K=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const sb=createClient(U,K,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -61,7 +61,11 @@ Deno.serve(async req=>{
  try{
   const u=new URL(req.url),material=(u.searchParams.get('material')||'').trim(),pageNo=Math.max(1,Number(u.searchParams.get('page')||1)),version=(u.searchParams.get('v')||'').trim();
   if(!material)return new Response(JSON.stringify({error:'material required'}),{status:400,headers:H});
-  const ck=material+':'+pageNo+':'+version+':layout5';const hit=cache.get(ck);if(hit)return new Response(JSON.stringify(hit),{headers:H});
+  // Older and newer layout protocols must never share a memory cache entry.
+  const requested=u.searchParams.get('layout')||'';
+  const layoutId=['3','4','5','6'].includes(requested)?requested:'5';
+  const ck=material+':'+pageNo+':'+version+':layout'+layoutId+':flow-v6';
+  const hit=cache.get(ck);if(hit)return new Response(JSON.stringify(hit),{headers:H});
   const {data:m,error}=await sb.from('nfcps_academic_materials').select('drive_id,title,polished_url,mime_type,course_code,course_label').eq('drive_id',material).maybeSingle();
   if(error)throw error;if(!m?.polished_url)return new Response(JSON.stringify({error:'material unavailable'}),{status:404,headers:H});
   const bytes=await bytesFor(m.polished_url),doc=mupdf.Document.openDocument(bytes,'application/pdf'),pages=doc.countPages();
@@ -100,6 +104,8 @@ Deno.serve(async req=>{
     im.bbox.y<columnCandidate.activeBottom
   );
   const twoCol=columnCandidate.twoColumn&&!crossingImages;
+  const segmented=layoutId==='6'&&!twoCol&&columnCandidate.left.length>=4&&columnCandidate.right.length>=4
+    ? splitColumnSections(textLines,images,pageW) : {applied:false,sections:[] as any[]};
   const imageHtml=(im:any)=>'<figure class="book-figure"><img loading="lazy" src="'+esc(im.src)+'" alt="Figure from '+esc(m.title)+'"></figure>';
   const renderRegion=(lines:any[],pictures:any[])=>{
     let html='',run:any[]=[];
@@ -123,6 +129,10 @@ Deno.serve(async req=>{
        +renderRegion(columnCandidate.left,leftImgs)
        +renderRegion(columnCandidate.right,rightImgs)
        +renderRegion(bottom,centerImgs.filter(x=>x.bbox.y>columnCandidate.activeTop));
+  }else if(segmented.applied){
+    // Full-width headings can separate distinct left/right reading bands.
+    // Preserve all source blocks exactly once; keep existing UI styling.
+    flowHtml=segmented.sections.map(x=>renderRegion(x.lines,x.images)).join('');
   }else {
     // Conservative visual source order for pages containing intertwined
     // columns, diagrams, labels and full-width explanatory text.
@@ -144,14 +154,15 @@ Deno.serve(async req=>{
     ...(!imageAudit.complete||unresolvedImageResources>0?["SOURCE_IMAGES_UNRESOLVED"]:[]),
     ...(images.some(x=>x.unplaced)?["IMAGE_POSITION_UNVERIFIED"]:[]),
     ...(ambiguousColumns?["AMBIGUOUS_READING_ORDER"]:[]),
+    ...(segmented.applied?["READING_ORDER_SEGMENTED_FOR_DISPLAY"]:[]),
     ...(!scanOnly&&sourceChars>40&&flowChars<sourceChars*.85?["SOURCE_TEXT_COVERAGE_LOW"]:[])
   ];
   const needsReview=reviewReasons.length>0;
-  const layout=String(u.searchParams.get('layout')||'');
-  const recovery=(layout==='4'||layout==='5')?
+  const layout=layoutId;
+  const recovery=(layout==='4'||layout==='5'||layout==='6')?
     chooseSourceRecovery({
       reasons:reviewReasons,polishedUrl:m.polished_url,pageNo,title:m.title,
-      forceOriginalForBlankPage:layout==='5'&&plain.trim().length<10&&images.length===0
+      forceOriginalForBlankPage:(layout==='5'||layout==='6')&&plain.trim().length<10&&images.length===0
     }):
     {mode:'native',unreliableText:false,html:null};
   const evidence=choosePageEvidence({
@@ -160,11 +171,12 @@ Deno.serve(async req=>{
     ocrConfidence:indexed?.ocr_confidence,
     embeddedImages:images.length,sourceRecovery:recovery.unreliableText===true
   });
-  const studyUnreliable=layout==='5'?evidence.needsStudyReview:recovery.unreliableText;
-  const studyText=layout==='5'?evidence.trustedText:(plain||clean(indexed?.page_text||''));
+  const evidenceLayout=layout==='5'||layout==='6';
+  const studyUnreliable=evidenceLayout?evidence.needsStudyReview:recovery.unreliableText;
+  const studyText=evidenceLayout?evidence.trustedText:(plain||clean(indexed?.page_text||''));
   const displayHtml=recovery.html||flowHtml;
   const slideDeck=String(m.mime_type||'').toLowerCase().includes('presentation')||/\.(ppt|pptx|pptm)$/i.test(String(m.title||''))||pageW/pageH>1.18;
-  const payload={ok:true,material,title:m.title,page:pageNo,pages,layoutHint:slideDeck?'slides':'document',slideDeck,html:displayHtml,text:studyText,textOrigin:layout==='5'?evidence.textOrigin:'legacy',imageCount:imgs.length,renderedImageCount:imageAudit.rendered,unresolvedImageResources,scanOnly,twoColumn:twoCol,needsVisualReview:needsReview||studyUnreliable,reviewReasons:studyUnreliable&&layout==='5'?[...reviewReasons,'SOURCE_TEXT_NOT_VERIFIED']:reviewReasons,layoutVersion:layout==='5'?5:4,renderMode:recovery.mode,unreliableText:studyUnreliable};
+  const payload={ok:true,material,title:m.title,page:pageNo,pages,layoutHint:slideDeck?'slides':'document',slideDeck,html:displayHtml,text:studyText,textOrigin:evidenceLayout?evidence.textOrigin:'legacy',imageCount:imgs.length,renderedImageCount:imageAudit.rendered,unresolvedImageResources,scanOnly,twoColumn:twoCol,needsVisualReview:needsReview||studyUnreliable,reviewReasons:studyUnreliable&&evidenceLayout?[...reviewReasons,'SOURCE_TEXT_NOT_VERIFIED']:reviewReasons,layoutVersion:layout==='6'?6:layout==='5'?5:4,readingOrderMode:segmented.applied?'sectioned-columns':twoCol?'two-column':'conservative',renderMode:recovery.mode,unreliableText:studyUnreliable};
   st.destroy();page.destroy();doc.destroy();cache.set(ck,payload);if(cache.size>120){const first=cache.keys().next().value;if(first)cache.delete(first)}
   return new Response(JSON.stringify(payload),{headers:H});
  }catch(e){return new Response(JSON.stringify({ok:false,error:e instanceof Error?e.message:String(e)}),{status:500,headers:{...H,'cache-control':'no-store'}})}

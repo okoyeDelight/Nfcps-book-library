@@ -2524,3 +2524,26 @@ Prior OCR-exhausted status must not automatically trigger a source image fallbac
 - The existing OCR exhaustion backlog (~595 pages) still needs reliable original-source/verified OCR, independent review and retriable processing strategies; do not silently mark as passed. Some affected pages are *already* readable natively.
 - 100 level has no file records. Five-level certification remains BLOCKED pending real 100-level source material.
 - The Study Lens keyword-sentence extractor is not an advanced LLM academic tutor; do not claim deep reasoning or scientifically verified generative lessons from this release.
+
+---
+
+# 75. 10 October 2026 — Academic reading-order segmentation and layout-safe response cache
+
+User repeatedly requested continued live Academic-only changes with **strict UI preservation** and no edits to Vercel routing, unrelated NFCPS app sections, CSS, Android or hosting/billing plans.
+
+### Defect and scope
+The existing `nfcps-flow-page` memory cache used the same key for different `layout` query protocol versions. A student still on the previous renderer could receive a newer-version response (or vice versa) if both requested the same material, page and source version from a warm edge instance. Separately, mixed source pages with *full-width headings inside two simultaneous text columns* could be laid out in the wrong order when broad single/dual column classification failed.
+
+### Deployed fix
+- `nfcps-flow-page` **v8 ACTIVE**. Cache keys now include the normalized requested layout version (3/4/5/6) as well as material/page/source version and extraction release identifier; legacy protocols remain separate. Added `splitColumnSections` to `flow-layout.mjs`. On layout=6 ONLY, when a full-width heading separates high-confidence side-by-side text lanes, it builds per-band left/right regions and restores heading position, without editing source words or losing figures. When a source diagram crosses the active gutter, it conservatively keeps the previous layout. Existing severe text-corruption flags are deliberately **not cleared** by resegmentation, so source visual fallback and Study safeguards remain in place for corrupt words.
+- `nfcps-academic-ui-assets-v3` **v9 ACTIVE**. The existing Academic Reader component requests `&layout=6`. Its UI class names, controls, CSS, base JS/CSS assets and Vercel exact routes are untouched. No non-Academic function or site build was changed. Other prior Academic worker versions are maintained.
+
+### Verification
+- 18 pure flow/geometry unit tests passed in isolated JS evaluation, including four new scenarios for mixed columns, full-width headings, images with one-to-one coverage, and gutter-crossing diagrams. Four new static contract tests were written and added to Academic CI to enforce version isolation, client protocol and persistent corruption warnings. GitHub Actions execution and installed Android testing are still unverified.
+- Eight real page probes using `layout=6` returned HTTP 200 across 200/300/400/500 levels. Source/render image counts matched for the image-bearing samples. The 400-level Anticonvulsants and other severely broken PDFs retained their original-source exception; readable samples stayed native. **No sampled first page met the strict new sectional-column criteria**, so that specific visual improvement is tested by deterministic geometry fixtures only, not yet verified on a real qualifying full-width-heading page.
+- Same document/page/version requests with `layout=5` and `layout=6` both returned HTTP 200 with their correct **different layoutVersion (5 and 6)**, verifying memory cache isolation directly.
+- Public app endpoint, original JS and CSS asset paths returned HTTP 200. Public JS includes `layout=6`; CSS still retains the same styling and bytes were not intentionally changed.
+- This release does not claim full document completeness or scientific correctness. The remaining ~280+ ready materials without index, hundreds of OCR-needs-review pages, and missing 100-level source remain blockers; future work must audit full real documents and devices rather than only first pages.
+
+### Rollback
+Recover prior `nfcps-flow-page` v7 and `nfcps-academic-ui-assets-v3` v8 Git sources if the new flow behaves unexpectedly. Do not touch the original Vercel routes. Continue no paid AI/hosting migration.
