@@ -146,7 +146,9 @@ Deno.serve(async req=>{
     ...(!scanOnly&&sourceChars>40&&flowChars<sourceChars*.85?["SOURCE_TEXT_COVERAGE_LOW"]:[])
   ];
   const needsReview=reviewReasons.length>0;
-  const recovery=chooseSourceRecovery({reasons:reviewReasons,polishedUrl:m.polished_url,pageNo,title:m.title});
+  const recovery=u.searchParams.get('layout')==='4'?
+    chooseSourceRecovery({reasons:reviewReasons,polishedUrl:m.polished_url,pageNo,title:m.title}):
+    {mode:'native',unreliableText:false,html:null};
   const displayHtml=recovery.html||flowHtml;
   const slideDeck=String(m.mime_type||'').toLowerCase().includes('presentation')||/\.(ppt|pptx|pptm)$/i.test(String(m.title||''))||pageW/pageH>1.18;
   const payload={ok:true,material,title:m.title,page:pageNo,pages,layoutHint:slideDeck?'slides':'document',slideDeck,html:displayHtml,text:plain||clean(indexed?.page_text||''),imageCount:imgs.length,renderedImageCount:imageAudit.rendered,unresolvedImageResources,scanOnly,twoColumn:twoCol,needsVisualReview:needsReview,reviewReasons,layoutVersion:4,renderMode:recovery.mode,unreliableText:recovery.unreliableText};
