@@ -3,11 +3,6 @@
  * This is not the normal reader: clean material remains native/reflowable.
  * Preserve original source without falsely teaching from corrupted extraction.
  */
-const corrupted = new Set([
-  "WORDS_SPLIT_ACROSS_LINES",
-  "FRAGMENTED_SOURCE_LINES",
-  "SUSPICIOUS_SINGLE_LETTER_TOKENS"
-]);
 const htmlEscape=value=>String(value??"").replace(/&/g,"&amp;")
   .replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 export function approvedSourceVisual(polishedUrl,pageNo) {
@@ -24,7 +19,12 @@ export function approvedSourceVisual(polishedUrl,pageNo) {
 export function chooseSourceRecovery({reasons=[],polishedUrl="",pageNo=0,title=""}={}) {
   const reasonList=Array.isArray(reasons)?reasons:[];
   const visualUrl=approvedSourceVisual(polishedUrl,pageNo);
-  if(!visualUrl||!reasonList.some(x=>corrupted.has(x)))return {
+  const severe=(reasonList.includes("AMBIGUOUS_READING_ORDER")&&
+    (reasonList.includes("WORDS_SPLIT_ACROSS_LINES")||
+     reasonList.includes("FRAGMENTED_SOURCE_LINES")))||
+    (reasonList.includes("FRAGMENTED_SOURCE_LINES")&&
+     reasonList.includes("SUSPICIOUS_SINGLE_LETTER_TOKENS"));
+  if(!visualUrl||!severe)return {
     mode:"native",unreliableText:false,html:null,sourceVisualUrl:null
   };
   // The existing book-figure is used: no new navigation, reader shell,
