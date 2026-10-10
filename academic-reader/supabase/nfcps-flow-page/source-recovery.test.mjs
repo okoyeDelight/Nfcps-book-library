@@ -12,7 +12,7 @@ test("ambiguous column layout alone does not force image fallback",()=>{
  assert.equal(chooseSourceRecovery({reasons:["AMBIGUOUS_READING_ORDER"],polishedUrl:trusted,pageNo:1}).mode,"native");
 });
 test("broken text displays the exact source only as an exceptional recovery",()=>{
- const r=chooseSourceRecovery({reasons:["WORDS_SPLIT_ACROSS_LINES"],polishedUrl:trusted,pageNo:1,title:"Pharmacy"});
+ const r=chooseSourceRecovery({reasons:["WORDS_SPLIT_ACROSS_LINES","AMBIGUOUS_READING_ORDER"],polishedUrl:trusted,pageNo:1,title:"Pharmacy"});
  assert.equal(r.mode,"original-source-exception");
  assert.equal(r.unreliableText,true);
  assert.ok(r.html.includes('data-source-recovery="true"'));
@@ -33,11 +33,17 @@ test("rejects bad page numbers and source types",()=>{
  assert.equal(approvedSourceVisual(trusted.replace(".pdf",".js"),1),null);
 });
 test("escapes document titles before HTML insertion",()=>{
- const result=chooseSourceRecovery({reasons:["FRAGMENTED_SOURCE_LINES"],polishedUrl:trusted,pageNo:2,title:'<img onerror="alert(1)">'});
+ const result=chooseSourceRecovery({reasons:["FRAGMENTED_SOURCE_LINES","SUSPICIOUS_SINGLE_LETTER_TOKENS"],polishedUrl:trusted,pageNo:2,title:'<img onerror="alert(1)">'});
  assert.ok(!result.html.includes('<img onerror'));
  assert.ok(result.html.includes("&lt;img"));
 });
 test("no trusted source remains native but flags are retained externally",()=>{
  const r=chooseSourceRecovery({reasons:["SUSPICIOUS_SINGLE_LETTER_TOKENS"],polishedUrl:"",pageNo:2});
  assert.equal(r.mode,"native");
+});
+
+test("a single heuristic must not replace readable pages",()=>{
+ for(const reason of ["WORDS_SPLIT_ACROSS_LINES","FRAGMENTED_SOURCE_LINES","SUSPICIOUS_SINGLE_LETTER_TOKENS"]) {
+  assert.equal(chooseSourceRecovery({reasons:[reason],polishedUrl:trusted,pageNo:1}).mode,"native");
+ }
 });
