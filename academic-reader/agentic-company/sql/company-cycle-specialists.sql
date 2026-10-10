@@ -23,6 +23,7 @@ BEGIN
  workload:=nfcps_agent_ops.work_tick();
  missions:=nfcps_agent_ops.joint_mission_tick();
  meeting_result:=nfcps_agent_ops.meeting_tick();
+ PERFORM nfcps_agent_ops.publish_ceo_feed();
  INSERT INTO nfcps_agent_ops.governance_log
    (actor,action,entity,entity_key,outcome,reason,evidence)
  VALUES ('internal_company_cycle','periodic_company_operations','company',

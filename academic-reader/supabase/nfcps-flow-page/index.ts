@@ -1,6 +1,7 @@
 import * as mupdf from 'npm:mupdf@1.28.1';
 import {chooseSourceRecovery} from './source-recovery.mjs';
 import {choosePageEvidence} from './page-evidence.mjs';
+import {restoreSourceLists} from './source-list-fidelity.mjs';
 import {rect,reconstructLines,classifyColumns,orderedEvents,imageCoverage,normalizeForCoverage,readingQuality,splitColumnSections} from './flow-layout.mjs';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 const U=Deno.env.get('SUPABASE_URL')!,K=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -63,8 +64,8 @@ Deno.serve(async req=>{
   if(!material)return new Response(JSON.stringify({error:'material required'}),{status:400,headers:H});
   // Older and newer layout protocols must never share a memory cache entry.
   const requested=u.searchParams.get('layout')||'';
-  const layoutId=['3','4','5','6'].includes(requested)?requested:'5';
-  const ck=material+':'+pageNo+':'+version+':layout'+layoutId+':flow-v6';
+  const layoutId=['3','4','5','6','7'].includes(requested)?requested:'5';
+  const ck=material+':'+pageNo+':'+version+':layout'+layoutId+':flow-v7';
   const hit=cache.get(ck);if(hit)return new Response(JSON.stringify(hit),{headers:H});
   const {data:m,error}=await sb.from('nfcps_academic_materials').select('drive_id,title,polished_url,mime_type,course_code,course_label').eq('drive_id',material).maybeSingle();
   if(error)throw error;if(!m?.polished_url)return new Response(JSON.stringify({error:'material unavailable'}),{status:404,headers:H});
@@ -159,10 +160,10 @@ Deno.serve(async req=>{
   ];
   const needsReview=reviewReasons.length>0;
   const layout=layoutId;
-  const recovery=(layout==='4'||layout==='5'||layout==='6')?
+  const recovery=(layout==='4'||layout==='5'||layout==='6'||layout==='7')?
     chooseSourceRecovery({
       reasons:reviewReasons,polishedUrl:m.polished_url,pageNo,title:m.title,
-      forceOriginalForBlankPage:(layout==='5'||layout==='6')&&plain.trim().length<10&&images.length===0
+      forceOriginalForBlankPage:(layout==='5'||layout==='6'||layout==='7')&&plain.trim().length<10&&images.length===0
     }):
     {mode:'native',unreliableText:false,html:null};
   const evidence=choosePageEvidence({
@@ -171,12 +172,13 @@ Deno.serve(async req=>{
     ocrConfidence:indexed?.ocr_confidence,
     embeddedImages:images.length,sourceRecovery:recovery.unreliableText===true
   });
-  const evidenceLayout=layout==='5'||layout==='6';
+  const evidenceLayout=layout==='5'||layout==='6'||layout==='7';
   const studyUnreliable=evidenceLayout?evidence.needsStudyReview:recovery.unreliableText;
   const studyText=evidenceLayout?evidence.trustedText:(plain||clean(indexed?.page_text||''));
-  const displayHtml=recovery.html||flowHtml;
+  const structure=layout==='7'&&!recovery.html?restoreSourceLists(flowHtml):{html:flowHtml,restoredBoundaries:0};
+  const displayHtml=recovery.html||structure.html;
   const slideDeck=String(m.mime_type||'').toLowerCase().includes('presentation')||/\.(ppt|pptx|pptm)$/i.test(String(m.title||''))||pageW/pageH>1.18;
-  const payload={ok:true,material,title:m.title,page:pageNo,pages,layoutHint:slideDeck?'slides':'document',slideDeck,html:displayHtml,text:studyText,textOrigin:evidenceLayout?evidence.textOrigin:'legacy',imageCount:imgs.length,renderedImageCount:imageAudit.rendered,unresolvedImageResources,scanOnly,twoColumn:twoCol,needsVisualReview:needsReview||studyUnreliable,reviewReasons:studyUnreliable&&evidenceLayout?[...reviewReasons,'SOURCE_TEXT_NOT_VERIFIED']:reviewReasons,layoutVersion:layout==='6'?6:layout==='5'?5:4,readingOrderMode:segmented.applied?'sectioned-columns':twoCol?'two-column':'conservative',renderMode:recovery.mode,unreliableText:studyUnreliable};
+  const payload={ok:true,material,title:m.title,page:pageNo,pages,layoutHint:slideDeck?'slides':'document',slideDeck,html:displayHtml,text:studyText,textOrigin:evidenceLayout?evidence.textOrigin:'legacy',imageCount:imgs.length,renderedImageCount:imageAudit.rendered,unresolvedImageResources,scanOnly,twoColumn:twoCol,needsVisualReview:needsReview||studyUnreliable,reviewReasons:studyUnreliable&&evidenceLayout?[...reviewReasons,'SOURCE_TEXT_NOT_VERIFIED']:reviewReasons,layoutVersion:layout==='7'?7:layout==='6'?6:layout==='5'?5:4,readingOrderMode:segmented.applied?'sectioned-columns':twoCol?'two-column':'conservative',renderMode:recovery.mode,unreliableText:studyUnreliable};
   st.destroy();page.destroy();doc.destroy();cache.set(ck,payload);if(cache.size>120){const first=cache.keys().next().value;if(first)cache.delete(first)}
   return new Response(JSON.stringify(payload),{headers:H});
  }catch(e){return new Response(JSON.stringify({ok:false,error:e instanceof Error?e.message:String(e)}),{status:500,headers:{...H,'cache-control':'no-store'}})}

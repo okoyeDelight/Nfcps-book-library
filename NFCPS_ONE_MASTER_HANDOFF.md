@@ -2661,3 +2661,34 @@ Keep the hourly zero-backlog watch active, audit actual source page completeness
 - The Agent Company can route work, inspect and recheck but has **0 independently verified issue repairs** in the latest readback.
 - Do not describe a private JSON feed as a deployed live UI or automated video meeting. Later integration should be role-gated, read-only and separate from the student's unchanged existing app screen.
 - If free quota/egress makes the new source probes unsustainable, `SELECT cron.unschedule('nfcps-academic-native-salvage');` halts only this added task while original OCR/index workers remain.
+
+---
+
+# 81. 10 October 2026, after 23:10 WAT — Live source list fidelity, tappable Exam and CEO Council panel
+
+**Mandate:** The user supplied six actual Android screenshots and demanded immediate live Academic changes, not more concepts. Preserve the original NFCPS UI/CSS, all other sections, the exact Vercel asset routes, no paid APIs or new hosting provider.
+
+## Actual 11:10 deadline readback
+- The zero-index deadline **was not fully achieved**. Of 459 ready Academic handouts, 3 remained without index (1 second-year; 2 fifth-year), all from encrypted password-protected source PDFs. 100-level still had no ready materials. No bypass of encryption.
+- The source-page-index metadata was explicitly marked complete in 132 ready files (200L 39, 300L 25, 400L 33, 500L 35), which is **not** full 459-document page/visual certification.
+- About 4,384 page-index records were `pending` OCR and 716 `needs_review`; indexed entries are not synonymous with fully readable, scientifically accurate pages.
+
+## Production improvements actually deployed
+
+1. **`nfcps-flow-page` v9 ACTIVE:** new pure `source-list-fidelity.mjs` preserves source-authored enumerations in `layout=7`. It separates markers like 1., 2., (a), (b), (D), (e) and embedded bullet symbols into distinct hanging-indent paragraphs without changing source text, inventing numbering or modifying actual source images. This is a conservative structural fix, **not** a guarantee of every DOCX/PDF's full typographic fidelity. New memory-cache layout protocol remains version-separated; legacy layout 3–6 remains supported.
+2. **Verified real user handout:** PCG 201 `plant description.docx` drive ID `1uOMZ1ojFuygxxNfOXsmNfnIw-pH9e1rn`. Original layout 6 mistakenly merged source items 3 and 4 (page 1), (a)/(b) and (D)/(e) (page 3), and anatomy bullets (page 4). Live `layout=7` page 1,3,4 probes responded HTTP 200 with source markers now separated exactly.
+3. **`nfcps-study-lens` v7 ACTIVE:** source question bank retrieval paginates rather than silently taking the first 1000 rows; page-topic matched output is no longer arbitrarily sliced to ten. New `POST mode=question` looks up the real indexed question by UUID, reports actual exam source and any `marked_answer`, with honest `recorded_marking_key_unverified` or `no_verified_answer_recorded` labels. It may return audited indexed academic source excerpts, **not** hallucinated model answers. No writes from reader to permanent index.
+4. **Question QA:** database currently held **124** indexed past questions, only **24** with an answer-key value. A real Source 17 request for Plant Description yielded four candidates: **one good** topic match and **three weaker possible** matches. The reader now separately labels likely matches and possible topic matches to avoid passing weak matches as direct source-page questions. It shows **all currently indexed topical candidates**, not all past questions that might exist outside the database.
+5. **`nfcps-academic-ui-assets-v3` v12 ACTIVE:** existing Academic Reader requests layout 7, makes actual past-question cards tappable, opens a glass-style discussion overlay with recorded answer/evidence and Ask / Recall / Understand navigation. The Ask and Understand backends remain largely extractive/heuristic; **no multi-LLM tutoring orchestration was delivered**. Do not claim otherwise.
+6. **`nfcps-academic-ceo-live` v1 ACTIVE:** a small read-only Academic API using a scoped Supabase **anon key**, not a leaked service-role key, retrieves only an RLS-exposed aggregate `public.nfcps_academic_ceo_feed` (five branches). This exposes CEO lead, scores, indexed document counts, independently verified page-coverage counts, queued tasks, Board decisions and recorded meeting time. No private issue texts, meeting transcripts or student data. Private `nfcps_agent_ops.publish_ceo_feed()` updates the public summary as part of the **existing 20-minute company cycle**. Student-facing Academic Reader now has a **CEO Live** button that shows a glass-style, automatically refreshed five-CEO live work dashboard.
+7. **NO simulation:** the CEO overlay displays **real aggregate Board records**, not fabricated conversation or actual live video meetings. It refreshes the displayed aggregate every 45 seconds; underlying company-cycle updates are every 20 minutes. No autonomous animated CEO avatars or live recorded CEO video have been built.
+8. Public app `/exact/`, original rewritten JS asset and original CSS asset returned HTTP 200. Public JS contains `layout=7`, `CEO Live`, `Source-linked discussion`. Original CSS and underlying Vercel rewrites were kept unchanged.
+9. Seven isolated list-boundary fixtures + five source-/exam-/CEO-contract fixtures passed (12/12). Hosted GitHub Actions status and physical Android visual or complete-reader navigation tests have NOT been independently verified.
+
+## Remaining work (must be honestly carried forward)
+- Three encrypted sources need authorised accessible originals.
+- Structural reconstruction is not complete for all PDF/DOCX combinations; source lists, tables, columns, figures, heading sizes, indentation and formulas need exhaustive full-document and Android validation.
+- AI comprehension/tutor engine is still keyword/source-extract based: **no genuine multi-AI teaching brain** connected. Interactive dialog is improved but cannot promise fully reasoned correct answers when the question source has no verified mark scheme (100 of 124 currently lack a recorded key).
+- CEO Live is real status visualisation but not face-to-face agent meeting animation or spoken videos.
+- 4,000+ pending OCR pages and hundreds of review flags remain. Source integrity/quality and student comprehension certification remains open, and zero verified Agent Company repairs cannot be concealed.
+- No paid service, other app section changes, site builds or Vercel rewrites. Security: no credential copied to the public repo; a minimal public CEO summary has SELECT-only RLS access for anon/authenticated.
