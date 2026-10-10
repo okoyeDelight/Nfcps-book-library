@@ -565,3 +565,18 @@ Before declaring success, test:
 6. recovered 300/400/500-level file
 
 Do not conclude success from one Anatomy PDF.
+
+
+---
+
+# 10 October 2026 — Agentic Academic company: phase-1 source update
+
+This section is a chronology addendum, not a claim of production deployment.
+
+**UI constraint (permanent):** Preserve the current NFCPS Academic native design, cream reading surface, layout, classes, tools, and established navigation; no redesign when adding teaching capabilities. Students should never see AI infrastructure or a different app.
+
+**Source branch work:** new \`academic-reader/agentic-company/\` contracts, independent verifier and tests; under source integration the frontend retry no longer uses a full-app reload and existing exam cards identify actual-question source details and visibly label predictions. The compiled bridge source \`academic-reader/supabase/nfcps-academic-ui-assets-v3/index.ts\` is regenerated from the same readable JSX.
+
+**Correct capability labels:** Deterministic fidelity tests use synthetic fixtures only. They do not prove all actual textbook pages, figures, formulas, or mobile layouts are correct. Rich English/Pidgin explanations, personalised calculations, interactive moving diagrams and video remain designed roadmap items requiring source evidence and careful review. The current \`nfcps-study-lens\` remains primarily extractive, not unlimited AI tutoring. The current frontend still uses \`nfcps-flow-page\`, not mirrored in this repo at the expected location.
+
+**Deployment:** This GitHub source work is not the live Supabase Edge Function and does not update the installed app until the connected project's \`nfcps-academic-ui-assets-v3\` function is safely deployed and checked. Keep the current exact two Vercel asset routes unchanged. Do not add proxies or replace the whole frontend. Record exact deployment/version/verification after deployment, not before.
