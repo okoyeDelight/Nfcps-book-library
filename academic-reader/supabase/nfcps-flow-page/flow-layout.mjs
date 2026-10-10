@@ -127,5 +127,5 @@ export function imageCoverage(html,expectedCount) {
 /** Keep rendered words in source order when lines are combined. */
 export function normalizeForCoverage(text) {
   return String(text??"").normalize("NFKC").replace(/[\s\u00ad]+/g,"")
-    .replace(/[^\p{L}\p{N}°±×÷⁻⁺⁰¹²³⁴⁵⁶⁷⁸⁹]/gu,"").toLowerCase();
+    .replace(/[^\p{L}\p{N}°±×÷⁻⁺⁰¹²³⁴⁵⁶⁷⁸⁹+\-=/^]/gu,"").toLowerCase();
 }
