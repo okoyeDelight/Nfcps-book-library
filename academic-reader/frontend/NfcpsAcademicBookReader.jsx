@@ -1,6 +1,6 @@
 
 function NfcpsAcademicBookReader({material:l}){
- const[manifest,setManifest]=d.useState(null),[loading,setLoading]=d.useState(!0),[err,setErr]=d.useState(""),[sourcePage,setSourcePage]=d.useState(1),[pages,setPages]=d.useState({}),[fontSize,setFontSize]=d.useState(18),[twoUp,setTwoUp]=d.useState(!1),[subPage,setSubPage]=d.useState(0),[subCount,setSubCount]=d.useState(1),[toolsOpen,setToolsOpen]=d.useState(!1),[tool,setTool]=d.useState("reader"),[study,setStudy]=d.useState(null),[busy,setBusy]=d.useState(!1),[ask,setAsk]=d.useState(""),[selectedQuestion,setSelectedQuestion]=d.useState(null),[questionDetail,setQuestionDetail]=d.useState(null),[questionBusy,setQuestionBusy]=d.useState(!1),[ceoOpen,setCeoOpen]=d.useState(!1),[ceoFeed,setCeoFeed]=d.useState(null),[ceoError,setCeoError]=d.useState(""),[ceoRefresh,setCeoRefresh]=d.useState(0),[dark,setDark]=d.useState(!1),[retryCounter,setRetryCounter]=d.useState(0),[manifestRetry,setManifestRetry]=d.useState(0),viewportRef=d.useRef(null),columnsRef=d.useRef(null),gestureRef=d.useRef({dist:0,startFont:18,sx:0,sy:0,pinch:!1}),goLastRef=d.useRef(!1);
+ const[manifest,setManifest]=d.useState(null),[loading,setLoading]=d.useState(!0),[err,setErr]=d.useState(""),[sourcePage,setSourcePage]=d.useState(1),[pages,setPages]=d.useState({}),[fontSize,setFontSize]=d.useState(18),[twoUp,setTwoUp]=d.useState(!1),[subPage,setSubPage]=d.useState(0),[subCount,setSubCount]=d.useState(1),[toolsOpen,setToolsOpen]=d.useState(!1),[tool,setTool]=d.useState("reader"),[study,setStudy]=d.useState(null),[busy,setBusy]=d.useState(!1),[ask,setAsk]=d.useState(""),[selectedQuestion,setSelectedQuestion]=d.useState(null),[questionDetail,setQuestionDetail]=d.useState(null),[questionBusy,setQuestionBusy]=d.useState(!1),[dark,setDark]=d.useState(!1),[retryCounter,setRetryCounter]=d.useState(0),[manifestRetry,setManifestRetry]=d.useState(0),viewportRef=d.useRef(null),columnsRef=d.useRef(null),gestureRef=d.useRef({dist:0,startFont:18,sx:0,sy:0,pinch:!1}),goLastRef=d.useRef(!1);
  const PKG="https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-academic-book-package",FLOW="https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-flow-page",LENS="https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-study-lens";
  d.useEffect(()=>{let live=!0;const ctl=new AbortController;setLoading(!0);setErr("");setManifest(null);setSourcePage(1);setPages({});fetch(PKG+"?mode=manifest&material="+encodeURIComponent(l.id),{signal:ctl.signal,cache:"no-store"}).then(async r=>{const x=await r.json();if(!r.ok||!x?.ready)throw new Error(x?.error||"Material unavailable");if(live){setManifest(x);setTwoUp(x.layoutHint==="slides");setFontSize(x.layoutHint==="slides"?17:18);setLoading(!1)}}).catch(e=>{if(e?.name!=="AbortError"&&live){setErr(String(e?.message||e));setLoading(!1)}});return()=>{live=!1;ctl.abort()}},[l.id,manifestRetry]);
  const sourceCount=Math.max(1,Number(manifest?.pageCount||1)),current=Math.max(1,Math.min(sourceCount,sourcePage)),pairEnd=twoUp?Math.min(sourceCount,current+1):current,sourceStep=twoUp?2:1;
@@ -29,28 +29,12 @@ function NfcpsAcademicBookReader({material:l}){
    const x=await r.json();if(!r.ok)throw new Error(x?.error||"Question details unavailable");setQuestionDetail(x);
   }catch(e){setQuestionDetail({error:String(e?.message||e)})}finally{setQuestionBusy(!1)}
  };
- d.useEffect(()=>{
-  if(!ceoOpen)return;
-  let alive=true;
-  const reload=async()=>{
-   try{
-    const r=await fetch("https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-academic-ceo-live",{cache:"no-store"});
-    const x=await r.json();if(!r.ok||!x?.ok)throw new Error(x.error||"CEO activity unavailable");
-    if(alive){setCeoFeed(x);setCeoError("")}
-   }catch(e){if(alive)setCeoError(String(e?.message||e))}
-  };
-  reload();const poll=setInterval(reload,45000);
-  return()=>{alive=false;clearInterval(poll)}
- },[ceoOpen,ceoRefresh]);
  const ready=!!pageData&&(!twoUp||pairEnd===current||!!secondData),indicator=(twoUp&&pairEnd>current?"Sources "+current+"–"+pairEnd+" of "+sourceCount:"Source "+current+" of "+sourceCount)+(subCount>1?" · "+(subPage+1)+"/"+subCount:"");
  return t.jsxs("div",{className:"academic-book-reader"+(dark?" dark":""),children:[
   t.jsx("div",{className:"academic-book-progress",children:t.jsx("i",{style:{width:(pairEnd/sourceCount*100)+"%"}})}),
   t.jsxs("div",{className:"academic-book-top",children:[
    t.jsxs("div",{children:[t.jsx("strong",{children:indicator}),manifest?.courseCode&&t.jsx("small",{children:manifest.courseCode})]}),
-   t.jsxs("div",{style:{display:"flex",gap:"6px",alignItems:"center"},children:[
-  t.jsx("button",{type:"button",onClick:()=>setCeoOpen(!ceoOpen),style:{padding:"8px 9px",fontSize:"12px",whiteSpace:"nowrap"},children:"CEO Live"}),
-  t.jsx("button",{onClick:()=>setToolsOpen(!toolsOpen),children:toolsOpen?"Close":"Reading tools"})
- ]})
+   t.jsx("button",{onClick:()=>setToolsOpen(!toolsOpen),children:toolsOpen?"Close":"Reading tools"})
   ]}),
   t.jsxs("div",{className:"academic-book-viewport",ref:viewportRef,children:[
    loading&&t.jsxs("div",{className:"academic-book-state",children:[t.jsx("strong",{children:"Opening book"}),t.jsx("small",{children:"Preparing the first reader page…"})]}),
@@ -62,25 +46,7 @@ function NfcpsAcademicBookReader({material:l}){
    t.jsx("button",{className:"academic-book-arrow prev",disabled:current<=1&&subPage===0,onClick:prev,children:"‹"}),
    t.jsx("button",{className:"academic-book-arrow next",disabled:pairEnd>=sourceCount&&subPage>=subCount-1,onClick:next,children:"›"})
   ]}),
-  ceoOpen&&t.jsxs("div",{className:"academic-book-card",role:"dialog","aria-label":"Live Academic CEO company",style:{position:"fixed",zIndex:999998,top:"13vh",left:"12px",right:"12px",maxHeight:"76vh",overflowY:"auto",padding:"17px",borderRadius:"25px",background:"rgba(253,250,243,.97)",backdropFilter:"blur(18px)",WebkitBackdropFilter:"blur(18px)",color:"#232521",boxShadow:"0 14px 50px rgba(0,0,0,.28)"},children:[
- t.jsxs("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"10px"},children:[t.jsx("strong",{children:"NFCPS Academic · CEO Council"}),t.jsx("button",{type:"button",onClick:()=>setCeoOpen(!1),children:"Close"})]}),
- t.jsx("p",{style:{fontSize:"12px"},children:"Real Academic operations. Board records update every 20 minutes. This is not a video call or scripted dialogue."}),
- ceoError&&t.jsx("p",{role:"status",children:ceoError}),
- !ceoFeed&&!ceoError&&t.jsx("p",{children:"Loading actual CEO work…"}),
- ceoFeed&&t.jsxs("div",{children:[
-  t.jsx("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"9px"},children:(ceoFeed.branches||[]).map(b=>t.jsxs("div",{style:{border:"1px solid rgba(65,72,73,.22)",borderRadius:"15px",padding:"12px",background:b.is_lead?"rgba(217,230,255,.72)":"rgba(255,255,255,.6)"},children:[
-   t.jsx("strong",{children:b.level+"-Level CEO"+(b.is_lead?" · LEAD":"")}),
-   t.jsx("p",{style:{margin:"7px 0 3px",fontSize:"13px"},children:"Performance: "+(b.performance_score??"Awaiting source")}),
-   t.jsx("small",{children:"Indexed "+b.indexed_handouts+"/"+b.ready_handouts+" handouts"}),
-   t.jsx("small",{children:" · "+b.verified_page_coverage+" source page counts verified"}),
-   t.jsx("p",{style:{margin:"6px 0",fontSize:"12px"},children:"Assigned work: "+b.queued_tasks+" · Board decisions: "+b.board_decisions}),
-   b.last_meeting_at&&t.jsx("small",{children:"Recorded meeting: "+new Date(b.last_meeting_at).toLocaleString()})
-  ]},b.level))}),
-  t.jsx("p",{style:{fontSize:"12px"},children:"CEO coordination is measured from actual Board meetings, votes and specialist assignments. There are no invented conversation transcripts."}),
-  t.jsx("button",{type:"button",onClick:()=>setCeoRefresh(x=>x+1),children:"Refresh actual activity"})
- ]})
-]}),
- toolsOpen&&!loading&&!err&&t.jsxs("section",{className:"academic-book-tools",children:[
+  toolsOpen&&!loading&&!err&&t.jsxs("section",{className:"academic-book-tools",children:[
    t.jsx("div",{className:"academic-book-tabs",children:["reader","understand","ask","exam","recall"].map(x=>t.jsx("button",{className:tool===x?"active":"",onClick:()=>loadTool(x),children:x[0].toUpperCase()+x.slice(1)},x))}),
    t.jsxs("div",{className:"academic-book-toolbody",children:[
     tool==="reader"&&t.jsxs("div",{className:"academic-book-control-stack",children:[
