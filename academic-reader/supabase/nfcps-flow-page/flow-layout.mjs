@@ -151,3 +151,81 @@ export function readingQuality(lines, text) {
   if(rows.length>=12 && brokenRows/rows.length>.15)flags.push("WORDS_SPLIT_ACROSS_LINES");
   return {needsReview:flags.length>0,flags,metrics:{lines:rows.length,wordTokens:words.length,shortLineRatio:rows.length?Number((unusuallyShort/rows.length).toFixed(3)):0}};
 }
+
+
+/**
+ * Splits a mixed full-width / side-by-side teaching page into logical bands.
+ * Only applies when both columns can be independently established on at least
+ * one side of a full-width source heading. No page words or figures are edited.
+ * If a figure crosses the live gutter, bail out rather than inventing order.
+ */
+export function splitColumnSections(rawLines,rawImages,pageWidth) {
+  const lines=Array.isArray(rawLines)?rawLines:[];
+  const images=Array.isArray(rawImages)?rawImages:[];
+  if(!Number.isFinite(pageWidth)||pageWidth<=0)return {applied:false,sections:[]};
+  const mid=pageWidth*.5,pad=pageWidth*.025;
+  const separatorLines=lines.filter(x=>
+    typeof x?.text==="string" && x.text.trim() &&
+    Number.isFinite(x.x)&&Number.isFinite(x.w)&&
+    x.x<mid-pad && x.x+x.w>mid+pad && x.w>=pageWidth*.47
+  ).sort((a,b)=>a.y-b.y);
+  // There is no column break to solve without an actual full-width bridge.
+  if(!separatorLines.length)return {applied:false,sections:[]};
+  const sepSet=new Set(separatorLines);
+  const regular=lines.filter(x=>!sepSet.has(x));
+  const output=[];
+  let from=-Infinity,anyColumns=false;
+  const takeBand=(to)=>{
+    const within=(y)=>y>=from && y<to;
+    const bandLines=regular.filter(x=>within(x.y));
+    const bandImages=images.filter(x=>within(x.bbox?.y??x.y??0));
+    if(!bandLines.length&&!bandImages.length)return;
+    const classification=classifyColumns(bandLines,pageWidth);
+    if(!classification.twoColumn){
+      output.push({mode:"whole",lines:bandLines,images:bandImages});
+      return;
+    }
+    const crossesGutter=bandImages.some(im=>{
+      const b=im.bbox||im, left=Number(b.x)||0,right=left+Math.max(0,Number(b.w)||0);
+      const y=Number(b.y)||0;
+      return left<mid+pad && right>mid-pad &&
+        y>=classification.activeTop && y<=classification.activeBottom;
+    });
+    if(crossesGutter){
+      output.push({mode:"whole",lines:bandLines,images:bandImages});
+      return;
+    }
+    anyColumns=true;
+    const leftImages=bandImages.filter(im=>(im.bbox?.x??0)+(im.bbox?.w??0)<=mid);
+    const rightImages=bandImages.filter(im=>(im.bbox?.x??0)>=mid);
+    const centerImages=bandImages.filter(im=>!leftImages.includes(im)&&!rightImages.includes(im));
+    const beforeLines=classification.spanning.filter(x=>x.y<=classification.activeTop);
+    const afterLines=classification.spanning.filter(x=>x.y>classification.activeTop);
+    const beforeImages=centerImages.filter(x=>(x.bbox?.y??0)<=classification.activeTop);
+    const afterImages=centerImages.filter(x=>(x.bbox?.y??0)>classification.activeTop);
+    if(beforeLines.length||beforeImages.length)
+      output.push({mode:"whole",lines:beforeLines,images:beforeImages});
+    output.push({mode:"left",lines:classification.left,images:leftImages});
+    output.push({mode:"right",lines:classification.right,images:rightImages});
+    if(afterLines.length||afterImages.length)
+      output.push({mode:"whole",lines:afterLines,images:afterImages});
+  };
+  for(const bridge of separatorLines){
+    takeBand(bridge.y);
+    output.push({mode:"full-width",lines:[bridge],images:[]});
+    from=bridge.y;
+    // The bridge line itself was excluded using sepSet.
+  }
+  takeBand(Infinity);
+  if(!anyColumns)return {applied:false,sections:[]};
+  const seenLines=new Set(),seenImages=new Set();
+  for(const section of output){
+    for(const line of section.lines)seenLines.add(line);
+    for(const pic of section.images)seenImages.add(pic);
+  }
+  // A repair must never drop or duplicate source content.
+  if(seenLines.size!==lines.length||seenImages.size!==images.length||
+     output.some(x=>x.lines.length===0&&x.images.length===0))
+    return {applied:false,sections:[]};
+  return {applied:true,sections:output};
+}
