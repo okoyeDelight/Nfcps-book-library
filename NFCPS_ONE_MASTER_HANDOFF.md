@@ -2547,3 +2547,36 @@ The existing `nfcps-flow-page` memory cache used the same key for different `lay
 
 ### Rollback
 Recover prior `nfcps-flow-page` v7 and `nfcps-academic-ui-assets-v3` v8 Git sources if the new flow behaves unexpectedly. Do not touch the original Vercel routes. Continue no paid AI/hosting migration.
+
+---
+
+# 76. 10 October 2026 — Zero-backlog Academic source verification, existing UI immutable
+
+User asks to **continue until the real backlog reaches zero** while keeping exactly the current NFCPS UI, assets, Vercel routes, Android shell and all non-Academic surfaces intact. No paid APIs, Netlify migration, billing or subscription change is authorised.
+
+## Confirmed bottleneck
+The live `nfcps-academic-book-bootstrap` v2 attempted only one document every two minutes and depended on an external OCR call for just the source PDF page count; this produced avoidable repeated work and permanent `book_bootstrap_failed` records even for transient OCR errors. At investigation start, about **275 ready documents had zero page-index rows**. One source had a genuine encrypted/password-related processing error, and several others had previous `Bootstrap failed` flags. Do not bypass PDF protection or hide those source-owner blockers.
+
+## Deployed Academic-only correction
+`nfcps-academic-book-bootstrap` **v3 ACTIVE**. It enumerates all ready documents and existing index records via pagination, selects at most three eligible items per invocation, respects transient-failure cooldown and three-attempt limit, and uses `pdf-lib@1.17.1` to count the **actual stored original PDF** pages rather than using OCR for page counts. It rejects encrypted PDFs, untrusted source locations, over-40-MB source payloads, invalid page counts and counts greater than 1,200. It avoids unbounded processing by capping total invocation work to about 25 seconds and individual HTTP fetches to 12 seconds.
+
+It inserts a row for each genuine source page, 80 rows per batch, with `ignoreDuplicates:true` to **prevent overwriting existing indexed words, OCR, visual URLs and topics**. It caches independently verified `source_page_count`, `source_page_version`, `source_page_count_status='source_pdf_verified'` in Academic metadata. All newly inserted page rows have `ocr_status='pending'` and *empty* text; they are **unprocessed placeholders, not completed OCR or certified reading quality**. Transient failures remain visible and retriable; encrypted source requires the owner's accessible copy.
+
+The initial two live protected worker responses each reported `processed=3`, `sourceVerified=3`, with real source page totals across six PDFs. Immediately after the deployment the ready-no-index count was **265**, down from approximately 275 at the start of this work and 306 at the beginning of the Academic catalogue repairs. The count continues changing as the existing scheduled cron runs. In a later read, 12 source-PDF-verified material records all had exact one-to-one counts of indexed pages and no duplicate page entries.
+
+## Strict interpretation of zero
+There are separate, non-interchangeable goals:
+1. No ready document lacks a legitimate original-PDF-verified source page index.
+2. No source page requires unverified OCR, missing formula/table/image recovery, reading-order correction or manual scientific/Android visual QA.
+3. Every requested academic level has legitimate uploaded source documents. **100-level is still absent**; a database count of 0 for that level is not success.
+
+A new read-only `academic-reader/agentic-company/zero-backlog-check.sql` reports those independently, including source-owner encrypted blockers, unknown source count, partial index, OCR backlog and misleading historical pass statuses. Pure `bootstrap-source-policy.mjs` with six passing isolated tests enforces batch size, retry/cooldown, source encryption, page-count and file-size bounds; added to existing Academic CI. Current hosted CI completion and physical Android on-device readability are **not verified**.
+
+An hourly **NFCPS Academic Zero Watch** condition task is enabled to check actual no-index progress and report when it is genuinely zero or source-owner intervention is required. The watch is monitoring, **not a fake claim of continuous interactive assistant work**: pre-existing Supabase cron jobs carry out indexing. Do not claim the task guarantees zero OCR or verified reading.
+
+## Follow-up
+- Reconcile all initially `book_bootstrap_failed` material records; do not invent passwords or remove files to lower the count.
+- Allow bounded existing cron jobs to make progress. Review quota pressure and distinguish empty OCR placeholders from readable material.
+- Repair original-source text and independent OCR evidence on all outstanding pages. Do not mark the remaining 100-level gap solved until real materials exist.
+- Previous live reader remains `nfcps-flow-page` v8 and Academic asset bridge v9; neither changed by this release. All other NFCPS app sections and UI remain unchanged.
+- Worker code contains legacy operational credentials; it was intentionally **not** copied into the public repository. Only clean policy, tests, SQL and handoff are committed. Use connected Supabase access for maintenance and plan safe secret rotation separately.
