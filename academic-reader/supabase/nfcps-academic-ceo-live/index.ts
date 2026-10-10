@@ -15,7 +15,7 @@ Deno.serve(async req=>{
    const mat=new URL(req.url).searchParams.get("material")||"";
    if(mat&&!/^[A-Za-z0-9_-]{10,100}$/.test(mat))
      return new Response(JSON.stringify({ok:false,error:"Invalid material"}),{status:400,headers:H});
-   const head=url.replace(/\\/$/,"")+
+   const head=url.replace(/\/$/,"")+
     "/rest/v1/nfcps_academic_work_receipts?select=source_kind,source_ref,level,material_drive_id,material_title,source_page,specialist_role,action_code,progress_state,evidence_page_index_id,evidence_at&order=evidence_at.desc&limit=25";
    const opts={headers:{"apikey":key,"authorization":"Bearer "+key},signal:AbortSignal.timeout(10000)};
    const [all,specific]=await Promise.all([
