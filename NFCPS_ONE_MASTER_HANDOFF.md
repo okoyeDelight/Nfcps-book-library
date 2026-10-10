@@ -2457,3 +2457,34 @@ A GitHub Actions live-asset smoke job was added to fetch the stable production J
 **Public app verification:** Vercel JS and CSS asset requests returned HTTP 200, the JS contained the new guard and layout=4 request, and the CSS was unchanged. The two exact Academic asset rewrite routes remain at the original version a5e8849f-474c-46da-957e-754726c959bc. The Android installed app has **not** received physical device validation, so do not claim that result.
 
 **Still open:** This is a trust-preserving fallback, not a complete readable native conversion for damaged PDFs. Add independently verified OCR/source repair and retire the fallback when a reliable semantic page exists. Five-level certification is still blocked: current inventory has zero 100-level file records. Continue issues #8 and #9, with real full-document coverage and Android tests. No background autonomous or paid model operation is implied by this deployment.
+
+---
+
+# 73. 10 October 2026 — Academic catalogue indexing and OCR integrity
+
+Strict user constraints: **DO NOT change NFCPS visual UI, CSS, navigation, Vercel exact routes, APK, Watch, Movies, Family, Auth or another app section**. No paid APIs, no Netlify migration, and no new billing plan.
+
+### Source audit
+
+Actual Academic records: **469 handouts**, **459 polish-ready**, 100-level **0 records**. All five level slots were included in the read-only report. Initially **306 ready documents had zero page-index records**. Later monitoring after the repairs showed **296**; this number continues to change as existing cron workers process materials. Presence of an index is not evidence of readable content.
+
+A high-severity audit defect was confirmed: **591 existing pages** had empty indexed text and at least five failed OCR attempts but remained `pending`; **455 of the 591 had an incorrect historic `audit_status=passed`**. A narrowly scoped metadata correction changed all 591 to `ocr_status=needs_review`, `audit_status=review`, `audit_score=0` and added `ocr_exhausted_empty_source`. It did NOT replace original PDFs, diagrams, or texts. Ten stale OCR-processing pages more than 24 hours old with no recorded attempt were returned to `pending`; actively processing new pages were left untouched. After reclassification, the observed count of pages labelled passed despite empty text or pending/failed OCR became **zero**.
+
+### Deployed changes: Academic-only Supabase functions
+
+1. `nfcps-academic-book-bootstrap` **v2 ACTIVE**: page through all existing indexed pages and all ready materials, not a single truncated query; create missing placeholders with `ignoreDuplicates:true` to prevent overwriting indexed student evidence.
+2. `nfcps-academic-book-sync` **v3 ACTIVE**: full catalogue pagination, double-check whether a material was indexed before extracting, three-doc batch limit, failure cooldown and max three document attempts, remove recursive self-invocation. Pre-existing cron every 10 minutes remains.
+3. `nfcps-academic-book-package` **v6 ACTIVE**: source-page count now comes from the actual PDF if no trusted versioned source count has been cached; incomplete page indices no longer silently determine the book's length. Manifest probes returned correct source counts of **7, 56, 12** for tested documents. Versioned page counts are cached in Academic material metadata; source fetch failure retains a conservative fallback. Clean source mirrored in GitHub.
+4. `nfcps-academic-ocr-sync` **v13 ACTIVE**: respects a five-attempt ceiling, captures last attempt and errors, prevents duplicate worker claims, preserves already-ready pages, avoids duplicate placeholder bootstrap, requires 30 minutes between failed retries, and quarantines exhausted or empty OCR for review.
+
+Only **Academic** workers and Academic page-index audit metadata were changed. No Supabase schema migration, new cron job, new hosting provider or UI release was performed in this change. Do not publish protected worker code with embedded credentials: the three workers' raw deployed sources are intentionally not mirrored in the public repo. Keep their code behind the connected Supabase administration capability and migrate tokens to protected environment secrets during a separate, safely reviewed credential rotation.
+
+### New tests and verifications
+
+- Read-only full-catalogue query: `academic-reader/agentic-company/catalogue-readiness.sql`.
+- `catalogue-fidelity.mjs` with six fixture tests rejects incomplete source count, missing first-year materials, bad page numbering, and empty-but-passed OCR pages.
+- `ocr-retry-policy.mjs` with five fixture tests bounds retries and preserves evidence.
+- Added these test suites to the Academic GitHub quality workflow.
+- Real metadata, counting and page-index queries were checked immediately after the changes. Physical installed-app, every-page visual, diagram/table/formula, and scientific correctness are **NOT** yet fully verified.
+
+Next: let the controlled ingestion queue continue without destructive overwrite, verify its results and quota usage, independently recover 591 quarantined OCR pages with source evidence, and certify every document/page across all five levels. First-year source data is currently unavailable. Detailed incident record: `academic-reader/agentic-company/INGESTION_RECOVERY_20261010.md`.
