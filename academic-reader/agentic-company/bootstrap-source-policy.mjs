@@ -36,3 +36,22 @@ export function verifyPdfSource({pageCount,encrypted,byteCount}){
     return {ok:false,reason:"SOURCE_PAGE_COUNT_UNVERIFIED"};
   return {ok:true,pageCount};
 }
+
+
+/**
+ * A first page is not an indexed document. Verify the precise one-to-one
+ * correspondence with the original PDF page manifest.
+ */
+export function sourceIndexComplete(expectedPages, pageNumbers){
+  if(!Number.isSafeInteger(expectedPages)||expectedPages<1||expectedPages>MAX_SOURCE_PAGES)return false;
+  const pages=pageNumbers instanceof Set?pageNumbers:
+    new Set(Array.isArray(pageNumbers)?pageNumbers:[]);
+  if(pages.size!==expectedPages)return false;
+  for(let n=1;n<=expectedPages;n++)if(!pages.has(n))return false;
+  return true;
+}
+export function needsSourceReconciliation(material,indexedPages){
+  if(material?.metadata?.source_page_count_status!=="source_pdf_verified")return false;
+  const expected=Number(material?.metadata?.source_page_count);
+  return !sourceIndexComplete(expected,indexedPages);
+}
