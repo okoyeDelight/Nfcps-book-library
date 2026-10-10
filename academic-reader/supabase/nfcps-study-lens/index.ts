@@ -223,11 +223,16 @@ function answerFromContexts(query:string,contexts:any[],currentPage:number){
 }
 
 async function fetchBank(){
- const {data,error}=await sb.from('nfcps_past_questions')
-  .select('id,source_drive_id,page_number,question_number,question_text,options,marked_answer,department,course_code,level,exam_year,topics,confidence')
-  .limit(1000);
- if(error)throw error;
- return data||[];
+ const rows:any[]=[];
+ for(let start=0;start<10000;start+=500){
+  const {data,error}=await sb.from('nfcps_past_questions')
+   .select('id,source_drive_id,page_number,question_number,question_text,options,marked_answer,department,course_code,level,exam_year,topics,confidence')
+   .order('id').range(start,start+499);
+  if(error)throw error;
+  rows.push(...(data||[]));
+  if((data||[]).length<500)break;
+ }
+ return rows;
 }
 function questionFingerprint(s:string){
  return normalize(s).toLowerCase()
@@ -300,6 +305,42 @@ Deno.serve(async req=>{
    const courseCode=String(body?.courseCode||'').trim().toUpperCase().slice(0,40);
    const pageText=String(body?.pageText||'').slice(0,30000);
 
+   if(mode==='question'){
+    const questionId=String(body?.questionId||'').trim();
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(questionId))
+     return out({error:'Select a valid indexed past question.'},400);
+    const {data:q,error:qErr}=await sb.from('nfcps_past_questions')
+     .select('id,source_drive_id,page_number,question_number,question_text,options,marked_answer,course_code,exam_year')
+     .eq('id',questionId).maybeSingle();
+    if(qErr)throw qErr;
+    if(!q)return out({error:'Past question no longer exists.'},404);
+    const {data:origin}=await sb.from('nfcps_past_question_sources')
+     .select('title').eq('drive_id',q.source_drive_id).maybeSingle();
+    const recordedAnswer=String(q.marked_answer||'').trim();
+    let selectedEvidence:any[]=[];
+    if(materialId){
+     const {data:verified,error:vErr}=await sb.from('nfcps_academic_page_index')
+      .select('page_number,page_text').eq('material_drive_id',materialId)
+      .eq('audit_status','passed').in('ocr_status',['ready','not_needed'])
+      .order('page_number').limit(1000);
+     if(vErr)throw vErr;
+     selectedEvidence=(verified||[]).filter(x=>String(x.page_text||'').trim().length>=40)
+      .map(x=>({page:x.page_number,text:String(x.page_text)}));
+    }
+    const context=answerFromContexts(String(q.question_text||''),selectedEvidence,page);
+    return out({
+     mode:'question',questionId:q.id,question:q.question_text,
+     sourceTitle:origin?.title||'Indexed past question',examYear:q.exam_year,
+     sourcePage:q.page_number,questionNumber:q.question_number,
+     options:q.options,recordedAnswer:recordedAnswer||null,
+     answerStatus:recordedAnswer?'recorded_marking_key_unverified':'no_verified_answer_recorded',
+     studyExplanation:context.supported?context.answer:null,
+     explanationStatus:context.supported?'indexed_source_extract_for_discussion':'requires_source_review',
+     evidence:context.evidence||[],canAskFollowUp:true,
+     notice:recordedAnswer?'Marking key as recorded in the question bank; verify against the original examination source.':'No confirmed answer key is stored for this question. Source excerpts may help study but are not a verified model answer.'
+    });
+   }
+
    if(mode==='ask'){
     const question=String(body?.question||'').trim().slice(0,1000);
     if(!question)return out({error:'Ask a question first.'},400);
@@ -341,7 +382,7 @@ Deno.serve(async req=>{
    // The reader supplies current-page text, which is useful but not independently reviewed.
    guide.sourceGrounded=false;
    const ranked=await rankBank(pageText,courseCode,guide);
-   const top=ranked.slice(0,10);
+   const top=ranked; // return all indexed relevant questions; no silent top-ten truncation
    const sources=await sourceMapFor(top);
    const actual=top.map((x:any)=>{
     const src=(sources as any)[x.source_drive_id]||{};
