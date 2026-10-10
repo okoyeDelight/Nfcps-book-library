@@ -60,7 +60,7 @@ jobs:
           source = agent.SOURCE.read_text(encoding='utf-8')
           ready = agent.choose_issue(source) is not None
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
-              f.write('needs_ai=' + ('true' if ready else 'false') + '\\n')
+              f.write('needs_ai=' + ('true' if ready else 'false') + '\n')
           print('Free model needed:', ready)
           PY
 
