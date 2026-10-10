@@ -1,0 +1,63 @@
+name: NFCPS Academic live asset smoke test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/academic-live-smoke.yml']
+  schedule:
+    - cron: '21 6 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-real-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check exact NFCPS stable app origin and patched Academic assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          site='https://nfcps-book-library-source-vercel-po.vercel.app'
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+
+          curl -fsSL --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 100 \
+            "$site/exact/" -o "$tmp/app.html"
+          test -s "$tmp/app.html"
+          echo "Stable app root: reachable"
+
+          curl -fsSL --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 100 \
+            "$site/assets/index-TvqYqOBS.js" -o "$tmp/academic.js"
+          curl -fsSL --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 100 \
+            "$site/assets/style-CsaC4EK1.css" -o "$tmp/academic.css"
+
+          test "$(wc -c < "$tmp/academic.js")" -gt 100000
+          test "$(wc -c < "$tmp/academic.css")" -gt 5000
+
+          for marker in 'NfcpsAcademicBookReader' 'manifestRetry' 'retryCounter' \
+                        'nfcps-flow-page' 'Actual past questions' 'Prediction'; do
+            if ! grep -Fq "$marker" "$tmp/academic.js"; then
+              echo "::error::Live Academic JS missing expected v5 marker: $marker"
+              exit 1
+            fi
+          done
+          for marker in '.academic-book-reader' '.academic-book-viewport' '#f3eee3'; do
+            if ! grep -Fq "$marker" "$tmp/academic.css"; then
+              echo "::error::Live Academic CSS missing NFCPS original style marker: $marker"
+              exit 1
+            fi
+          done
+
+          if grep -Fq 'location.reload()' "$tmp/academic.js"; then
+            echo "::warning::Other app code contains location.reload(); this check does not prove the Academic retry method."
+          fi
+
+          echo "Live JS bytes: $(wc -c < "$tmp/academic.js")"
+          echo "Live CSS bytes: $(wc -c < "$tmp/academic.css")"
+          echo "Live JS sha256: $(sha256sum "$tmp/academic.js" | cut -d' ' -f1)"
+          echo "Live CSS sha256: $(sha256sum "$tmp/academic.css" | cut -d' ' -f1)"
+          echo "Passed: real HTTP asset health + required Academic v5 source markers + existing CSS identity."
+          echo "NOT checked: mobile visual rendering, source-page fidelity, service API data, or whole-app regressions."

@@ -2415,3 +2415,11 @@ A new evidence-first "Academic Intelligence Company" foundation is being develop
 **Not yet implemented or verified:** real mobile visual checks, actual source image/page corpus auditing, autonomous tutoring, Pidgin lesson generation, animations, expanded live intelligence or 24/7 resident agents. No changes to the two current Vercel production routing rules have been made by this work.
 
 **Safe deployment route:** Connect the Supabase project admin, diff and deploy the mirrored \`nfcps-academic-ui-assets-v3\` source, verify live asset bytes and user-visible app behavior, and retain the ability to restore the prior Edge version. Do not claim the app shows this change before that verification. Run Watch/Family/Auth/Publish regressions for any eventual deployment.
+
+## 70.1 Reader v5 release reconciliation and live smoke verification — 10 October 2026
+
+A concurrent production workstream merged [PR #4](https://github.com/okoyeDelight/Nfcps-book-library/pull/4), recording Supabase Edge `nfcps-academic-ui-assets-v3` version **5 ACTIVE** and syncing the reader source into the public compatibility repo. This supersedes the "not yet deployed" source-only status stated at the beginning of section 70 **for the reader bridge only**. The v5 deployment status originates from PR #4's release record; this current audit independently confirmed only that Vercel still retains the **same two exact JS/CSS asset rewrite rules**. No full installed-app/mobile verification is available yet.
+
+Reader v5 is a narrow, UI-preserving functional improvement: in-place retry for failed page/manifest fetch and more explicit source/prediction metadata in the existing Exam cards. The agentic company quality engine and test suite are code foundations, **not** a deployed intelligent tutor, image animation service or completed PDF/source fidelity pipeline.
+
+A GitHub Actions live-asset smoke job was added to fetch the stable production JS/CSS over HTTP and check exact v5 and existing CSS markers. Its successful execution must be confirmed in Actions before claiming that users receive v5, and a real mobile check remains necessary. Do not alter the stable Vercel routing, original reader CSS, or non-Academic surfaces.
