@@ -28,10 +28,11 @@ test("answer provenance remains honest with no invented marked answers",()=>{
  assert.ok(study.includes("recorded_marking_key_unverified"));
  assert.ok(!study.includes("nfcps_academic_page_index').upsert"));
 });
-test("the CEO overlay displays actual live aggregate data, no fake meetings",()=>{
- assert.ok(reader.includes("CEO Live"));
- assert.ok(reader.includes("nfcps-academic-ceo-live"));
- assert.ok(reader.includes("Board records update every 20 minutes"));
- assert.ok(ceo.includes("SUPABASE_ANON_KEY"));
- assert.ok(!ceo.includes("SUPABASE_SERVICE_ROLE_KEY"));
+test("CEO / agent operations remain private and absent from student reader",()=>{
+ assert.ok(!reader.includes("CEO Live"));
+ assert.ok(!reader.includes("nfcps-academic-ceo-live"));
+ assert.ok(!reader.includes("ceoOpen"));
+ assert.ok(!reader.includes("workProof"));
+ assert.ok(!reader.includes("Academic work · source proof"));
+ assert.ok(ceo.includes("status:410"));
 });
