@@ -147,13 +147,14 @@ Deno.serve(async req=>{
   const imageAudit=imageCoverage(flowHtml,imgs.length);
   const sourceChars=normalizeForCoverage(st.asText()).length;
   const flowChars=normalizeForCoverage(plain).length;
-  const ambiguousColumns=columnCandidate.left.length>=4&&columnCandidate.right.length>=4&&!twoCol&&!segmented.applied;
+  const ambiguousColumns=columnCandidate.left.length>=4&&columnCandidate.right.length>=4&&!twoCol;
   const lexical=readingQuality(textLines,plain);
   const reviewReasons=[
     ...lexical.flags,
     ...(!imageAudit.complete||unresolvedImageResources>0?["SOURCE_IMAGES_UNRESOLVED"]:[]),
     ...(images.some(x=>x.unplaced)?["IMAGE_POSITION_UNVERIFIED"]:[]),
     ...(ambiguousColumns?["AMBIGUOUS_READING_ORDER"]:[]),
+    ...(segmented.applied?["READING_ORDER_SEGMENTED_FOR_DISPLAY"]:[]),
     ...(!scanOnly&&sourceChars>40&&flowChars<sourceChars*.85?["SOURCE_TEXT_COVERAGE_LOW"]:[])
   ];
   const needsReview=reviewReasons.length>0;
