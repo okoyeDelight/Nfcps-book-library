@@ -2604,3 +2604,34 @@ User requires **zero legitimately unindexed documents**, with source fidelity, s
 
 ## Still open
 Zero is **not reached**. A completed page-number manifest does not imply OCR validity, full formula/image fidelity, scientific correctness, or student readability. Hundreds of source pages remain unresolved OCR/review, and level 100 is not populated. Source owner must supply an accessible copy of the encrypted PDF. Maintain strict UI/route isolation. Existing hourly zero-backlog watch will keep checking real metrics and future blockers; it does not itself carry out ingestion jobs.
+
+---
+
+# 78. 10 October 2026 — Fair zero-backlog indexing across every populated Academic level
+
+## User's strict invariants
+Maintain the **entire existing NFCPS UI** without visual alterations; perform only Academic server-side reliability work. Do not alter Vercel exact asset routes, app shell, family/watch/movies/auth, billing plans, Android or hosting providers. No paid APIs. Never claim indexing or OCR is complete until real source evidence supports it.
+
+## Confirmed production bottleneck
+The protected `nfcps-academic-book-bootstrap` worker enumerated ready materials sorted lexicographically by `drive_id`. The pure `pickBootstrapBatch` helper then always took the **first three globally eligible IDs**. This had delayed 500-level entirely while earlier IDs from other academic levels were processed. At the beginning of this pass, the live ready-without-index counts were 200:53, 300:23, 400:88, 500:51, total **215**. The underlying count may have changed during diagnostics.
+
+## Academic-only fix deployed
+`nfcps-academic-book-bootstrap` **v6 ACTIVE**. Only the credential-free pure `academic-reader/agentic-company/bootstrap-source-policy.mjs` helper changed; the original protected Edge entrypoint, tokens, PDF verification, error handling, source page integrity, safe upsert, bounded batch, and existing two-minute cron were preserved.
+
+The helper now groups eligible original PDFs by level, rotates the leading level every scheduled two-minute interval, and selects at most three documents in round-robin level order. It never bypasses encrypted source failures, source size/page constraints, retry cooldowns, or the existing upsert non-overwrite rule. Supports stages `recover_missing` and `verify_legacy_index` from previous version.
+
+Fifteen isolated policy tests passed including four-run fairness across 200,300,400,500, no level starvation, unavailable/encrypted/exhausted source exclusion, incomplete first-page indexing, source-page 1..N continuity and legacy verification order. The existing Academic CI workflow already includes the policy test file; actual GitHub-hosted CI completion and Android device testing remain independent.
+
+## Direct live verification
+A protected v6 bootstrap invocation returned HTTP 200 with three source-verified PDFs. Immediately afterward, the most recent known counts were:
+- 200: **51** without index of 133 ready
+- 300: **19** without index of 56 ready
+- 400: **86** without index of 151 ready
+- 500: **50** without index of 119 ready
+
+**Total = 206 ready with no index**, down from the original baseline of 306, and importantly 500-level moved from 51 to 50. New results reflect actual source-verified PDF page insertion, not fabrication of empty success statuses. The no-index backlog is still not zero. At an earlier point in this pass, the source page integrity `complete` flag was set for only 29 documents; do not treat first-index existence or mere indexing as actual student-readable verification.
+
+OCR backlog snapshot before deployment: 1,170 `pending`, 654 `needs_review`, two `processing`; zero falsely passed empty/OCR-unresolved records. As the source-indexing worker discovers more pages, OCR `pending` can rise, so tracking those two dimensions separately is essential. One encrypted second-year Dispensing source requires a valid unprotected original from the rights holder; do not bypass encryption. 100-level has **zero** current materials in the Academic database, so five-level certification is impossible with existing sources.
+
+## Continued work
+Keep the hourly zero-backlog watch active, audit actual source page completeness before claiming success, recover quarantined OCR with review, check scientific accuracy and diagram layout on real devices, and obtain legitimate first-year materials. No UI/CSS, routing, non-Academic or payment changes are authorised.

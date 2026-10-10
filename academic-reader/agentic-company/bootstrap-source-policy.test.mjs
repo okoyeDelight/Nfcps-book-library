@@ -63,3 +63,38 @@ test("partial original document recovers even though one page already indexed",(
  assert.equal(result.stage,"recover_missing");
  assert.equal(result.items[0].drive_id,"partial");
 });
+
+test("four populated levels all receive service across consecutive bounded runs",()=>{
+ const rows=[200,300,400,500].flatMap(level=>Array.from({length:12},(_,i)=>({...entry(level+"-"+i),level})));
+ const indexed=new Set();
+ const base=Date.parse("2026-10-10T12:00:00Z");
+ const visited=new Set();
+ for(let run=0;run<4;run++){
+  const selected=pickBootstrapBatch(rows,indexed,base+run*120000);
+  assert.equal(selected.length,3);
+  for(const item of selected){
+   visited.add(item.level);
+   indexed.add(item.drive_id);
+  }
+ }
+ assert.deepEqual([...visited].sort((a,b)=>a-b),[200,300,400,500]);
+});
+test("one level cannot starve every other level despite lexicographic IDs",()=>{
+ const rows=[
+  ...Array.from({length:50},(_,i)=>({...entry("a"+i),level:200})),
+  {...entry("z500"),level:500},
+  {...entry("z300"),level:300},
+  {...entry("z400"),level:400}
+ ];
+ const chosen=pickBootstrapBatch(rows,new Set(),Date.parse("2026-10-10T12:00:00Z"));
+ assert.equal(chosen.length,3);
+ assert.equal(new Set(chosen.map(x=>x.level)).size,3);
+ assert.ok(chosen.some(x=>x.level!==200));
+});
+test("fair batches skip encrypted or exhausted source candidates",()=>{
+ const rows=[{...entry("password",{book_bootstrap_error:"No password given"}),level:200},
+  {...entry("exhausted",{book_bootstrap_attempts:3}),level:300},
+  {...entry("safe"),level:500}];
+ const chosen=pickBootstrapBatch(rows,new Set(),Date.parse("2026-10-10T12:00:00Z"));
+ assert.deepEqual(chosen.map(x=>x.drive_id),["safe"]);
+});

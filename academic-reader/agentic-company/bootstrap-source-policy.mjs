@@ -25,8 +25,36 @@ export function isEligibleForBootstrap(material, indexedIds, nowMs=Date.now()){
 }
 export function pickBootstrapBatch(materials,indexedIds,nowMs=Date.now(),batch=MAX_BOOTSTRAP_BATCH){
   if(!Array.isArray(materials))return [];
-  return materials.filter(m=>isEligibleForBootstrap(m,indexedIds,nowMs))
-    .slice(0,Math.min(MAX_BOOTSTRAP_BATCH,Math.max(0,Math.floor(batch))));
+  const cap=Math.min(MAX_BOOTSTRAP_BATCH,Math.max(0,Math.floor(Number(batch)||0)));
+  if(cap===0)return [];
+  // Stable source ordering is fine within one level, but choosing the first
+  // three global IDs starves 500-level while earlier IDs are indexed.
+  const groups=new Map();
+  for(const material of materials){
+    if(!isEligibleForBootstrap(material,indexedIds,nowMs))continue;
+    const level=Number.isInteger(Number(material.level))?Number(material.level):999;
+    if(!groups.has(level))groups.set(level,[]);
+    groups.get(level).push(material);
+  }
+  const levels=[...groups.keys()].sort((a,b)=>a-b);
+  if(levels.length===0)return [];
+  // Bootstrap runs every two minutes. Rotate which level leads each run.
+  // Keep the three-document quota and original ordering inside each level.
+  const runNumber=Math.max(0,Math.floor(Number(nowMs)/120000));
+  const start=runNumber%levels.length;
+  const chosen=[];
+  while(chosen.length<cap){
+    let progress=false;
+    for(let offset=0;offset<levels.length&&chosen.length<cap;offset++){
+      const group=groups.get(levels[(start+offset)%levels.length]);
+      if(group.length){
+        chosen.push(group.shift());
+        progress=true;
+      }
+    }
+    if(!progress)break;
+  }
+  return chosen;
 }
 export function verifyPdfSource({pageCount,encrypted,byteCount}){
   if(encrypted===true)return {ok:false,reason:"ENCRYPTED_SOURCE_REQUIRES_OWNER"};
