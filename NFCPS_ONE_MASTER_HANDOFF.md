@@ -2488,3 +2488,39 @@ Only **Academic** workers and Academic page-index audit metadata were changed. N
 - Real metadata, counting and page-index queries were checked immediately after the changes. Physical installed-app, every-page visual, diagram/table/formula, and scientific correctness are **NOT** yet fully verified.
 
 Next: let the controlled ingestion queue continue without destructive overwrite, verify its results and quota usage, independently recover 591 quarantined OCR pages with source evidence, and certify every document/page across all five levels. First-year source data is currently unavailable. Detailed incident record: `academic-reader/agentic-company/INGESTION_RECOVERY_20261010.md`.
+
+---
+
+# 74. 10 October 2026 — Native scan evidence, source-truth Study guard, zero UI modifications
+
+**User mandate:** Continue Academic improvements LIVE while retaining the exact original NFCPS UI and Vercel routes. Do not touch Watch, Family, Movies, Auth, Android, CSS, layout classes, the rest of the frontend, or hosting subscriptions. No paid model APIs or hosting migration.
+
+## New real-data finding
+
+Prior OCR-exhausted status must not automatically trigger a source image fallback. Real probes found a 200-level Dispensing page with no native text but **one original embedded image**; 400-level Toxicology and 500-level Nephrology pages with strong native text despite exhausted OCR index status; and Anticonvulsants still genuinely broken. There are approximately 595 five-attempt `needs_review` OCR pages across **34 source handouts** at this audit point (591 had been explicitly reclassified in the previous release). The exact count may change. Source/index state is distinct from on-screen page readability.
+
+## Live Academic-only release
+
+- `nfcps-flow-page` **v7 ACTIVE**: new `page-evidence.mjs` differentiates native source text, audited high-confidence OCR, scan-only image pages, and content that cannot yet be verified. On the new `layout=5` protocol, image-only pages preserve their original embedded image and disable unsafe Ask/Study when no verified text is available. Genuinely empty native page with no images can show its original published source as an exceptional fallback. Corrupt word-order pages still use existing original-source recovery. Original-page pictures are **not** silently replaced for otherwise readable handouts. Previous layout=4 behavior is preserved for old clients. Response includes `textOrigin` and `unreliableText`.
+- `nfcps-study-lens` **v6 ACTIVE**: stopped using reader-supplied pageText to UPSERT permanent `nfcps_academic_page_index` records. For Ask, client-provided contexts no longer count as verified citations. Only source pages with `audit_status='passed'` and `ocr_status` of `ready` or `not_needed` are independently grounded. If such pages do not exist, the existing Ask interface can return a clearly labelled **provisional reading extract**, marked `sourceGrounded=false` and `supported=false`. Study guides now return `guide.sourceGrounded=false` for client-only summaries. Actual past-question database access was preserved.
+- `nfcps-academic-ui-assets-v3` **v8 ACTIVE**: existing injected Academic Reader requests `&layout=5` instead of layout=4, without changing any CSS, DOM class, navigation, or base app assets. Existing safe `restrictedStudy` controls automatically protect pages marked `unreliableText`.
+
+## Verification actually done
+
+1. Seventeen isolated unit fixtures (10 source-recovery + seven page-evidence) passed, including preservation of 200-level native scanned images, 300/400/500 native prose, severe source-recovery, high/low-confidence OCR, HTML escaping and rejecting unsupported original-visual URLs. Source contracts also added as a four-test GitHub CI file. Full hosted CI execution not yet confirmed.
+2. Real page responses on `layout=5`, all HTTP 200:
+   - 200-level Dispensing page: native image retained, 0 verified text characters, Study blocked.
+   - 400-level Toxicology: 1,858 native text characters, Study allowed, no visual fallback.
+   - 500-level Nephrology: 2,146 native text characters, Study allowed, no visual fallback.
+   - 400-level Anticonvulsants: source-original fallback, Study blocked, 0 trusted teaching characters.
+   - 200-level Muscle Histology: native 852 characters; 300-level Aromaticity slides: native 93 characters.
+3. Live source-tampering POST tests of Ask and Study used a synthetic test material ID, and both returned HTTP 200. Ask flagged `sourceGrounded=false` and `supported=false`; Study guide flagged `sourceGrounded=false`. The SQL follow-up found **zero** source-index rows created for that synthetic ID.
+4. After deployment, Supabase returned flow v7, Study Lens v6, Academic UI v8 all ACTIVE; all three GitHub source mirrors exactly matched deployed entrypoints. The Vercel exact routes remained two at version `a5e8849f-474c-46da-957e-754726c959bc`. The public app, JS and CSS returned HTTP 200. Public JS contains `layout=5` and `restrictedStudy`; original CSS served with the unchanged paragraph styling. Installed Android/manual reader screenshots have NOT been independently verified.
+
+## Remaining blockers
+
+- This is a fidelity/reliability and evidence-provenance release, not guaranteed scientific QA of all source text. Per-page and all-document visual, formula, figure, reading-order, and tablet/Android testing remains.
+- Approx. 292 ready files had no page index in a read-only snapshot at the beginning of this work. Existing repaired workers continue their scheduled queue; zero-cost quota and resource usage should be monitored. An indexed placeholder is not verified reading.
+- The existing OCR exhaustion backlog (~595 pages) still needs reliable original-source/verified OCR, independent review and retriable processing strategies; do not silently mark as passed. Some affected pages are *already* readable natively.
+- 100 level has no file records. Five-level certification remains BLOCKED pending real 100-level source material.
+- The Study Lens keyword-sentence extractor is not an advanced LLM academic tutor; do not claim deep reasoning or scientifically verified generative lessons from this release.
