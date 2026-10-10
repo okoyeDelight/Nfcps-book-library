@@ -1,0 +1,32 @@
+name: Academic flow fidelity gate
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'academic-reader/**'
+      - '.github/workflows/academic-flow-fidelity.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'academic-reader/**'
+      - '.github/workflows/academic-flow-fidelity.yml'
+permissions:
+  contents: read
+jobs:
+  verify-academic-flow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check reader syntax
+        run: node --check --input-type=commonjs < academic-reader/frontend/NfcpsAcademicBookReader.jsx
+      - name: Check five-level readiness rules and layout fidelity
+        run: |
+          node --test academic-reader/supabase/nfcps-flow-page/flow-layout.test.mjs
+          node --test academic-reader/agentic-company/five-level-readiness.test.mjs
+          node --test academic-reader/agentic-company/academic-quality.test.mjs
+      - name: Verify existing Academic coding-agent contract tests
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s academic-reader/agent/tests -p 'test_*.py' -v
