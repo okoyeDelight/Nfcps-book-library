@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {rect,reconstructLines,classifyColumns,orderedEvents,imageCoverage,normalizeForCoverage} from "./flow-layout.mjs";
+import {rect,reconstructLines,classifyColumns,orderedEvents,imageCoverage,normalizeForCoverage,readingQuality} from "./flow-layout.mjs";
 
 const part=(text,x,y,w=30,h=12)=>({text,bbox:[x,y,x+w,y+h]});
 test("same-row text in different columns never becomes a single sentence",()=>{
@@ -55,4 +55,15 @@ test("normalization preserves semantic tokens for integrity comparisons",()=>{
 });
 test("rect respects MuPDF array geometry",()=>{
  assert.deepEqual(rect([10,12,25,36]),{x:10,y:12,w:15,h:24});
+});
+
+test("scrambled tiny PDF fragments trigger review rather than confident rendering",()=>{
+ const rows=Array.from({length:24},(_,i)=>({x:10,y:i*18,h:12,text:i%2?"s":"c"}));
+ const result=readingQuality(rows,rows.map(x=>x.text).join(" "));
+ assert.equal(result.needsReview,true);
+ assert.ok(result.flags.includes("FRAGMENTED_SOURCE_LINES"));
+});
+test("ordinary prose does not trigger fragmentation warnings",()=>{
+ const rows=Array.from({length:20},(_,i)=>({x:10,y:i*20,h:12,text:"Clinical pharmacy principles and therapeutics"}));
+ assert.equal(readingQuality(rows,rows.map(x=>x.text).join(" ")).needsReview,false);
 });
