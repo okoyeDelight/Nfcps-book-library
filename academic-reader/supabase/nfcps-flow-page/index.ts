@@ -1,5 +1,5 @@
 import * as mupdf from 'npm:mupdf@1.28.1';
-import {rect,reconstructLines,classifyColumns,orderedEvents,imageCoverage,normalizeForCoverage} from './flow-layout.mjs';
+import {rect,reconstructLines,classifyColumns,orderedEvents,imageCoverage,normalizeForCoverage,readingQuality} from './flow-layout.mjs';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 const U=Deno.env.get('SUPABASE_URL')!,K=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const sb=createClient(U,K,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -136,9 +136,17 @@ Deno.serve(async req=>{
   const sourceChars=normalizeForCoverage(st.asText()).length;
   const flowChars=normalizeForCoverage(plain).length;
   const ambiguousColumns=columnCandidate.left.length>=4&&columnCandidate.right.length>=4&&!twoCol;
-  const needsReview=!imageAudit.complete||unresolvedImageResources>0||!!images.find(x=>x.unplaced)||ambiguousColumns||(!scanOnly&&sourceChars>40&&flowChars<sourceChars*.85);
+  const lexical=readingQuality(textLines,plain);
+  const reviewReasons=[
+    ...lexical.flags,
+    ...(!imageAudit.complete||unresolvedImageResources>0?["SOURCE_IMAGES_UNRESOLVED"]:[]),
+    ...(images.some(x=>x.unplaced)?["IMAGE_POSITION_UNVERIFIED"]:[]),
+    ...(ambiguousColumns?["AMBIGUOUS_READING_ORDER"]:[]),
+    ...(!scanOnly&&sourceChars>40&&flowChars<sourceChars*.85?["SOURCE_TEXT_COVERAGE_LOW"]:[])
+  ];
+  const needsReview=reviewReasons.length>0;
   const slideDeck=String(m.mime_type||'').toLowerCase().includes('presentation')||/\.(ppt|pptx|pptm)$/i.test(String(m.title||''))||pageW/pageH>1.18;
-  const payload={ok:true,material,title:m.title,page:pageNo,pages,layoutHint:slideDeck?'slides':'document',slideDeck,html:flowHtml,text:plain||clean(indexed?.page_text||''),imageCount:imgs.length,renderedImageCount:imageAudit.rendered,unresolvedImageResources,scanOnly,twoColumn:twoCol,needsVisualReview:needsReview,layoutVersion:3};
+  const payload={ok:true,material,title:m.title,page:pageNo,pages,layoutHint:slideDeck?'slides':'document',slideDeck,html:flowHtml,text:plain||clean(indexed?.page_text||''),imageCount:imgs.length,renderedImageCount:imageAudit.rendered,unresolvedImageResources,scanOnly,twoColumn:twoCol,needsVisualReview:needsReview,reviewReasons,layoutVersion:3};
   st.destroy();page.destroy();doc.destroy();cache.set(ck,payload);if(cache.size>120){const first=cache.keys().next().value;if(first)cache.delete(first)}
   return new Response(JSON.stringify(payload),{headers:H});
  }catch(e){return new Response(JSON.stringify({ok:false,error:e instanceof Error?e.message:String(e)}),{status:500,headers:{...H,'cache-control':'no-store'}})}
