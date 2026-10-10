@@ -56,6 +56,12 @@ function NfcpsAcademicBookReader({material:l}){
   setFigure({src,alt:img.alt||"Original handout figure",page:current,title:manifest?.title||l.title||"Handout"});
   setFigureZoom(1);setFigurePan({x:0,y:0});setFigureMode("explore");setFigureReveal(100);setFigurePlaying(!1);
  };
+ const openOriginalPage=()=>{
+  const base=String(manifest?.sourceVisualBase||"");
+  if(!/^https:\/\/nfcps-academic-visual\.onrender\.com\/page\.jpg\?url=/.test(base)||!base.endsWith("&page="))return;
+  setFigure({src:base+current,alt:"Original source page "+current,page:current,title:manifest?.title||l.title||"Original PDF"});
+  setFigureZoom(1);setFigurePan({x:0,y:0});setFigureMode("explore");setFigureReveal(100);setFigurePlaying(!1);
+ };
  const moveFigureZoom=change=>setFigureZoom(z=>Math.max(1,Math.min(5,Math.round((z+change)*10)/10)));
  const pointerStart=e=>{
   e.preventDefault();e.currentTarget.setPointerCapture?.(e.pointerId);
@@ -129,7 +135,8 @@ function NfcpsAcademicBookReader({material:l}){
      t.jsxs("div",{className:"academic-book-control",children:[t.jsx("span",{children:"Text size"}),t.jsx("button",{onClick:()=>setFontSize(Math.max(14,fontSize-1)),children:"A−"}),t.jsx("button",{onClick:()=>setFontSize(Math.min(32,fontSize+1)),children:"A+"})]}),
      t.jsxs("div",{className:"academic-book-control",children:[t.jsx("span",{children:"Theme"}),t.jsx("button",{onClick:()=>setDark(!dark),children:dark?"Cream":"Dark"})]}),
      t.jsxs("div",{className:"academic-book-control",children:[t.jsx("span",{children:"Source grouping"}),t.jsx("button",{className:!twoUp?"active":"",onClick:()=>{setTwoUp(!1);setSubPage(0)},children:"1 page"}),t.jsx("button",{className:twoUp?"active":"",onClick:()=>{setTwoUp(!0);setSubPage(0)},children:"2 slides"})]}),
-     t.jsx("small",{children:"Pinch with two fingers to change text size. The book will repaginate automatically."})
+     t.jsx("small",{children:"Pinch to change reading size. Tap an original source figure to zoom, pan, spotlight or reveal it. Source diagrams are never redrawn without verified evidence."}),
+     manifest?.sourceVisualBase&&t.jsx("button",{type:"button",onClick:openOriginalPage,children:"Explore complete original page · diagrams included"})
     ]}),
     tool==="reader"&&t.jsxs("section",{className:"academic-book-card",style:{marginTop:"12px"},children:[
   t.jsxs("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"10px"},children:[
