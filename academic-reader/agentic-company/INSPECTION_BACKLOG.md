@@ -24,3 +24,7 @@
 - Existing 100-level missing source files and encrypted materials remain genuine human/source-owner blockers.
 - Never use detected findings, task count or an internal Board vote as proof of academic correctness.
 - The live application UI was intentionally not modified. Optional student issue reporting UI requires a separate privacy/UX review, and must keep existing designs unchanged.
+
+## Subsequent live independent-recheck gate
+
+The private `specialist_recheck_tick()` now runs through the existing `company_cycle()` after source inspection and Board dispatch. It checks up to 40 assigned page observations against the current source-page index. For text defects, merely resetting an OCR status to pending does **not** prove a fix; the page must have at least 40 source characters, a completed audit pass and a suitable OCR state. For out-of-range pages the stored page count must be independently source-verified. When a previous defect condition clears, the observation and CEO issue move to **review_required / review**; the operation never grants verified scientific correctness by itself. No original PDF/text/image mutation is performed. In the initial real test, 2 assigned issues were checked, **0** qualified for review, **0** were independently verified. A later full company cycle returned four reviewed observations, still **0** claims of completed repairs. Five pure policy fixtures passed, and the Academic CI workflow now runs them. The SQL source is tracked in `sql/specialist-independent-recheck.sql` and the updated `sql/company-cycle-specialists.sql`.
