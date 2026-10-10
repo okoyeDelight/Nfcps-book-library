@@ -131,7 +131,40 @@ function NfcpsAcademicBookReader({material:l}){
      t.jsxs("div",{className:"academic-book-control",children:[t.jsx("span",{children:"Source grouping"}),t.jsx("button",{className:!twoUp?"active":"",onClick:()=>{setTwoUp(!1);setSubPage(0)},children:"1 page"}),t.jsx("button",{className:twoUp?"active":"",onClick:()=>{setTwoUp(!0);setSubPage(0)},children:"2 slides"})]}),
      t.jsx("small",{children:"Pinch with two fingers to change text size. The book will repaginate automatically."})
     ]}),
-    tool==="understand"&&t.jsx("div",{children:busy?t.jsx("p",{children:"Understanding this page…"}):study?.error?t.jsx("div",{className:"academic-book-card",children:study.error}):t.jsxs("div",{className:"academic-book-card",children:[t.jsx("strong",{children:guide.primaryTopic||guide.heading||"Current section"}),(guide.focusPoints||[]).map((x,i)=>t.jsx("p",{children:x},i))]})}),
+    tool==="reader"&&t.jsxs("section",{className:"academic-book-card",style:{marginTop:"12px"},children:[
+  t.jsxs("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"10px"},children:[
+   t.jsx("strong",{children:"Evidence of Academic agents at work"}),
+   t.jsx("button",{type:"button",onClick:()=>setWorkRefresh(x=>x+1),children:"Refresh"})
+  ]}),
+  t.jsx("small",{children:"Source-linked inspection receipts, not scripted CEO messages. Refreshed each minute from recorded backend actions."}),
+  workError&&t.jsx("p",{role:"status",children:workError}),
+  !workProof&&!workError&&t.jsx("p",{children:"Checking actual source and specialist records…"}),
+  workProof&&t.jsxs("div",{children:[
+   t.jsx("small",{style:{display:"block",margin:"8px 0"},children:(workProof.forHandout||[]).length?"Records for this handout":"Recent Academic records across other handouts"}),
+   ...((workProof.forHandout||[]).length?workProof.forHandout:workProof.recentActions||[]).slice(0,7).map(x=>t.jsxs("div",{
+    style:{borderTop:"1px solid rgba(82,90,90,.19)",padding:"10px 0",display:"flex",flexDirection:"column",gap:"3px"},
+    children:[
+     t.jsx("strong",{style:{fontSize:"13px"},children:x.source_kind==="source_page_audit"?
+      "Verified source page count":x.source_kind==="independent_repair"?
+      "Independently verified repair":"Specialist detected a source issue"}),
+     t.jsx("small",{children:x.level+"-level · "+String(x.material_title||"Handout")+
+       (x.source_page?" · source page "+x.source_page:"")}),
+     t.jsx("small",{children:"Specialist: "+String(x.specialist_role||"Academic inspection").replace(/_/g," ")+
+       " · "+(x.source_kind==="source_page_audit"?"Page range 1–N checked; text/diagrams still need separate review":
+         String(x.action_code||"Observed").replace(/_/g," "))}),
+     t.jsx("small",{children:"Status: "+(x.progress_state==="verified"?"Verified for this check":
+       x.progress_state==="assigned"?"Assigned, not repaired":
+       x.progress_state==="review_required"?"Independent review required":"Detected, not repaired")+
+       " · Evidence "+x.source_kind+" #"+x.source_ref}),
+     x.evidence_at&&t.jsx("small",{children:"Recorded "+new Date(x.evidence_at).toLocaleString()}),
+     x.material_drive_id===l.id&&x.source_page&&t.jsx("button",{
+      type:"button",onClick:()=>{setToolsOpen(!1);goSource(Number(x.source_page))},
+      style:{alignSelf:"flex-start"},children:"Open inspected source page"})
+    ]},x.source_kind+":"+x.source_ref)),
+   t.jsx("small",{children:"A detected issue or an approved task does not count as a fixed page. Every verified repair needs separate academic evidence."})
+  ]})
+ ]}),
+ tool==="understand"&&t.jsx("div",{children:busy?t.jsx("p",{children:"Understanding this page…"}):study?.error?t.jsx("div",{className:"academic-book-card",children:study.error}):t.jsxs("div",{className:"academic-book-card",children:[t.jsx("strong",{children:guide.primaryTopic||guide.heading||"Current section"}),(guide.focusPoints||[]).map((x,i)=>t.jsx("p",{children:x},i))]})}),
     tool==="ask"&&t.jsxs("div",{children:[t.jsx("textarea",{value:ask,onChange:e=>setAsk(e.target.value),placeholder:"Ask anything from this handout…"}),t.jsx("button",{className:"academic-book-ask",onClick:askPage,disabled:busy,children:busy?"Searching…":"Ask"}),answer&&t.jsx("div",{className:"academic-book-card",children:t.jsx("p",{children:answer.answer||answer.error||"No answer found."})})]}),
     tool==="exam"&&t.jsxs("div",{children:[restrictedStudy&&t.jsx("div",{className:"academic-book-card",children:qualityNotice}),busy&&t.jsx("p",{children:"Matching this section to past questions…"}),past.some(x=>x.matchStrength!=="possible")&&t.jsx("h4",{children:"Likely page-related past questions"}),past.filter(x=>x.matchStrength!=="possible").map((x,i)=>t.jsxs("button",{type:"button",className:"academic-book-card",style:{width:"100%",display:"block",textAlign:"left",cursor:"pointer"},onClick:()=>openQuestion(x),children:[t.jsx("strong",{children:x.question}),(x.sourceTitle||x.examYear||x.pastQuestionPage)&&t.jsx("small",{children:(x.sourceTitle||"Past question")+(x.examYear?" · "+x.examYear:"")+(x.pastQuestionPage?" · source page "+x.pastQuestionPage:"")}),t.jsx("small",{children:"Tap to discuss →"})]},x.id||i)),past.some(x=>x.matchStrength==="possible")&&t.jsx("h4",{children:"Other possible topic matches · verify relevance"}),past.filter(x=>x.matchStrength==="possible").map((x,i)=>t.jsxs("button",{type:"button",className:"academic-book-card",style:{width:"100%",textAlign:"left",opacity:.86},onClick:()=>openQuestion(x),children:[t.jsx("strong",{children:x.question}),t.jsx("small",{children:(x.sourceTitle||"Past question")+" · possible topic match · tap to inspect"})]},x.id||i)),t.jsx("h4",{children:"Likely questions"}),pred.map((x,i)=>t.jsxs("div",{className:"academic-book-card",children:[t.jsx("strong",{children:x.question}),t.jsx("small",{children:"Prediction · "+(x.reason||"Generated practice question")})]},i))]}),
     tool==="exam"&&selectedQuestion&&t.jsxs("div",{className:"academic-book-card",role:"dialog","aria-label":"Past question discussion",style:{position:"fixed",zIndex:999999,bottom:"12px",left:"12px",right:"12px",maxHeight:"79vh",overflowY:"auto",padding:"20px",borderRadius:"26px",background:"rgba(253,250,242,.96)",backdropFilter:"blur(18px)",WebkitBackdropFilter:"blur(18px)",boxShadow:"0 18px 55px rgba(0,0,0,.3)",color:"#262520"},children:[
