@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {isEligibleForBootstrap,pickBootstrapBatch,verifyPdfSource} from "./bootstrap-source-policy.mjs";
+import {isEligibleForBootstrap,pickBootstrapBatch,verifyPdfSource,sourceIndexComplete,needsSourceReconciliation} from "./bootstrap-source-policy.mjs";
 const entry=(id,metadata={})=>({drive_id:id,polished_url:"https://valid.example/source.pdf",metadata});
 test("only real unindexed documents selected, max three per invocation",()=>{
  const all=Array.from({length:10},(_,i)=>entry("s"+i));
@@ -27,4 +27,18 @@ test("normal PDF source count is accepted without external OCR or paid services"
 });
 test("existing indexed materials cannot be reprocessed by bootstrap",()=>{
  assert.equal(isEligibleForBootstrap(entry("a"),new Set(["a"])),false);
+});
+
+test("indexed first page is never mistaken for all source pages",()=>{
+ assert.equal(sourceIndexComplete(10,new Set([1])),false);
+ assert.equal(needsSourceReconciliation(entry("r",{source_page_count_status:"source_pdf_verified",source_page_count:10}),new Set([1])),true);
+});
+test("complete source page coverage requires exactly 1..N",()=>{
+ assert.equal(sourceIndexComplete(4,new Set([1,2,3,4])),true);
+ assert.equal(sourceIndexComplete(4,new Set([1,2,4,5])),false);
+ assert.equal(sourceIndexComplete(4,new Set([1,2,3])),false);
+});
+test("unverified legacy count is not silently accepted as source-complete",()=>{
+ assert.equal(needsSourceReconciliation(entry("r",{source_page_count_status:"estimated",source_page_count:10}),new Set([1])),false);
+ assert.equal(sourceIndexComplete(0,new Set()),false);
 });
