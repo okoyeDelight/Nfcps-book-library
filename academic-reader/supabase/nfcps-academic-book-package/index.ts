@@ -40,23 +40,33 @@ Deno.serve(async req=>{
    .eq('material_drive_id',material).order('page_number');
 
  const slideDeck=String(m.mime_type||'').toLowerCase().includes('presentation')||/\.(ppt|pptx)$/i.test(String(m.title||''))||/(^|[ _-])(slides?|ppt|presentation)([ _.-]|$)/i.test(String(m.title||''));
- let sourcePageCount=(pages||[]).length?Math.max(...(pages||[]).map((x:any)=>Number(x.page_number)||0)):Number(m.metadata?.source_page_count||0);
+ // Indexed pages can be incomplete; the actual PDF source is authoritative.
+ const indexedMax=(pages||[]).length?Math.max(...(pages||[]).map((x:any)=>Number(x.page_number)||0)):0;
+ const storedPages=Number(m.metadata?.source_page_count||0);
+ const sourceVersion=String(m.polished_at||'undated');
+ const validStored=Number.isSafeInteger(storedPages)&&storedPages>0&&m.metadata?.source_page_version===sourceVersion;
+ let sourcePageCount=validStored?storedPages:0;
  let firstPageWidth=Number(m.metadata?.source_page_width||0),firstPageHeight=Number(m.metadata?.source_page_height||0);
- if(!sourcePageCount&&m.polished_url){
+ if(!validStored&&m.polished_url){
    try{
      const pr=await fetch(m.polished_url);
-     if(pr.ok){
-       const bytes=new Uint8Array(await pr.arrayBuffer());
-       const pdf=await PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
-       sourcePageCount=pdf.getPageCount();
-       const first=sourcePageCount?pdf.getPage(0):null;
-       firstPageWidth=first?.getWidth?.()||0;
-       firstPageHeight=first?.getHeight?.()||0;
-       const metadata={...(m.metadata||{}),source_page_count:sourcePageCount,source_page_width:firstPageWidth,source_page_height:firstPageHeight,source_page_counted_at:new Date().toISOString()};
-       await sb.from('nfcps_academic_materials').update({metadata}).eq('drive_id',material);
-     }
-   }catch(_){}
+     if(!pr.ok)throw new Error('source PDF HTTP '+pr.status);
+     const bytes=new Uint8Array(await pr.arrayBuffer());
+     const pdf=await PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
+     sourcePageCount=pdf.getPageCount();
+     const first=sourcePageCount?pdf.getPage(0):null;
+     firstPageWidth=first?.getWidth?.()||0;
+     firstPageHeight=first?.getHeight?.()||0;
+     const metadata={...(m.metadata||{}),source_page_count:sourcePageCount,
+       source_page_width:firstPageWidth,source_page_height:firstPageHeight,
+       source_page_counted_at:new Date().toISOString(),source_page_version:sourceVersion,
+       source_page_indexed_max_at_count:indexedMax,
+       source_page_count_status:indexedMax>sourcePageCount?'index_exceeds_source':'source_pdf_verified'};
+     const {error:saveError}=await sb.from('nfcps_academic_materials').update({metadata}).eq('drive_id',material);
+     if(saveError)console.warn('source-page count caching failed');
+   }catch(e){console.warn('source page-count verification unavailable',String(e instanceof Error?e.message:e))}
  }
+ if(!sourcePageCount)sourcePageCount=Math.max(1,indexedMax);
  const layoutHint=slideDeck||(firstPageWidth>0&&firstPageHeight>0&&firstPageWidth/firstPageHeight>1.18)?'slides':'document';
 
  if(!(pages||[]).length){
