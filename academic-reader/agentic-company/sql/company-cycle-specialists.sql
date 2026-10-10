@@ -5,7 +5,7 @@ CREATE OR REPLACE FUNCTION nfcps_agent_ops.company_cycle()
 AS $function$
 DECLARE
  leadership jsonb; proposals jsonb; intake jsonb; board jsonb;
- intake_after jsonb; workload jsonb; meeting_result jsonb; missions jsonb; inspection jsonb; dispatch jsonb;
+ intake_after jsonb; workload jsonb; meeting_result jsonb; missions jsonb; inspection jsonb; dispatch jsonb; recheck jsonb;
 BEGIN
  IF NOT pg_try_advisory_xact_lock(845128,20261010)
  THEN RETURN jsonb_build_object('status','already_processing'); END IF;
@@ -16,6 +16,7 @@ BEGIN
  proposals:=nfcps_agent_ops.agenda_sync();
  inspection:=nfcps_agent_ops.specialist_page_audit_tick();
  dispatch:=nfcps_agent_ops.specialist_dispatch_tick();
+ recheck:=nfcps_agent_ops.specialist_recheck_tick();
  intake:=nfcps_agent_ops.improvement_intake_tick();
  board:=nfcps_agent_ops.board_session();
  intake_after:=nfcps_agent_ops.improvement_intake_tick();
@@ -29,11 +30,12 @@ BEGIN
    'Real academic issue intake and source-measured cross-branch tasks; never narrative simulations',
    jsonb_build_object('election',leadership,'agenda',proposals,
        'issue_triage',intake,'board',board,'issue_assignment',intake_after,
-       'joint_missions',missions,'specialist_inspection',inspection,'specialist_dispatch',dispatch));
+       'joint_missions',missions,'specialist_inspection',inspection,'specialist_dispatch',dispatch,'specialist_recheck',recheck));
  RETURN jsonb_build_object('status','complete','leadership',leadership,
    'agenda',proposals,'issue_intake',intake,'board',board,
    'issue_assignments',intake_after,'work',workload,
    'joint_missions',missions,'meetings',meeting_result,
-   'specialist_inspection',inspection,'specialist_dispatch',dispatch);
+   'specialist_inspection',inspection,'specialist_dispatch',dispatch,
+  'specialist_recheck',recheck);
 END;$function$
 ;
