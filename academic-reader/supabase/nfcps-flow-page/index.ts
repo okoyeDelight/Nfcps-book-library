@@ -58,7 +58,7 @@ Deno.serve(async req=>{
   const page=doc.loadPage(pageNo-1),bounds=page.getBounds(),pageW=Math.max(1,bounds[2]-bounds[0]),pageH=Math.max(1,bounds[3]-bounds[1]);
   const st=page.toStructuredText('preserve-images,preserve-spans,preserve-whitespace,collect-styles,segment,table-hunt');
   const j=JSON.parse(st.asJSON()),leaves=leavesFrom(j),imgs=imageSources(st.asHTML(pageNo));
-  let imgIdx=0;const textLines:any[]=[],images:any[]=[];
+  let imgIdx=0,unresolvedImageResources=0;const textLines:any[]=[],images:any[]=[];
   for(const leaf of leaves){
     const bb=bbox(leaf.bbox);
     if(leaf.type==='text'){
@@ -68,7 +68,7 @@ Deno.serve(async req=>{
         textLines.push({...line,blockBbox:bb});
       }
     }else if(leaf.type==='image'){
-      const src=imgs[imgIdx++]||'';if(src)images.push({type:'image',bbox:bb,src});
+      const src=imgs[imgIdx++]||'';if(src)images.push({type:'image',bbox:bb,src});else unresolvedImageResources++;
     }
   }
   // The extractor must not discard legitimate footnotes, figure labels or
@@ -127,9 +127,9 @@ Deno.serve(async req=>{
   const sourceChars=normalizeForCoverage(st.asText()).length;
   const flowChars=normalizeForCoverage(plain).length;
   const ambiguousColumns=columnCandidate.left.length>=4&&columnCandidate.right.length>=4&&!twoCol;
-  const needsReview=!imageAudit.complete||!!images.find(x=>x.unplaced)||ambiguousColumns||(!scanOnly&&sourceChars>40&&flowChars<sourceChars*.85);
+  const needsReview=!imageAudit.complete||unresolvedImageResources>0||!!images.find(x=>x.unplaced)||ambiguousColumns||(!scanOnly&&sourceChars>40&&flowChars<sourceChars*.85);
   const slideDeck=String(m.mime_type||'').toLowerCase().includes('presentation')||/\.(ppt|pptx|pptm)$/i.test(String(m.title||''))||pageW/pageH>1.18;
-  const payload={ok:true,material,title:m.title,page:pageNo,pages,layoutHint:slideDeck?'slides':'document',slideDeck,html:flowHtml,text:plain||clean(indexed?.page_text||''),imageCount:imgs.length,renderedImageCount:imageAudit.rendered,scanOnly,twoColumn:twoCol,needsVisualReview:needsReview,layoutVersion:3};
+  const payload={ok:true,material,title:m.title,page:pageNo,pages,layoutHint:slideDeck?'slides':'document',slideDeck,html:flowHtml,text:plain||clean(indexed?.page_text||''),imageCount:imgs.length,renderedImageCount:imageAudit.rendered,unresolvedImageResources,scanOnly,twoColumn:twoCol,needsVisualReview:needsReview,layoutVersion:3};
   st.destroy();page.destroy();doc.destroy();cache.set(ck,payload);if(cache.size>120){const first=cache.keys().next().value;if(first)cache.delete(first)}
   return new Response(JSON.stringify(payload),{headers:H});
  }catch(e){return new Response(JSON.stringify({ok:false,error:e instanceof Error?e.message:String(e)}),{status:500,headers:{...H,'cache-control':'no-store'}})}
