@@ -12,7 +12,7 @@ test("mirrored Academic component parses as JavaScript and matches the bridge ex
   const bridge=read("supabase/nfcps-academic-ui-assets-v3/index.ts");
   const match=bridge.match(/const COMPONENT=([\s\S]+?);\nconst CSS_APPEND=/);
   assert.ok(match,"Canonical bridge component string missing");
-  assert.equal(JSON.parse(match[1]),"\n"+source+"\n");
+  assert.equal(JSON.parse(match[1]),source);
 });
 test("reader retains the same NFCPS UI classes and warm reading surface",()=>{
   const css=read("frontend/academic-reader.css");
