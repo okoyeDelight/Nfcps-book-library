@@ -10,6 +10,24 @@ Deno.serve(async req=>{
   const url=Deno.env.get("SUPABASE_URL")||"";
   const key=Deno.env.get("SUPABASE_ANON_KEY")||"";
   if(!url||!key)throw Error("Academic status service unavailable");
+  const mode=new URL(req.url).searchParams.get("mode");
+  if(mode==="proof"){
+   const mat=new URL(req.url).searchParams.get("material")||"";
+   if(mat&&!/^[A-Za-z0-9_-]{10,100}$/.test(mat))
+     return new Response(JSON.stringify({ok:false,error:"Invalid material"}),{status:400,headers:H});
+   const head=url.replace(/\\/$/,"")+
+    "/rest/v1/nfcps_academic_work_receipts?select=source_kind,source_ref,level,material_drive_id,material_title,source_page,specialist_role,action_code,progress_state,evidence_page_index_id,evidence_at&order=evidence_at.desc&limit=25";
+   const opts={headers:{"apikey":key,"authorization":"Bearer "+key},signal:AbortSignal.timeout(10000)};
+   const [all,specific]=await Promise.all([
+      fetch(head,opts),
+      mat?fetch(head+"&material_drive_id=eq."+encodeURIComponent(mat),{headers:opts.headers,signal:AbortSignal.timeout(10000)}):Promise.resolve(null)]);
+   if(!all.ok||(specific&&!specific.ok))throw Error("Academic evidence feed unavailable");
+   const recent=await all.json(),inHandout=specific?await specific.json():[];
+   return new Response(JSON.stringify({ok:true,source:"source-indexed Academic inspection evidence",
+    recentActions:recent,forHandout:inHandout,refreshSeconds:60,
+    important:"Detected and assigned issues are not verified repairs. Source page-count checks do not certify figure or scientific correctness.",
+    fictionalActions:false}),{status:200,headers:H});
+  }
   const target=url.replace(/\/$/,"")+
     "/rest/v1/nfcps_academic_ceo_feed?select=level,is_lead,performance_score,ready_handouts,indexed_handouts,verified_page_coverage,queued_tasks,board_decisions,last_meeting_at,last_updated_at&order=level.asc";
   const r=await fetch(target,{headers:{"apikey":key,"authorization":"Bearer "+key},
