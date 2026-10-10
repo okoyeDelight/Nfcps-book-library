@@ -29,21 +29,30 @@ function isHeading(line:any,medianH:number){
  return false;
 }
 function mergeTextLines(lines:any[],medianH:number){
- const out:string[]=[];let para='',prev:any=null;
- const flush=()=>{if(para){out.push('<p>'+para+'</p>');para='';prev=null}};
- for(const line of lines){
-  if(!line.text)continue;
-  if(line.marker){flush();out.push('<p class="book-bullet"><span>•</span>'+line.html+'</p>');continue}
-  if(isHeading(line,medianH)){flush();out.push('<h2>'+line.html+'</h2>');continue}
-  const can=prev&&Math.abs(line.x-prev.x)<=24&&(line.y-(prev.y+prev.h))<=Math.max(9,medianH*.78);
-  if(!can)flush();
-  if(para){
-    if(/[-–]$/.test(para))para=para.slice(0,-1)+line.html;
-    else para+=' '+line.html;
-  }else para=line.html;
-  prev=line;
- }
- flush();return out.join('');
+  const out:string[]=[];let para='',prev:any=null,bullet=false;
+  const flush=()=>{
+    if(para)out.push(bullet?'<p class="book-bullet"><span>•</span>'+para+'</p>':'<p>'+para+'</p>');
+    para='';prev=null;bullet=false;
+  };
+  for(const line of lines){
+    if(!line.text&&!line.marker)continue;
+    if(line.marker){
+      flush();bullet=true;para=line.html;prev=line;continue;
+    }
+    if(isHeading(line,medianH)){flush();out.push('<h2>'+line.html+'</h2>');continue}
+    const vert=prev?line.y-(prev.y+prev.h):Infinity;
+    // A list bullet's hanging indent can be wider than a prose indent.
+    const indent=bullet?44:24;
+    const close=prev&&Math.abs(line.x-prev.x)<=indent&&
+      vert>=-medianH*.28&&vert<=Math.max(9,medianH*.78);
+    if(!close)flush();
+    if(para) {
+      // Never remove source punctuation or invent missing characters.
+      para+=' '+line.html;
+    }else para=line.html;
+    prev=line;
+  }
+  flush();return out.join('');
 }
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:H});
