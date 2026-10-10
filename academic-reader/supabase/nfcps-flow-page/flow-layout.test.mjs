@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {rect,reconstructLines,classifyColumns,orderedEvents,imageCoverage,normalizeForCoverage,readingQuality} from "./flow-layout.mjs";
+import {rect,reconstructLines,classifyColumns,orderedEvents,imageCoverage,normalizeForCoverage,readingQuality,splitColumnSections} from "./flow-layout.mjs";
 
 const part=(text,x,y,w=30,h=12)=>({text,bbox:[x,y,x+w,y+h]});
 test("same-row text in different columns never becomes a single sentence",()=>{
@@ -66,4 +66,56 @@ test("scrambled tiny PDF fragments trigger review rather than confident renderin
 test("ordinary prose does not trigger fragmentation warnings",()=>{
  const rows=Array.from({length:20},(_,i)=>({x:10,y:i*20,h:12,text:"Clinical pharmacy principles and therapeutics"}));
  assert.equal(readingQuality(rows,rows.map(x=>x.text).join(" ")).needsReview,false);
+});
+
+test("full-width heading separates parallel columns into intelligible reading bands",()=>{
+ const upper=Array.from({length:5},(_,i)=>[
+  {x:20,y:20+i*20,w:120,h:12,text:"left before "+i},
+  {x:350,y:20+i*20,w:120,h:12,text:"right before "+i}
+ ]).flat();
+ const heading={x:15,y:150,w:570,h:18,text:"SOURCE HEADING"};
+ const lower=Array.from({length:5},(_,i)=>[
+  {x:20,y:180+i*20,w:120,h:12,text:"left after "+i},
+  {x:350,y:180+i*20,w:120,h:12,text:"right after "+i}
+ ]).flat();
+ const all=[...upper,heading,...lower];
+ assert.equal(classifyColumns(all,600).twoColumn,false);
+ const out=splitColumnSections(all,[],600);
+ assert.equal(out.applied,true);
+ assert.deepEqual(out.sections.map(x=>x.mode),["left","right","full-width","left","right"]);
+ const ordered=out.sections.flatMap(s=>s.lines.map(x=>x.text));
+ assert.deepEqual(ordered,[
+  ..."01234".split("").map(i=>"left before "+i),
+  ..."01234".split("").map(i=>"right before "+i),
+  "SOURCE HEADING",
+  ..."01234".split("").map(i=>"left after "+i),
+  ..."01234".split("").map(i=>"right after "+i)
+ ]);
+ assert.equal(new Set(out.sections.flatMap(s=>s.lines)).size,all.length);
+});
+test("mixed-column repair keeps every embedded source figure exactly once",()=>{
+ const top=Array.from({length:5},(_,i)=>[
+  {x:20,y:15+i*22,w:110,h:12,text:"left "+i},
+  {x:350,y:15+i*22,w:110,h:12,text:"right "+i}
+ ]).flat();
+ const heading={x:10,y:145,w:580,h:16,text:"FULL WIDTH"};
+ const imgs=[{bbox:{x:45,y:47,w:70,h:40},src:"left image"},
+             {bbox:{x:370,y:68,w:70,h:40},src:"right image"}];
+ const result=splitColumnSections([...top,heading],imgs,600);
+ assert.equal(result.applied,true);
+ assert.deepEqual(result.sections.flatMap(s=>s.images.map(x=>x.src)).sort(),["left image","right image"]);
+});
+test("a figure crossing live column gutter disables risky reordering",()=>{
+ const parts=Array.from({length:5},(_,i)=>[
+  {x:20,y:15+i*20,w:110,h:12,text:"left "+i},
+  {x:350,y:15+i*20,w:110,h:12,text:"right "+i}
+ ]).flat();
+ const center=[{bbox:{x:240,y:42,w:120,h:28},src:"center source diagram"}];
+ const heading={x:15,y:145,w:565,h:18,text:"FULL WIDTH HEADING"};
+ const result=splitColumnSections([...parts,heading],center,600);
+ assert.equal(result.applied,false);
+});
+test("ordinary single-column prose is never resegmented",()=>{
+ const lines=Array.from({length:12},(_,i)=>({x:20,y:12+i*25,w:560,h:14,text:"A broad single-column source paragraph "+i}));
+ assert.equal(splitColumnSections(lines,[],600).applied,false);
 });
