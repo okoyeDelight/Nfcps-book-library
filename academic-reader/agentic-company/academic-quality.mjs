@@ -47,7 +47,7 @@ export function auditAcademicFidelity(source, rendered) {
     originals.set(page,blockMap);
     if(!concerns.has(asString(sp?.pageType))) problem("PAGE_TYPE_UNKNOWN","Page type needs classification","warning",{page});
   }
-  const seen=new Map(), renderPageNumbers=new Set();
+  const seen=new Map(), renderPageNumbers=new Set(), lastByPage=new Map();
   for(const rp of renderedPages) {
     const page=number(rp?.sourceNumber);
     if(page<1 || page>expected || !originals.has(page)) {
@@ -56,20 +56,24 @@ export function auditAcademicFidelity(source, rendered) {
     renderPageNumbers.add(page);
     const original=originals.get(page);
     const orderedIds=[...original.keys()];
-    let last=-1;
+    let last=lastByPage.get(page)??-1;
     for(const rb of asArray(rp.blocks)) {
       const id=asString(rb?.sourceBlockId);
       const src=original.get(id);
       if(!src) {problem("RENDER_BLOCK_UNMATCHED","Reader block not found in the same source page","error",{page,id});continue;}
-      if(seen.has(page+":"+id)) problem("RENDER_BLOCK_DUPLICATED","A source block was rendered more than once","warning",{page,id});
+      const firstAppearance=!seen.has(page+":"+id);
+      if(!firstAppearance) problem("RENDER_BLOCK_DUPLICATED","A source block was rendered more than once","warning",{page,id});
       else {seen.set(page+":"+id,true);matchedBlocks++;}
       const index=orderedIds.indexOf(id);
       if(index<last) problem("SOURCE_ORDER_CHANGED","Blocks appear in a different order than the source","error",{page,id});
       last=index;
+      lastByPage.set(page,last);
       const kind=asString(src.kind).toLowerCase();
       if(["image","figure","scan"].includes(kind)) {
         if(!rb.assetHash || rb.assetHash!==src.assetHash) problem("IMAGE_ASSET_MISMATCH","Rendered image hash differs or is missing","error",{page,id});
-        else matchedImages++;
+        else if(firstAppearance) matchedImages++;
+      } else if(typeof src.text==="string" && src.text.replace(/\s+/g," ").trim()!==asString(rb.text).replace(/\s+/g," ").trim()) {
+        problem("SOURCE_TEXT_CHANGED","Rendered text differs from the authoritative source","error",{page,id});
       }
       if(rb.clipped === true || rb.visible === false) problem("CONTENT_NOT_VISIBLE","Source block is clipped or hidden","error",{page,id});
       if(["formula","equation"].includes(kind) && asString(rb?.text)!==asString(src?.text)) problem("FORMULA_CHANGED","Equation differs from the source text","error",{page,id});
@@ -115,6 +119,8 @@ export function auditTeachingArtifact(lesson, source, questionBank=[]) {
   }
   if(asArray(lesson?.animation?.steps).length) {
     if(!asString(lesson?.animation?.sourceImageHash)) problems("ANIMATION_SOURCE_UNLINKED","Animation must cite the exact immutable source image");
+    else if(!asArray(source?.pages).some(p=>asArray(p.blocks).some(b=>["image","figure","scan"].includes(b.kind)&&b.assetHash===lesson.animation.sourceImageHash)))
+      problems("ANIMATION_IMAGE_UNVERIFIED","Animation source hash is not present in the immutable source");
     if(lesson?.animation?.sourceImageEdited!==false) problems("ANIMATION_SOURCE_MUTATED","Teaching animation cannot alter the underlying source image");
     if(lesson?.animation?.reviewed!==true) problems("ANIMATION_REVIEW_PENDING","Medical/scientific animation needs factual review","warning");
   }
