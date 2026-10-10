@@ -48,8 +48,8 @@ function NfcpsAcademicBookReader({material:l}){
  };
 
  d.useEffect(()=>{
-  if(!toolsOpen||tool!=="reader")return;
-  let alive=true;
+  if(!l?.id)return;
+  let alive=true;setWorkProof(null);
   const load=async()=>{
    try{
     const r=await fetch("https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-academic-ceo-live?mode=proof&material="+encodeURIComponent(l.id),{cache:"no-store"});
@@ -58,7 +58,7 @@ function NfcpsAcademicBookReader({material:l}){
    }catch(e){if(alive)setWorkError(String(e?.message||e))}
   };
   load();const poll=setInterval(load,60000);return()=>{alive=false;clearInterval(poll)}
- },[toolsOpen,tool,l.id,workRefresh]);
+ },[l.id,workRefresh]);
  d.useEffect(()=>{
   if(!figure||!figurePlaying||figureMode!=="reveal")return;
   const timer=setInterval(()=>setFigureReveal(v=>v>=100?5:Math.min(100,v+5)),170);
@@ -109,6 +109,18 @@ function NfcpsAcademicBookReader({material:l}){
    t.jsxs("div",{children:[t.jsx("strong",{children:indicator}),manifest?.courseCode&&t.jsx("small",{children:manifest.courseCode})]}),
    t.jsx("button",{onClick:()=>setToolsOpen(!toolsOpen),children:toolsOpen?"Close":"Reading tools"})
   ]}),
+  workProof&&(workProof.forHandout?.length||workProof.recentActions?.length)&&t.jsxs("div",{
+    style:{padding:"6px 15px",fontSize:"11px",display:"flex",alignItems:"center",gap:"9px",overflow:"hidden",background:dark?"rgba(84,113,157,.22)":"rgba(65,91,132,.075)",color:dark?"#dce5ff":"#304669"},
+    children:[
+     t.jsx("strong",{style:{whiteSpace:"nowrap"},children:"Academic work · source proof"}),
+     t.jsx("span",{style:{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:"1 1 auto"},children:(()=>{
+      const x=(workProof.forHandout||[])[0]||(workProof.recentActions||[])[0];
+      return x?x.level+"L "+String(x.specialist_role||"source inspection").replace(/_/g," ")+
+       " · "+(x.source_kind==="source_page_audit"?"Page count checked":x.progress_state==="assigned"?"Issue assigned":"Source issue detected")+
+       " · "+new Date(x.evidence_at).toLocaleDateString():"No recorded actions";
+     })()}),
+     t.jsx("button",{type:"button",onClick:()=>{setTool("reader");setToolsOpen(true)},style:{padding:"3px 7px",fontSize:"11px",whiteSpace:"nowrap"},children:"Evidence"})
+    ]}),
   t.jsxs("div",{className:"academic-book-viewport",ref:viewportRef,onClick:openFigure,children:[
    loading&&t.jsxs("div",{className:"academic-book-state",children:[t.jsx("strong",{children:"Opening book"}),t.jsx("small",{children:"Preparing the first reader page…"})]}),
    err&&t.jsxs("div",{className:"academic-book-state error",children:[t.jsx("strong",{children:"Could not build this page"}),t.jsx("small",{children:err}),t.jsx("button",{onClick:()=>{setErr("");if(!manifest){setManifestRetry(n=>n+1)}else{setPages(p=>{const n={...p};delete n[current];delete n[pairEnd];return n});setRetryCounter(n=>n+1)}},children:"Try again"})]}),
