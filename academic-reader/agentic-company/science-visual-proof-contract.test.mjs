@@ -48,3 +48,16 @@ test("baseline Academic styling and tab workflows preserved",()=>{
  assert.ok(reader.includes("Reading tools"));
  for(const name of ["understand","ask","exam","recall","reader"])assert.ok(reader.includes('tool==="'+name+'"'));
 });
+
+test("PCG morphology provides a source-linked touchable botanical schematic",()=>{
+ assert.ok(reader.includes("Interactive plant morphology"));
+ assert.ok(reader.includes("plantLessonExcerpt=sourceConcepts.find"));
+ assert.ok(reader.includes('viewBox:"0 0 300 345"'));
+ for(const part of ["root","stem","leaf","flower"])assert.ok(reader.includes('setPlantFocus("'+part+'")'));
+});
+test("schematic animation remains distinct from real original figures and scientific growth prediction",()=>{
+ assert.ok(reader.includes("Schematic size"));
+ assert.ok(reader.includes("Animate schematic"));
+ assert.ok(reader.includes("not an original handout image or a biological growth-rate prediction"));
+ assert.ok(reader.includes("This text comes from the source"));
+});
