@@ -2580,3 +2580,27 @@ An hourly **NFCPS Academic Zero Watch** condition task is enabled to check actua
 - Repair original-source text and independent OCR evidence on all outstanding pages. Do not mark the remaining 100-level gap solved until real materials exist.
 - Previous live reader remains `nfcps-flow-page` v8 and Academic asset bridge v9; neither changed by this release. All other NFCPS app sections and UI remain unchanged.
 - Worker code contains legacy operational credentials; it was intentionally **not** copied into the public repository. Only clean policy, tests, SQL and handoff are committed. Use connected Supabase access for maintenance and plan safe secret rotation separately.
+
+---
+
+# 77. 10 October 2026 — Resume interrupted page-index batches; audit legacy material after no-index queue
+
+User requires **zero legitimately unindexed documents**, with source fidelity, strict preservation of NFCPS UI, other app sections, exact Vercel rewrites, no paid services and no hiding unreadable originals.
+
+## Audit findings
+- At the beginning of this pass, 250 ready Academic handouts remained without any page index (200: 66, 300: 34, 400: 99, 500: 51); existing cron still operates.
+- After the first worker revision, 42 documents with stored `source_pdf_verified` counts were checked against indexed page 1..N; **zero incomplete or duplicated page sets** in that checked subset.
+- Verified-first-page-only is not equivalent to a complete handout. Previously interrupted bootstrap writes could leave partial indexed documents and future jobs would skip them simply because at least one index row existed.
+- One known source file reports a PDF-password error and requires legitimate source-owner intervention; do **not** circumvent encryption, delete it, or reclassify it as indexed. 100 level has no materials to certify.
+- At the latest post-deployment readback, 235 ready materials remained completely unindexed (200: 56, 300: 34, 400: 94, 500: 51). This backlog continues changing through existing cron. Readability/OCR remains a separate backlog.
+
+## Academic-only live changes
+- `nfcps-academic-book-bootstrap` advanced from **v3 to v4 and v5 ACTIVE**. **v4** collects real source page-number sets, records source-count metadata with a `building` state **before** inserting index rows, performs protected insert-without-overwrite, verifies the exact indexed page sequence 1..N on success, and marks interrupted writes `needs_reconcile` for bounded retry. **v5** now prioritises missing/partial records; when those eligible records are exhausted, it advances to independently auditing legacy already-indexed documents against their original PDF sources. This prevents stopping at a false zero.
+- Original source PDFs remain authoritative. The worker still processes at most three materials per run, verifies trusted source URL/size/encryption/page count, respects cooldown/attempt limits, and is invoked by the pre-existing two-minute Supabase job. No extra cron, new host, paid API, changes to OCR status by this worker, or other NFCPS services.
+- A real protected v5 invocation returned HTTP 200, stage `recover_missing`, three verified source PDFs indexed successfully. All 42 counted originals in the subsequent check matched index-page coverage; no source discrepancies in that subset.
+- `bootstrap-source-policy.mjs` includes `sourceIndexComplete`, `needsSourceReconciliation`, and `chooseCoverageStage`. Twelve isolated deterministic unit tests passed, including partial indexing, strict page numbering, stage order and previously indexed legacy audit. Existing Academic CI executes the policy test file, but hosted CI and Android visual QA remain separately unverified.
+- `zero-backlog-check.sql` now separately counts completely unindexed ready handouts and documents lacking full source-page verification or an explicitly completed index audit, alongside OCR/pending/review/empty pages. It includes all five level slots and is read-only.
+- The operational worker source contains legacy protected credentials, so it was **not** pushed to public GitHub; only its pure policy, tests, SQL report and this handoff are synced. Credential rotation remains separate technical debt.
+
+## Still open
+Zero is **not reached**. A completed page-number manifest does not imply OCR validity, full formula/image fidelity, scientific correctness, or student readability. Hundreds of source pages remain unresolved OCR/review, and level 100 is not populated. Source owner must supply an accessible copy of the encrypted PDF. Maintain strict UI/route isolation. Existing hourly zero-backlog watch will keep checking real metrics and future blockers; it does not itself carry out ingestion jobs.
