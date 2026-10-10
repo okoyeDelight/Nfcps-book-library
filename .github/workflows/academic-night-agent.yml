@@ -21,6 +21,7 @@ jobs:
     timeout-minutes: 45
     env:
       HAS_API_KEY: ${{ secrets.OPENAI_API_KEY != '' }}
+      PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - name: Check out source without persisting credentials
         uses: actions/checkout@v4
@@ -51,7 +52,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          changed="$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )"
+          changed="$( { git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u )"
           if [ -z "$changed" ]; then
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
             echo "No safe, evidence-backed changes proposed tonight."
@@ -60,7 +61,7 @@ jobs:
 
           while IFS= read -r path; do
             case "$path" in
-              academic-reader/frontend/*|academic-reader/agent/tests/*) ;;
+              academic-reader/frontend/*|academic-reader/agent/tests/*.py) ;;
               *) echo "::error::Night agent touched an out-of-scope file: $path"; exit 1 ;;
             esac
           done <<< "$changed"
