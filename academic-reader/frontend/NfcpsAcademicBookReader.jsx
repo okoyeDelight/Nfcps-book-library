@@ -1,6 +1,6 @@
 
 function NfcpsAcademicBookReader({material:l}){
- const[manifest,setManifest]=d.useState(null),[loading,setLoading]=d.useState(!0),[err,setErr]=d.useState(""),[sourcePage,setSourcePage]=d.useState(1),[pages,setPages]=d.useState({}),[fontSize,setFontSize]=d.useState(18),[twoUp,setTwoUp]=d.useState(!1),[subPage,setSubPage]=d.useState(0),[subCount,setSubCount]=d.useState(1),[toolsOpen,setToolsOpen]=d.useState(!1),[tool,setTool]=d.useState("reader"),[study,setStudy]=d.useState(null),[busy,setBusy]=d.useState(!1),[ask,setAsk]=d.useState(""),[selectedQuestion,setSelectedQuestion]=d.useState(null),[questionDetail,setQuestionDetail]=d.useState(null),[questionBusy,setQuestionBusy]=d.useState(!1),[figure,setFigure]=d.useState(null),[figureZoom,setFigureZoom]=d.useState(1),[figurePan,setFigurePan]=d.useState({x:0,y:0}),[figureMode,setFigureMode]=d.useState("explore"),[figureReveal,setFigureReveal]=d.useState(100),[figureSpot,setFigureSpot]=d.useState({x:50,y:50}),[figurePlaying,setFigurePlaying]=d.useState(!1),[conceptStep,setConceptStep]=d.useState(0),[conceptAutoplay,setConceptAutoplay]=d.useState(!1),[plantFocus,setPlantFocus]=d.useState("root"),[plantStage,setPlantStage]=d.useState(100),[plantPlaying,setPlantPlaying]=d.useState(!1),[workProof,setWorkProof]=d.useState(null),[workError,setWorkError]=d.useState(""),[workRefresh,setWorkRefresh]=d.useState(0),[dark,setDark]=d.useState(!1),[retryCounter,setRetryCounter]=d.useState(0),[manifestRetry,setManifestRetry]=d.useState(0),viewportRef=d.useRef(null),columnsRef=d.useRef(null),gestureRef=d.useRef({dist:0,startFont:18,sx:0,sy:0,pinch:!1}),goLastRef=d.useRef(!1),figurePointers=d.useRef(new Map()),figureGesture=d.useRef(null);
+ const[manifest,setManifest]=d.useState(null),[loading,setLoading]=d.useState(!0),[err,setErr]=d.useState(""),[sourcePage,setSourcePage]=d.useState(1),[pages,setPages]=d.useState({}),[fontSize,setFontSize]=d.useState(18),[twoUp,setTwoUp]=d.useState(!1),[subPage,setSubPage]=d.useState(0),[subCount,setSubCount]=d.useState(1),[toolsOpen,setToolsOpen]=d.useState(!1),[tool,setTool]=d.useState("reader"),[study,setStudy]=d.useState(null),[busy,setBusy]=d.useState(!1),[ask,setAsk]=d.useState(""),[selectedQuestion,setSelectedQuestion]=d.useState(null),[questionDetail,setQuestionDetail]=d.useState(null),[questionBusy,setQuestionBusy]=d.useState(!1),[figure,setFigure]=d.useState(null),[figureZoom,setFigureZoom]=d.useState(1),[figurePan,setFigurePan]=d.useState({x:0,y:0}),[figureMode,setFigureMode]=d.useState("explore"),[figureReveal,setFigureReveal]=d.useState(100),[figureSpot,setFigureSpot]=d.useState({x:50,y:50}),[figurePlaying,setFigurePlaying]=d.useState(!1),[conceptStep,setConceptStep]=d.useState(0),[conceptAutoplay,setConceptAutoplay]=d.useState(!1),[plantFocus,setPlantFocus]=d.useState("root"),[plantStage,setPlantStage]=d.useState(100),[plantPlaying,setPlantPlaying]=d.useState(!1),[dark,setDark]=d.useState(!1),[retryCounter,setRetryCounter]=d.useState(0),[manifestRetry,setManifestRetry]=d.useState(0),viewportRef=d.useRef(null),columnsRef=d.useRef(null),gestureRef=d.useRef({dist:0,startFont:18,sx:0,sy:0,pinch:!1}),goLastRef=d.useRef(!1),figurePointers=d.useRef(new Map()),figureGesture=d.useRef(null);
  const PKG="https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-academic-book-package",FLOW="https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-flow-page",LENS="https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-study-lens";
  d.useEffect(()=>{let live=!0;const ctl=new AbortController;setLoading(!0);setErr("");setManifest(null);setSourcePage(1);setPages({});fetch(PKG+"?mode=manifest&material="+encodeURIComponent(l.id),{signal:ctl.signal,cache:"no-store"}).then(async r=>{const x=await r.json();if(!r.ok||!x?.ready)throw new Error(x?.error||"Material unavailable");if(live){setManifest(x);setTwoUp(x.layoutHint==="slides");setFontSize(x.layoutHint==="slides"?17:18);setLoading(!1)}}).catch(e=>{if(e?.name!=="AbortError"&&live){setErr(String(e?.message||e));setLoading(!1)}});return()=>{live=!1;ctl.abort()}},[l.id,manifestRetry]);
  const sourceCount=Math.max(1,Number(manifest?.pageCount||1)),current=Math.max(1,Math.min(sourceCount,sourcePage)),pairEnd=twoUp?Math.min(sourceCount,current+1):current,sourceStep=twoUp?2:1;
@@ -55,18 +55,6 @@ function NfcpsAcademicBookReader({material:l}){
  };
 
  d.useEffect(()=>{
-  if(!l?.id)return;
-  let alive=true;setWorkProof(null);
-  const load=async()=>{
-   try{
-    const r=await fetch("https://fuusztcioodflmgqawyl.supabase.co/functions/v1/nfcps-academic-ceo-live?mode=proof&material="+encodeURIComponent(l.id),{cache:"no-store"});
-    const x=await r.json();if(!r.ok||!x?.ok)throw new Error(x?.error||"No academic work log available");
-    if(alive){setWorkProof(x);setWorkError("")}
-   }catch(e){if(alive)setWorkError(String(e?.message||e))}
-  };
-  load();const poll=setInterval(load,60000);return()=>{alive=false;clearInterval(poll)}
- },[l.id,workRefresh]);
- d.useEffect(()=>{
   if(!figure||!figurePlaying||figureMode!=="reveal")return;
   const timer=setInterval(()=>setFigureReveal(v=>v>=100?5:Math.min(100,v+5)),170);
   return()=>clearInterval(timer);
@@ -116,18 +104,6 @@ function NfcpsAcademicBookReader({material:l}){
    t.jsxs("div",{children:[t.jsx("strong",{children:indicator}),manifest?.courseCode&&t.jsx("small",{children:manifest.courseCode})]}),
    t.jsx("button",{onClick:()=>setToolsOpen(!toolsOpen),children:toolsOpen?"Close":"Reading tools"})
   ]}),
-  workProof&&(workProof.forHandout?.length||workProof.recentActions?.length)&&t.jsxs("div",{
-    style:{padding:"6px 15px",fontSize:"11px",display:"flex",alignItems:"center",gap:"9px",overflow:"hidden",background:dark?"rgba(84,113,157,.22)":"rgba(65,91,132,.075)",color:dark?"#dce5ff":"#304669"},
-    children:[
-     t.jsx("strong",{style:{whiteSpace:"nowrap"},children:"Academic work · source proof"}),
-     t.jsx("span",{style:{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:"1 1 auto"},children:(()=>{
-      const x=(workProof.forHandout||[])[0]||(workProof.recentActions||[])[0];
-      return x?x.level+"L "+String(x.specialist_role||"source inspection").replace(/_/g," ")+
-       " · "+(x.source_kind==="source_page_audit"?"Page count checked":x.progress_state==="assigned"?"Issue assigned":"Source issue detected")+
-       " · "+new Date(x.evidence_at).toLocaleDateString():"No recorded actions";
-     })()}),
-     t.jsx("button",{type:"button",onClick:()=>{setTool("reader");setToolsOpen(true)},style:{padding:"3px 7px",fontSize:"11px",whiteSpace:"nowrap"},children:"Evidence"})
-    ]}),
   t.jsxs("div",{className:"academic-book-viewport",ref:viewportRef,onClick:openFigure,children:[
    loading&&t.jsxs("div",{className:"academic-book-state",children:[t.jsx("strong",{children:"Opening book"}),t.jsx("small",{children:"Preparing the first reader page…"})]}),
    err&&t.jsxs("div",{className:"academic-book-state error",children:[t.jsx("strong",{children:"Could not build this page"}),t.jsx("small",{children:err}),t.jsx("button",{onClick:()=>{setErr("");if(!manifest){setManifestRetry(n=>n+1)}else{setPages(p=>{const n={...p};delete n[current];delete n[pairEnd];return n});setRetryCounter(n=>n+1)}},children:"Try again"})]}),
@@ -174,39 +150,6 @@ function NfcpsAcademicBookReader({material:l}){
      t.jsx("small",{children:"Pinch to change reading size. Tap an original source figure to zoom, pan, spotlight or reveal it. Source diagrams are never redrawn without verified evidence."}),
      manifest?.sourceVisualBase&&t.jsx("button",{type:"button",onClick:openOriginalPage,children:"Explore complete original page · diagrams included"})
     ]}),
-    tool==="reader"&&t.jsxs("section",{className:"academic-book-card",style:{marginTop:"12px"},children:[
-  t.jsxs("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"10px"},children:[
-   t.jsx("strong",{children:"Evidence of Academic agents at work"}),
-   t.jsx("button",{type:"button",onClick:()=>setWorkRefresh(x=>x+1),children:"Refresh"})
-  ]}),
-  t.jsx("small",{children:"Source-linked inspection receipts, not scripted CEO messages. Refreshed each minute from recorded backend actions."}),
-  workError&&t.jsx("p",{role:"status",children:workError}),
-  !workProof&&!workError&&t.jsx("p",{children:"Checking actual source and specialist records…"}),
-  workProof&&t.jsxs("div",{children:[
-   t.jsx("small",{style:{display:"block",margin:"8px 0"},children:(workProof.forHandout||[]).length?"Records for this handout":"Recent Academic records across other handouts"}),
-   ...((workProof.forHandout||[]).length?workProof.forHandout:workProof.recentActions||[]).slice(0,7).map(x=>t.jsxs("div",{
-    style:{borderTop:"1px solid rgba(82,90,90,.19)",padding:"10px 0",display:"flex",flexDirection:"column",gap:"3px"},
-    children:[
-     t.jsx("strong",{style:{fontSize:"13px"},children:x.source_kind==="source_page_audit"?
-      "Verified source page count":x.source_kind==="independent_repair"?
-      "Independently verified repair":"Specialist detected a source issue"}),
-     t.jsx("small",{children:x.level+"-level · "+String(x.material_title||"Handout")+
-       (x.source_page?" · source page "+x.source_page:"")}),
-     t.jsx("small",{children:"Specialist: "+String(x.specialist_role||"Academic inspection").replace(/_/g," ")+
-       " · "+(x.source_kind==="source_page_audit"?"Page range 1–N checked; text/diagrams still need separate review":
-         String(x.action_code||"Observed").replace(/_/g," "))}),
-     t.jsx("small",{children:"Status: "+(x.progress_state==="verified"?"Verified for this check":
-       x.progress_state==="assigned"?"Assigned, not repaired":
-       x.progress_state==="review_required"?"Independent review required":"Detected, not repaired")+
-       " · Evidence "+x.source_kind+" #"+x.source_ref}),
-     x.evidence_at&&t.jsx("small",{children:"Recorded "+new Date(x.evidence_at).toLocaleString()}),
-     x.material_drive_id===l.id&&x.source_page&&t.jsx("button",{
-      type:"button",onClick:()=>{setToolsOpen(!1);goSource(Number(x.source_page))},
-      style:{alignSelf:"flex-start"},children:"Open inspected source page"})
-    ]},x.source_kind+":"+x.source_ref)),
-   t.jsx("small",{children:"A detected issue or an approved task does not count as a fixed page. Every verified repair needs separate academic evidence."})
-  ]})
- ]}),
  tool==="understand"&&t.jsx("div",{children:busy?t.jsx("p",{children:"Understanding this page…"}):study?.error?t.jsx("div",{className:"academic-book-card",children:study.error}):t.jsxs("div",{className:"academic-book-card",children:[t.jsx("strong",{children:guide.primaryTopic||guide.heading||"Current section"}),(guide.focusPoints||[]).map((x,i)=>t.jsx("p",{children:x},i))]})}),
     tool==="understand"&&!restrictedStudy&&sourceConcepts.length>=2&&t.jsxs("section",{className:"academic-book-card",style:{marginTop:"12px",background:dark?"rgba(230,237,255,.09)":"rgba(241,246,255,.95)",color:dark?"#f3f6fb":"#252d37"},children:[
       t.jsx("strong",{children:"Interactive concept map · lecturer's original items"}),
