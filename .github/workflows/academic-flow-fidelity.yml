@@ -30,6 +30,7 @@ jobs:
           node --test academic-reader/supabase/nfcps-flow-page/page-evidence.test.mjs
           node --test academic-reader/agentic-company/study-evidence-contract.test.mjs
           node --test academic-reader/agentic-company/flow-cache-contract.test.mjs
+          node --test academic-reader/agentic-company/bootstrap-source-policy.test.mjs
           node --test academic-reader/agentic-company/five-level-readiness.test.mjs
           node --test academic-reader/agentic-company/academic-quality.test.mjs
           node --test academic-reader/agentic-company/catalogue-fidelity.test.mjs
