@@ -60,6 +60,10 @@ jobs:
           fi
 
           while IFS= read -r path; do
+            if [ "$path" = "academic-reader/agent/tests/test_reader_contract.py" ]; then
+              echo "::error::Core safety-contract tests must not be altered by the night agent"
+              exit 1
+            fi
             case "$path" in
               academic-reader/frontend/*|academic-reader/agent/tests/*.py) ;;
               *) echo "::error::Night agent touched an out-of-scope file: $path"; exit 1 ;;
