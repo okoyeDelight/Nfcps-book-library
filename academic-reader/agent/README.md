@@ -1,27 +1,32 @@
-# Academic Night Agent — staged proposal
+# NFCPS Academic Night Agent — ₦0 API prototype
 
-This folder contains a proposed, review-only nightly coding agent for the **existing** NFCPS One Academic Reader.
+This is a **draft, free-first nightly coding agent** for NFCPS One. It stays in the existing repository and does not touch the live deployment. No paid OpenAI API key, Copilot upgrade, or server subscription is required for this prototype.
 
-The source of product continuity is the root `NFCPS_ONE_MASTER_HANDOFF.md`; the specialised companion is `NFCPS_ACADEMIC_HANDOFF_CURRENT.md`.
+### Stack
 
-## What happens after this proposal is reviewed and merged
+- **GitHub Actions (public repository, standard Ubuntu runner)** — scheduled job; no billed runner minutes under GitHub's public-repository policy.
+- **Ollama + Qwen2.5-Coder:1.5B** — small open-source coding model downloaded and run locally during a job. The model is less capable than a full cloud coding agent.
+- **Python standard library** — issue selection, one exact-string edit, input/output guardrails; no paid libraries or remote inference.
+- **GitHub draft pull requests** — manual review before merging; nothing auto-publishes.
 
-At approximately **01:37 WAT** each day (GitHub Actions cron 00:37 UTC; actual starts may be delayed), the workflow checks the Academic Reader reference source. With a separately configured GitHub Actions repository secret named `OPENAI_API_KEY`, it uses the official `openai/codex-action@v1` to propose **one** narrowly scoped fix. The AI runs without write-access Git credentials in its checkout. A post-run guard rejects changes outside `academic-reader/frontend/` and `academic-reader/agent/tests/`, runs syntax and contract checks, and proposes a **draft pull request** for human review. If no safe change is found, it opens no PR.
+The job is scheduled for 00:37 UTC (01:37 West Africa Time) once the workflow is **merged into `main`**. A draft PR containing the workflow is not running by itself. GitHub scheduled jobs may start late or be skipped under load. The workflow also permits manual dispatch from the Actions tab.
 
-Without the API secret, the scheduled job only performs baseline checks; **it does not run Codex**. The API may incur usage charges and must be budgeted/opted into deliberately. GitHub repository settings may also need **Allow GitHub Actions to create pull requests** enabled. Never put keys in this public repository.
+### What the first edition can actually do
 
-This automation **cannot** autonomously change production. The deployed Academic Reader currently depends on Supabase/Vercel asset patching, and the `nfcps-flow-page` source is not mirrored in the expected path. Fixing real production problems will require a separate, traceable source-of-truth restoration and deployment workflow, with installed-app validation.
+It reads the master and Academic continuity files, tries one of a few low-risk known issues (stale page error, previous/next button labels), asks the local model for a minimal replacement, rejects unexpected code, runs static checks, and opens a separate **draft PR** when a proposal survives. When no eligible issue remains, it stops.
 
-## Required safeguards before activating
+This is **not** a fully independent autonomous software engineer. It does not invent new repair missions, guarantee a correct code fix, inspect mobile screenshots, verify exam-content fidelity, or patch live Vercel/Supabase functions. It will not make the entire Academic Reader correct overnight just because it runs every night.
 
-- Review and approve this draft PR, including scope and cost controls.
-- Use a tightly budgeted API key stored only in GitHub Actions secrets; consider repo environments and manual approvals where available.
-- Protect `main`, prohibit workflow-driven auto-merge and production publish, and require code review.
-- Restore/build a full local test harness (Deno/TypeScript backend, reader component, browser/mobile smoke tests) before granting more autonomy.
-- Add representative fixtures: prose; PDF; DOCX; PPTX/slides; diagrams; tables/equations; scan; long document; 200–500 level materials; nested folders; slow/offline network.
-- Check Vercel's two exact live JS/CSS routes before any deployment and rerun regression checks across Auth, Watch, Movies, Family, Publish, and Android.
-- When a meaningful architecture change reaches production, update the canonical master handoff **in the same work session**.
+### Activation and safety
 
-## Limits of this first version
+1. Review [PR #3](https://github.com/okoyeDelight/Nfcps-book-library/pull/3).
+2. Keep `main` protected and draft PRs subject to human review. If repository settings prohibit Actions from creating PRs, allow that specifically.
+3. After merging, run the workflow manually once and inspect runtime logs/diffs before trusting its nightly schedule.
+4. Check GitHub usage settings to prevent unexpected charges from any **other** nonstandard runner or paid service. This workflow uses only a standard public runner and a local free model.
+5. Verify actual browser/mobile behavior and regression-test the installed app before any release. Production still depends on the separate patched-asset bridge.
 
-Its tests are simple baseline guards, **not proof of a working production reader**. It must not claim performance, visual fidelity, content completeness, OCR, API readiness, production parity, or security are verified. Start with draft PRs, not self-deploying agents.
+### Next investment of engineering effort (not money)
+
+Build deterministic semantic extraction tests (text/figures/tables/equations/pagination), replay representative PDF/DOCX/PPTX and scan fixtures, and reconnect the reader's clean source to a normal deploy. That creates reliable tasks for a more useful free agent.
+
+The primary source of continuity is `NFCPS_ONE_MASTER_HANDOFF.md`. Update it after real architectural or production changes.
