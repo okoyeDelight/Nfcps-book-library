@@ -1,4 +1,4 @@
--- Public CEO status summary, no student details or private meeting text.
+-- Internal Academic CEO aggregate; no public CEO dashboard or worker feed.
 -- Source feed is read-only and refreshed by the private Academic company cycle.
 CREATE TABLE IF NOT EXISTS public.nfcps_academic_ceo_feed (
  level integer PRIMARY KEY CHECK(level IN(100,200,300,400,500)),
@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS public.nfcps_academic_ceo_feed (
 );
 ALTER TABLE public.nfcps_academic_ceo_feed ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.nfcps_academic_ceo_feed FROM PUBLIC,anon,authenticated;
-GRANT SELECT ON public.nfcps_academic_ceo_feed TO anon,authenticated;
+-- No public SELECT: organisational evidence stays backend-only.
 DROP POLICY IF EXISTS read_academic_ceo_summary ON public.nfcps_academic_ceo_feed;
-CREATE POLICY read_academic_ceo_summary ON public.nfcps_academic_ceo_feed FOR SELECT TO anon,authenticated USING(true);
+-- No SELECT policy: UI sees only user-facing Academic learning outcomes.
 
 CREATE OR REPLACE FUNCTION nfcps_agent_ops.publish_ceo_feed()
  RETURNS jsonb
