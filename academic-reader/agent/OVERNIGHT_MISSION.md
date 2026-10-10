@@ -1,4 +1,4 @@
-# NFCPS Academic Night Agent — free prototype, protected mission
+# NFCPS Academic Continuous Agent — free prototype, protected mission
 
 This repository holds an existing NFCPS One app and an Academic Reader **source mirror**, not a complete normal deployment source tree.
 
@@ -9,7 +9,7 @@ Before any engineering change, read:
 
 ## Phase-1 mission: deliberately small
 
-This edition uses **Ollama + Qwen2.5-Coder 1.5B locally on a standard public GitHub Actions runner**. It does not require `OPENAI_API_KEY` or a Copilot subscription.
+This edition uses **Ollama + Qwen2.5-Coder 1.5B locally on a standard public GitHub Actions runner**, checking the repository every 15 minutes but only loading the model when a known issue remains and no existing agent PR awaits human review. It does not require `OPENAI_API_KEY` or a Copilot subscription.
 
 The free model can propose exactly one replacement snippet for a **pre-reviewed issue** in `academic-reader/frontend/NfcpsAcademicBookReader.jsx`. The Python driver controls what code is in scope and refuses responses that do not exactly reproduce the original snippet or introduce suspicious capabilities.
 
